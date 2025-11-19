@@ -272,6 +272,7 @@ def create_html_report(page_title, current_period_str, previous_period_str, df_b
         .table-responsive {{ max-height: 500px; overflow-y: auto; }}
         h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: 0.5rem; margin-top: 2rem; }}
         footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
+        .table thead th { text-align: center; }
     </style>
 </head>
 <body>
