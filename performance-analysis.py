@@ -211,11 +211,27 @@ def main():
     # Identify low CTR opportunities (high impressions, low CTR)
     # Thresholds: at least 1000 impressions and CTR < 1%
     low_ctr_threshold_impressions = 1000
-    low_ctr_threshold_ctr = 0.01 
+    low_ctr_threshold_ctr = 0.01
     df_low_ctr = df_current[
         (df_current['impressions_current'] >= low_ctr_threshold_impressions) &
         (df_current['ctr_current'] < low_ctr_threshold_ctr)
     ].sort_values(by='impressions_current', ascending=False).head(20)
+
+    # Identify Rising Stars
+    rising_stars_prev_impressions_max = 50
+    rising_stars_curr_impressions_min = 500
+    df_rising_stars = df_merged[
+        (df_merged['impressions_previous'] < rising_stars_prev_impressions_max) &
+        (df_merged['impressions_current'] >= rising_stars_curr_impressions_min)
+    ].sort_values(by='impressions_current', ascending=False).head(20)
+
+    # Identify Falling Stars
+    falling_stars_prev_clicks_min = 500
+    falling_stars_curr_clicks_max = 50
+    df_falling_stars = df_merged[
+        (df_merged['clicks_previous'] >= falling_stars_prev_clicks_min) &
+        (df_merged['clicks_current'] < falling_stars_curr_clicks_max)
+    ].sort_values(by='clicks_delta', ascending=True).head(20)
 
     # --- Output Generation ---
     if site_url.startswith('sc-domain:'):
@@ -243,14 +259,16 @@ def main():
         previous_period_str=f"{previous_start_date} to {previous_end_date}",
         df_best=df_best,
         df_worst=df_worst,
-        df_low_ctr=df_low_ctr
+        df_low_ctr=df_low_ctr,
+        df_rising_stars=df_rising_stars,
+        df_falling_stars=df_falling_stars
     )
     with open(html_output_path, 'w', encoding='utf-8') as f:
         f.write(html_output)
     print(f"Successfully created HTML report at {html_output_path}")
 
 
-def create_html_report(page_title, current_period_str, previous_period_str, df_best, df_worst, df_low_ctr):
+def create_html_report(page_title, current_period_str, previous_period_str, df_best, df_worst, df_low_ctr, df_rising_stars, df_falling_stars):
     """Generates an HTML report from the analysis dataframes."""
     
     # Helper to convert dataframe to HTML table with Bootstrap classes
@@ -290,6 +308,18 @@ def create_html_report(page_title, current_period_str, previous_period_str, df_b
         <p class="text-muted">These pages have lost the most clicks. Investigate whether this is due to content decay, seasonality, or new competition.</p>
         <div class="table-responsive">
             {df_to_html(df_worst, 'table-worst')}
+        </div>
+        
+        <h2>Rising Stars</h2>
+        <p class="text-muted">Pages with minimal previous visibility that are now gaining significant impressions. These may be new content pieces or topics gaining traction.</p>
+        <div class="table-responsive">
+            {df_to_html(df_rising_stars, 'table-rising')}
+        </div>
+
+        <h2>Falling Stars</h2>
+        <p class="text-muted">Previously strong pages that have experienced a dramatic drop in clicks. These require urgent attention to diagnose the cause of the decline.</p>
+        <div class="table-responsive">
+            {df_to_html(df_falling_stars, 'table-falling')}
         </div>
 
         <h2>High Impressions, Low CTR Opportunities</h2>

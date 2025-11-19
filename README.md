@@ -134,6 +134,8 @@ The script generates two files in the `output/<hostname>` directory:
 2.  **`performance-report-[...].html`**: An HTML report that provides a summary of the analysis, with tables for:
     *   Best Performing Content (by change in clicks)
     *   Worst Performing Content (by change in clicks)
+    *   Rising Stars (newly visible pages)
+    *   Falling Stars (pages with a dramatic drop in traffic)
     *   High Impressions, Low CTR Opportunities
 
 The HTML report also contains a link in the footer to a detailed guide on how to interpret the data, located at `resources/how-to-read-the-performance-analysis-report.html`.
