@@ -280,17 +280,19 @@ def create_html_report(page_title, current_period_str, previous_period_str, df_b
         <p class="text-muted">Current Period: {current_period_str} | Previous Period: {previous_period_str}</p>
 
         <h2>Best Performing Content (by Clicks Change)</h2>
+        <p class="text-muted">These pages have seen the largest increase in clicks. Analyse them to understand what is working well.</p>
         <div class="table-responsive">
             {df_to_html(df_best, 'table-best')}
         </div>
 
         <h2>Worst Performing Content (by Clicks Change)</h2>
+        <p class="text-muted">These pages have lost the most clicks. Investigate whether this is due to content decay, seasonality, or new competition.</p>
         <div class="table-responsive">
             {df_to_html(df_worst, 'table-worst')}
         </div>
 
         <h2>High Impressions, Low CTR Opportunities</h2>
-        <p>Pages with over 1,000 impressions and under 1% CTR in the current period.</p>
+        <p class="text-muted">These pages are good candidates for title and meta description optimisation to improve their Click-Through Rate (CTR).</p>
         <div class="table-responsive">
             {df_to_html(df_low_ctr, 'table-low-ctr')}
         </div>
