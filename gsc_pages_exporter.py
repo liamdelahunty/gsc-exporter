@@ -105,7 +105,7 @@ def create_html_page(urls, page_title, num_columns, start_date, end_date, num_li
 def main():
     """Main function to run the page exporter and generate CSV and HTML."""
     parser = argparse.ArgumentParser(description='Export Google Search Console pages to CSV and HTML.')
-    parser.add_argument('site_url', help='The URL of the site to export pages for.')
+    parser.add_argument('site_url', help='The URL of the site to export pages for.\nUse sc-domain: for the property.')
     
     # Create a mutually exclusive group for date range options
     date_group = parser.add_mutually_exclusive_group()
