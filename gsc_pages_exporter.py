@@ -130,6 +130,14 @@ def main():
     
     today = date.today()
 
+    # Set default date range if none is chosen
+    if not any([
+        args.start_date, args.last_24_hours, args.last_7_days, args.last_28_days,
+        args.last_month, args.last_quarter, args.last_3_months,
+        args.last_6_months, args.last_12_months, args.last_16_months
+    ]):
+        args.last_month = True
+
     # Determine the date range based on the provided flags
     if args.start_date and args.end_date:
         start_date = args.start_date
@@ -163,13 +171,6 @@ def main():
     elif args.last_16_months:
         start_date = (today - relativedelta(months=16)).strftime('%Y-%m-%d')
         end_date = today.strftime('%Y-%m-%d')
-    # Set default date range if none is chosen
-    if not any([
-        args.start_date, args.last_24_hours, args.last_7_days, args.last_28_days,
-        args.last_month, args.last_quarter, args.last_3_months,
-        args.last_6_months, args.last_12_months, args.last_16_months
-    ]):
-        args.last_month = True
 
     service = get_gsc_service()
     if not service:
@@ -195,17 +196,22 @@ def main():
         csv_file_name = f"gsc-pages-{host_for_filename}-{start_date}-to-{end_date}.csv"
         csv_output_path = os.path.join(output_dir, csv_file_name)
         
-        df = pd.DataFrame(sorted_pages, columns=['Page'])
-        df.to_csv(csv_output_path, index=False)
-        print(f"Successfully exported CSV to {csv_output_path}")
+        try:
+            df = pd.DataFrame(sorted_pages, columns=['Page'])
+            df.to_csv(csv_output_path, index=False)
+            print(f"Successfully exported CSV to {csv_output_path}")
 
-        html_file_name = f"{host_for_filename}-links-{start_date}-to-{end_date}.html"
-        html_output_path = os.path.join(output_dir, html_file_name)
-        
-        html_output = create_html_page(sorted_pages, f"Links for {host_dir}", NUM_COLUMNS, start_date, end_date, num_links)
-        with open(html_output_path, 'w', encoding='utf-8') as f:
-            f.write(html_output)
-        print(f"Successfully created HTML page at {html_output_path}")
+            html_file_name = f"{host_for_filename}-links-{start_date}-to-{end_date}.html"
+            html_output_path = os.path.join(output_dir, html_file_name)
+            
+            html_output = create_html_page(sorted_pages, f"Links for {host_dir}", NUM_COLUMNS, start_date, end_date, num_links)
+            with open(html_output_path, 'w', encoding='utf-8') as f:
+                f.write(html_output)
+            print(f"Successfully created HTML page at {html_output_path}")
+        except PermissionError:
+            print(f"\nError: Permission denied when trying to write to the output directory.")
+            print(f"Please make sure you have write permissions for the directory: {output_dir}")
+            print(f"Also, check if the file is already open in another program: {csv_file_name} or {html_file_name}")
     else:
         print("No pages found for the given site and date range.")
 

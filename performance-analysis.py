@@ -306,28 +306,33 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     host_for_filename = host_dir.replace('.', '-')
 
-    # Save detailed comparison to CSV
-    csv_file_name = f"performance-comparison-{host_for_filename}-{period_label}-{current_start_date}-to-{current_end_date}.csv"
-    csv_output_path = os.path.join(output_dir, csv_file_name)
-    df_merged.to_csv(csv_output_path, index=False, encoding='utf-8')
-    print(f"\nSuccessfully exported comparison data to {csv_output_path}")
+    try:
+        # Save detailed comparison to CSV
+        csv_file_name = f"performance-comparison-{host_for_filename}-{period_label}-{current_start_date}-to-{current_end_date}.csv"
+        csv_output_path = os.path.join(output_dir, csv_file_name)
+        df_merged.to_csv(csv_output_path, index=False, encoding='utf-8')
+        print(f"\nSuccessfully exported comparison data to {csv_output_path}")
 
-    # Generate and save HTML report
-    html_file_name = f"performance-report-{host_for_filename}-{period_label}-{current_start_date}-to-{current_end_date}.html"
-    html_output_path = os.path.join(output_dir, html_file_name)
-    html_output = create_html_report(
-        page_title=f"Performance Analysis for {host_dir}",
-        current_period_str=f"{current_start_date} to {current_end_date}",
-        previous_period_str=f"{previous_start_date} to {previous_end_date}",
-        df_best=df_best,
-        df_worst=df_worst,
-        df_low_ctr=df_low_ctr,
-        df_rising_stars=df_rising_stars,
-        df_falling_stars=df_falling_stars
-    )
-    with open(html_output_path, 'w', encoding='utf-8') as f:
-        f.write(html_output)
-    print(f"Successfully created HTML report at {html_output_path}")
+        # Generate and save HTML report
+        html_file_name = f"performance-report-{host_for_filename}-{period_label}-{current_start_date}-to-{current_end_date}.html"
+        html_output_path = os.path.join(output_dir, html_file_name)
+        html_output = create_html_report(
+            page_title=f"Performance Analysis for {host_dir}",
+            current_period_str=f"{current_start_date} to {current_end_date}",
+            previous_period_str=f"{previous_start_date} to {previous_end_date}",
+            df_best=df_best,
+            df_worst=df_worst,
+            df_low_ctr=df_low_ctr,
+            df_rising_stars=df_rising_stars,
+            df_falling_stars=df_falling_stars
+        )
+        with open(html_output_path, 'w', encoding='utf-8') as f:
+            f.write(html_output)
+        print(f"Successfully created HTML report at {html_output_path}")
+    except PermissionError:
+        print(f"\nError: Permission denied when trying to write to the output directory.")
+        print(f"Please make sure you have write permissions for the directory: {output_dir}")
+        print(f"Also, check if the file is already open in another program: {csv_file_name} or {html_file_name}")
 
 
 def create_html_report(page_title, current_period_str, previous_period_str, df_best, df_worst, df_low_ctr, df_rising_stars, df_falling_stars):

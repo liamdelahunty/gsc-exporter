@@ -232,27 +232,32 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     host_for_filename = host_dir.replace('.', '-')
 
-    # Save detailed page data to CSV
-    csv_file_name = f"snapshot-pages-{host_for_filename}-{period_label}-{start_date}-to-{end_date}.csv"
-    csv_output_path = os.path.join(output_dir, csv_file_name)
-    df_pages.to_csv(csv_output_path, index=False, encoding='utf-8')
-    print(f"\nSuccessfully exported page data to {csv_output_path}")
+    try:
+        # Save detailed page data to CSV
+        csv_file_name = f"snapshot-pages-{host_for_filename}-{period_label}-{start_date}-to-{end_date}.csv"
+        csv_output_path = os.path.join(output_dir, csv_file_name)
+        df_pages.to_csv(csv_output_path, index=False, encoding='utf-8')
+        print(f"\nSuccessfully exported page data to {csv_output_path}")
 
-    # Generate and save HTML report
-    html_file_name = f"snapshot-report-{host_for_filename}-{period_label}-{start_date}-to-{end_date}.html"
-    html_output_path = os.path.join(output_dir, html_file_name)
-    html_output = create_snapshot_html_report(
-        page_title=f"Performance Snapshot for {host_dir}",
-        period_str=f"{start_date} to {end_date}",
-        df_top_clicks=df_top_clicks,
-        df_top_impressions=df_top_impressions,
-        df_low_ctr=df_low_ctr,
-        df_devices=df_devices,
-        df_countries=df_countries
-    )
-    with open(html_output_path, 'w', encoding='utf-8') as f:
-        f.write(html_output)
-    print(f"Successfully created HTML report at {html_output_path}")
+        # Generate and save HTML report
+        html_file_name = f"snapshot-report-{host_for_filename}-{period_label}-{start_date}-to-{end_date}.html"
+        html_output_path = os.path.join(output_dir, html_file_name)
+        html_output = create_snapshot_html_report(
+            page_title=f"Performance Snapshot for {host_dir}",
+            period_str=f"{start_date} to {end_date}",
+            df_top_clicks=df_top_clicks,
+            df_top_impressions=df_top_impressions,
+            df_low_ctr=df_low_ctr,
+            df_devices=df_devices,
+            df_countries=df_countries
+        )
+        with open(html_output_path, 'w', encoding='utf-8') as f:
+            f.write(html_output)
+        print(f"Successfully created HTML report at {html_output_path}")
+    except PermissionError:
+        print(f"\nError: Permission denied when trying to write to the output directory.")
+        print(f"Please make sure you have write permissions for the directory: {output_dir}")
+        print(f"Also, check if the file is already open in another program: {csv_file_name} or {html_file_name}")
 
 
 def create_snapshot_html_report(page_title, period_str, df_top_clicks, df_top_impressions, df_low_ctr, df_devices, df_countries):
