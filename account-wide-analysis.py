@@ -76,8 +76,24 @@ def get_monthly_performance_data(service, site_url, start_date, end_date):
         print(f"An unexpected error occurred for site {site_url} from {start_date} to {end_date}: {e}")
     return None
 
-def create_html_report(df):
+def create_html_report(df, sites):
     """Generates an HTML report from the analysis dataframe."""
+    
+    # Generate the index of sites
+    index_html = '<ul>'
+    for site in sites:
+        site_id = site.replace(':', '').replace('/', '').replace('.', '-')
+        index_html += f'<li><a href="#{site_id}">{site}</a></li>'
+    index_html += '</ul>'
+
+    # Generate the tables for each site
+    tables_html = ''
+    for site in sites:
+        site_id = site.replace(':', '').replace('/', '').replace('.', '-')
+        site_df = df[df['site_url'] == site]
+        tables_html += f'<h2 id="{site_id}" class="mt-5">{site}</h2>'
+        tables_html += site_df.to_html(classes="table table-striped table-hover", index=False, border=0)
+
     html_template = f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -89,7 +105,7 @@ def create_html_report(df):
     <style>
         body {{ padding: 2rem; }}
         .table-responsive {{ max-height: 800px; overflow-y: auto; }}
-        h1 {{ border-bottom: 2px solid #dee2e6; padding-bottom: 0.5rem; margin-top: 2rem; }}
+        h1, h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: 0.5rem; margin-top: 2rem; }}
         footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
         .table thead th {{ text-align: center; }}
     </style>
@@ -97,9 +113,9 @@ def create_html_report(df):
 <body>
     <div class="container-fluid">
         <h1 class="mb-3">Account-Wide GSC Performance Report</h1>
-        <div class="table-responsive">
-            {df.to_html(classes="table table-striped table-hover", index=False, border=0)}
-        </div>
+        <h2>Index</h2>
+        {index_html}
+        {tables_html}
     </div>
     <footer>
         <p><a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p>
@@ -123,7 +139,9 @@ def main():
     all_data = []
     today = date.today()
     
-    for site_url in sites:
+    sorted_sites = sorted(sites)
+    
+    for site_url in sorted_sites:
         print(f"\nFetching data for site: {site_url}")
         for i in range(1, 17):
             end_of_month = today.replace(day=1) - relativedelta(months=i-1) - timedelta(days=1)
@@ -150,29 +168,35 @@ def main():
         
     df = pd.DataFrame(all_data)
     
-    # Format the dataframe for better readability
-    df['ctr'] = df['ctr'].apply(lambda x: f"{x:.2%}")
-    df['position'] = df['position'].apply(lambda x: f"{x:.2f}")
-
     output_dir = 'output'
     os.makedirs(output_dir, exist_ok=True)
     
-    # Get the most recent month for the filename
     most_recent_month = (today.replace(day=1) - timedelta(days=1)).strftime('%Y-%m')
 
-    # Save to CSV
     csv_file_name = f'account-wide-performance-{most_recent_month}.csv'
     csv_output_path = os.path.join(output_dir, csv_file_name)
-    df.to_csv(csv_output_path, index=False)
-    print(f"\nSuccessfully exported CSV to {csv_output_path}")
 
-    # Generate and save HTML report
     html_file_name = f'account-wide-performance-{most_recent_month}.html'
     html_output_path = os.path.join(output_dir, html_file_name)
-    html_output = create_html_report(df)
-    with open(html_output_path, 'w', encoding='utf-8') as f:
-        f.write(html_output)
-    print(f"Successfully created HTML report at {html_output_path}")
+    
+    try:
+        # Save the raw data to CSV before formatting for HTML
+        df.to_csv(csv_output_path, index=False)
+        print(f"\nSuccessfully exported CSV to {csv_output_path}")
+
+        # Format the dataframe for better readability in HTML
+        df['ctr'] = df['ctr'].apply(lambda x: f"{x:.2%}")
+        df['position'] = df['position'].apply(lambda x: f"{x:.2f}")
+
+        # Generate and save HTML report
+        html_output = create_html_report(df, sorted_sites)
+        with open(html_output_path, 'w', encoding='utf-8') as f:
+            f.write(html_output)
+        print(f"Successfully created HTML report at {html_output_path}")
+    except PermissionError:
+        print(f"\nError: Permission denied when trying to write to the output directory.")
+        print(f"Please make sure you have write permissions for the directory: {output_dir}")
+        print(f"Also, check if the file is already open in another program: {csv_file_name} or {html_file_name}")
 
 if __name__ == '__main__':
     main()
