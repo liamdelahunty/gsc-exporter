@@ -196,13 +196,13 @@ def main():
         csv_file_name = f"gsc-pages-{host_for_filename}-{start_date}-to-{end_date}.csv"
         csv_output_path = os.path.join(output_dir, csv_file_name)
         
+        html_file_name = f"{host_for_filename}-links-{start_date}-to-{end_date}.html"
+        html_output_path = os.path.join(output_dir, html_file_name)
         try:
             df = pd.DataFrame(sorted_pages, columns=['Page'])
             df.to_csv(csv_output_path, index=False)
             print(f"Successfully exported CSV to {csv_output_path}")
 
-            html_file_name = f"{host_for_filename}-links-{start_date}-to-{end_date}.html"
-            html_output_path = os.path.join(output_dir, html_file_name)
             
             html_output = create_html_page(sorted_pages, f"Links for {host_dir}", NUM_COLUMNS, start_date, end_date, num_links)
             with open(html_output_path, 'w', encoding='utf-8') as f:

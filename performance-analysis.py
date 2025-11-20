@@ -100,8 +100,6 @@ def main():
     parser = argparse.ArgumentParser(description='Analyze Google Search Console performance data.')
     parser.add_argument('site_url', help='The URL of the site to analyze. Use sc-domain: for a domain property.')
 
-    parser.add_argument('site_url', help='The URL of the site to analyze. Use sc-domain: for a domain property.')
-
     date_group = parser.add_mutually_exclusive_group()
     date_group.add_argument('--start-date', help='Start date in YYYY-MM-DD format for the current period.')
     date_group.add_argument('--last-24-hours', action='store_true', help='Compare the last 24 hours to the previous 24 hours.')
@@ -306,16 +304,17 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     host_for_filename = host_dir.replace('.', '-')
 
+    csv_file_name = f"performance-comparison-{host_for_filename}-{period_label}-{current_start_date}-to-{current_end_date}.csv"
+    csv_output_path = os.path.join(output_dir, csv_file_name)
+
+    html_file_name = f"performance-report-{host_for_filename}-{period_label}-{current_start_date}-to-{current_end_date}.html"
+    html_output_path = os.path.join(output_dir, html_file_name)
     try:
         # Save detailed comparison to CSV
-        csv_file_name = f"performance-comparison-{host_for_filename}-{period_label}-{current_start_date}-to-{current_end_date}.csv"
-        csv_output_path = os.path.join(output_dir, csv_file_name)
         df_merged.to_csv(csv_output_path, index=False, encoding='utf-8')
         print(f"\nSuccessfully exported comparison data to {csv_output_path}")
 
         # Generate and save HTML report
-        html_file_name = f"performance-report-{host_for_filename}-{period_label}-{current_start_date}-to-{current_end_date}.html"
-        html_output_path = os.path.join(output_dir, html_file_name)
         html_output = create_html_report(
             page_title=f"Performance Analysis for {host_dir}",
             current_period_str=f"{current_start_date} to {current_end_date}",
