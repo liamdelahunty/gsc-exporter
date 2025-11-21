@@ -219,3 +219,35 @@ The script generates two files in the `output/<hostname>` directory:
 
 The HTML report also contains a link in the footer to a detailed guide on how to interpret the data, located at `resources/how-to-read-the-snapshot-report.html`.
 
+---
+
+## Account-Wide Analysis
+
+The `account-wide-analysis.py` script provides a comprehensive overview of your Google Search Console performance across all properties in your account. It fetches key performance metrics (clicks, impressions, CTR, average position) for each complete calendar month over the last 16 months for every site you have access to.
+
+### Usage
+
+Run the script from the command line:
+
+```bash
+python account-wide-analysis.py
+```
+
+### Output
+
+The script generates two files in the `output/` directory:
+
+1.  **`account-wide-performance-[...].csv`**: A CSV file containing the monthly performance data for all sites.
+2.  **`account-wide-performance-[...].html`**: An HTML report that summarises the monthly performance data for all sites.
+
+The HTML report is structured to provide an easy-to-navigate overview:
+
+*   **Interactive Index**: At the top of the report, an index lists all analysed sites. Each entry is a clickable link that navigates directly to the corresponding site's data section.
+*   **Structured by Site**: The main data sections are separated for each site, rather than presented as one large table.
+*   **Intelligent Sorting**: Both the index and the individual site sections are sorted according to the following hierarchy:
+    1.  **Primary Sort**: Alphabetical order based on the root domain (e.g., `croneri.co.uk`).
+    2.  **Secondary Sort**: Within each root domain, properties are sorted by subdomain with special prioritisation:
+        *   `sc-domain:` properties are listed first.
+        *   `www.` versions of the root domain are listed second.
+        *   All other subdomains are listed alphabetically.
+
