@@ -95,10 +95,9 @@ def get_monthly_query_data(service, site_url, start_date, end_date):
 def process_query_data_into_position_distribution(query_data):
     """
     Processes raw query data into aggregated clicks and impressions for predefined position ranges.
-    Position ranges: 0, 1-3, 4-10, 11-20, 21+
+    Position ranges: 1-3, 4-10, 11-20, 21+
     """
     distribution = {
-        'clicks_pos_0': 0, 'impressions_pos_0': 0, # New bucket for position 0
         'clicks_pos_1_3': 0, 'impressions_pos_1_3': 0,
         'clicks_pos_4_10': 0, 'impressions_pos_4_10': 0,
         'clicks_pos_11_20': 0, 'impressions_pos_11_20': 0,
@@ -111,13 +110,13 @@ def process_query_data_into_position_distribution(query_data):
         impressions = row.get('impressions', 0)
         position = row.get('position', 0)
 
-        distribution['total_clicks'] += clicks
-        distribution['total_impressions'] += impressions
+        # Only sum to total_clicks/impressions if position is within a defined bucket (1 or greater)
+        # This will ensure total_clicks equals the sum of the buckets.
+        if position >= 1:
+            distribution['total_clicks'] += clicks
+            distribution['total_impressions'] += impressions
 
-        if position == 0: # Handle position 0 explicitly
-            distribution['clicks_pos_0'] += clicks
-            distribution['impressions_pos_0'] += impressions
-        elif 1 <= position <= 3:
+        if 1 <= position <= 3:
             distribution['clicks_pos_1_3'] += clicks
             distribution['impressions_pos_1_3'] += impressions
         elif 4 <= position <= 10:
@@ -300,7 +299,6 @@ def main():
     # Define the desired column order for CSV
     csv_column_order = [
         'site_url', 'month',
-        'clicks_pos_0', 'impressions_pos_0', # Added
         'clicks_pos_1_3', 'impressions_pos_1_3',
         'clicks_pos_4_10', 'impressions_pos_4_10',
         'clicks_pos_11_20', 'impressions_pos_11_20',
