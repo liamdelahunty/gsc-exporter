@@ -85,10 +85,29 @@ def create_html_report(df, sorted_sites):
     
     # Generate the index of sites
     index_html = '<ul>'
+    current_root_domain = None
     for site in sorted_sites:
+        root_domain, order, subdomain = get_sort_key(site)
+        
+        # Determine if we need a new root domain heading
+        if root_domain != current_root_domain:
+            if current_root_domain is not None:
+                index_html += '</ul></li>' # Close previous root domain's ul and li
+            index_html += f'<li><strong>{root_domain}</strong><ul>' # Open new root domain's li and ul
+            current_root_domain = root_domain
+
         # Create a URL-friendly anchor link
         anchor = site.replace('https://', '').replace('http://', '').replace(':', '-').replace('/', '-').replace('.', '-')
-        index_html += f'<li><a href="#{anchor}">{site}</a></li>'
+        
+        if order == 0 or order == 1: # sc-domain or www
+            # These are top-level within their root domain group
+            index_html += f'<li><a href="#{anchor}">{site}</a></li>'
+        else:
+            # Other subdomains are indented
+            index_html += f'<li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#{anchor}">{site}</a></li>'
+            
+    if current_root_domain is not None:
+        index_html += '</ul></li>' # Close the last root domain's ul and li
     index_html += '</ul>'
 
     # Generate the individual site sections
@@ -112,7 +131,7 @@ def create_html_report(df, sorted_sites):
 </head>
 <body>
     <div class="container-fluid">
-        <h1 class="mb-3">Account-Wide GSC Performance Report</h1>
+        <h1 class="mb-3" id="top">Account-Wide GSC Performance Report</h1>
         <h2>Index</h2>
         {index_html}
         {site_sections_html}
@@ -138,8 +157,10 @@ def generate_site_sections(df, sorted_sites):
             sections_html += '<div class="table-responsive">'
             sections_html += site_df.to_html(classes="table table-striped table-hover", index=False, border=0)
             sections_html += '</div>'
+            sections_html += '<p><a href="#top">Back to Top</a></p>' # Added "Back to Top" link
         else:
             sections_html += '<p>No data available for this site.</p>'
+            sections_html += '<p><a href="#top">Back to Top</a></p>' # Added "Back to Top" link
             
     return sections_html
 
