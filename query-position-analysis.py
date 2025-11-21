@@ -324,18 +324,6 @@ def main():
         # Create a deep copy for HTML formatting
         html_df = df.copy()
 
-        # Define the desired column order for HTML (excluding 'site_url' as it's used as a heading)
-        html_column_order = [
-            'month',
-            'clicks_pos_1_3', 'impressions_pos_1_3',
-            'clicks_pos_4_10', 'impressions_pos_4_10',
-            'clicks_pos_11_20', 'impressions_pos_11_20',
-            'clicks_pos_21_plus', 'impressions_pos_21_plus',
-            'total_clicks', 'total_impressions'
-        ]
-        # Reindex the HTML DataFrame to ensure the desired column order
-        html_df = html_df.reindex(columns=html_column_order)
-
         # Generate and save HTML report
         html_output = create_html_report(html_df, sites)
         with open(html_output_path, 'w', encoding='utf-8') as f:
