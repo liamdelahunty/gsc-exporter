@@ -189,8 +189,7 @@ def create_html_report(df, sorted_sites):
     </div>
     <footer>
         <p>
-            <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a> | 
-            <a href="../resources/how-to-read-the-query-position-report.html" target="_blank">How to Read this Report</a>
+            <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a>
         </p>
     </footer>
 </body>
