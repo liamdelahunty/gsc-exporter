@@ -43,11 +43,12 @@ The first time you run any of these scripts, a new tab will open in your web bro
 This suite includes several scripts for different types of analysis:
 
 *   [gsc_pages_exporter.py](#gsc-pages-exporter)
-*   [performance-analysis.py](#performance-analysis)
-*   [snapshot-report.py](#performance-snapshot)
+*   [gsc-pages-queries.py](#gsc-pages-queries.py)
 *   [key-performance-metrics.py](#key-performance-metrics)
+*   [performance-analysis.py](#performance-analysis)
 *   [queries-pages-analysis.py](#queries-pages-analysis)
 *   [query-position-analysis.py](#query-position-distribution-analysis)
+*   [snapshot-report.py](#snapshot-report.py)
 
 ---
 
@@ -68,6 +69,34 @@ python gsc_pages_exporter.py <site_url> [date_range_option]
 ### Output
 
 Generates a CSV and an HTML file containing a list of all URLs found in the specified period, saved to the `output/<hostname>/` directory.
+
+---
+
+## performance-analysis.py
+
+Fetches and compares key performance metrics (clicks, impressions, CTR, position) between two time periods to identify trends and optimization opportunities.
+
+### Usage
+
+=======
+## gsc-pages-queries.py
+
+Generates a detailed report showing the relationship between queries and the pages they drive traffic to, and vice-versa.
+
+### Usage
+
+```bash
+python gsc-pages-queries.py <site_url> [date_range_option]
+```
+
+*   `<site_url>`: (Required) The full URL of the site property or a domain property.
+*   **Date Range Options**: Includes `--last-7-days`, `--last-28-days`, and `--last-month`. Defaults to the last 28 days.
+
+### Output
+
+Generates an interactive HTML report in `output/<hostname>/`. The report has two tabs:
+1.  **Queries to Pages**: An accordion list of all queries. Each query can be expanded to show the specific pages it sends traffic to, along with clicks, impressions, CTR, and position for each page.
+2.  **Pages to Queries**: An accordion list of all pages. Each page can be expanded to show the queries that drive traffic to it.
 
 ---
 
