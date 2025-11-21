@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Read the Queries & Pages Analysis Report</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 2rem; }
+        h1, h2 { border-bottom: 2px solid #dee2e6; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+        footer { margin-top: 3rem; text-align: center; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>How to Read the Queries & Pages Analysis Report</h1>
+        <p class="lead">This report builds on the Key Performance Metrics report by adding data on the diversity of your site's search appearance.</p>
+
+        <h2>Report Columns</h2>
+        <dl class="row">
+            <dt class="col-sm-3">month</dt>
+            <dd class="col-sm-9">The calendar month for the data row.</dd>
+
+            <dt class="col-sm-3">clicks</dt>
+            <dd class="col-sm-9">The total number of clicks from Google search results.</dd>
+
+            <dt class="col-sm-3">impressions</dt>
+            <dd class="col-sm-9">The total number of times your site appeared in search results.</dd>
+
+            <dt class="col-sm-3">ctr</dt>
+            <dd class="col-sm-9">Click-Through Rate (CTR), which is Clicks / Impressions.</dd>
+
+            <dt class="col-sm-3">position</dt>
+            <dd class="col-sm-9">The average ranking of your site in the search results for that month.</dd>
+
+            <dt class="col-sm-3">queries</dt>
+            <dd class="col-sm-9">The number of unique search queries that your site appeared for. This indicates the breadth of your keyword footprint.</dd>
+
+            <dt class="col-sm-3">pages</dt>
+            <dd class="col-sm-9">The number of unique pages from your site that appeared in search results. This shows how much of your content is visible on Google.</dd>
+        </dl>
+
+        <h2>How to Use This Report</h2>
+        <p>In addition to general performance trends, use this report to understand the scope of your SEO efforts:</p>
+        <ul>
+            <li><strong>Keyword Reach:</strong> A growing number of unique queries suggests your site is ranking for a wider range of terms.</li>
+            <li><strong>Content Visibility:</strong> An increasing number of unique pages means more of your content is being discovered and ranked by Google.</li>
+            <li><strong>Correlations:</strong> Look for correlations between a drop/rise in unique queries/pages and your overall clicks and impressions.</li>
+        </ul>
+        <div class="alert alert-warning">
+            <strong>Note:</strong> The unique query and page counts are capped at 5,000 per month due to API limitations. If you see 5,000, the actual number may be higher.
+        </div>
+    </div>
+    <footer>
+        <p><a href="index.html">Back to Resources</a></p>
+        <p><a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p>
+    </footer>
+</body>
+</html>

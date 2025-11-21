@@ -1,11 +1,12 @@
 """
 Performs an account-wide or single-site analysis of Google Search Console data,
-gathering query position distribution metrics for each complete calendar month.
+gathering key performance metrics, including unique query and page counts, for each
+complete calendar month.
 
 This script authenticates with the GSC API. It can either process all sites in an
 account or a specific site URL provided as an argument. For each site, it retrieves
-query data and processes it to show clicks and impressions in position buckets
-(1-3, 4-10, 11-20, 21+).
+clicks, impressions, CTR, average position, and unique query/page counts for each
+full calendar month over the last 16 months.
 
 The data is compiled into a CSV file and an HTML report.
 """
@@ -57,54 +58,46 @@ def get_all_sites(service):
         print(f"An HTTP error occurred while fetching sites: {e}")
     return sites
 
-def get_monthly_query_data(service, site_url, start_date, end_date):
-    """Fetches query performance data from GSC for a given date range."""
-    all_query_data = []
+def get_monthly_performance_data(service, site_url, start_date, end_date):
+    """
+    Fetches performance data and unique query/page counts from GSC.
+    Note: Unique counts are capped at 5000 by the API.
+    """
     try:
-        request = {'startDate': start_date, 'endDate': end_date, 'dimensions': ['query'], 'rowLimit': 25000, 'startRow': 0}
-        while True:
-            response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
-            if 'rows' in response:
-                all_query_data.extend(response['rows'])
-                if len(response['rows']) < request['rowLimit']:
-                    break
-                request['startRow'] += request['rowLimit']
-            else:
-                break
+        request_totals = {'startDate': start_date, 'endDate': end_date}
+        response_totals = service.searchanalytics().query(siteUrl=site_url, body=request_totals).execute()
+        if 'rows' not in response_totals:
+            return None
+        totals_data = response_totals['rows'][0]
+
+        unique_queries, unique_pages = 0, 0
+        try:
+            request_queries = {'startDate': start_date, 'endDate': end_date, 'dimensions': ['query'], 'rowLimit': 5000}
+            response_queries = service.searchanalytics().query(siteUrl=site_url, body=request_queries).execute()
+            if 'rows' in response_queries:
+                unique_queries = len(response_queries['rows'])
+        except HttpError as e:
+            print(f"    - Warning: Could not fetch unique query count for {site_url}: {e}")
+        
+        try:
+            request_pages = {'startDate': start_date, 'endDate': end_date, 'dimensions': ['page'], 'rowLimit': 5000}
+            response_pages = service.searchanalytics().query(siteUrl=site_url, body=request_pages).execute()
+            if 'rows' in response_pages:
+                unique_pages = len(response_pages['rows'])
+        except HttpError as e:
+            print(f"    - Warning: Could not fetch unique page count for {site_url}: {e}")
+
+        return {**totals_data, 'queries': unique_queries, 'pages': unique_pages}
+
     except HttpError as e:
         if e.resp.status == 403:
             print(f"Warning: Insufficient permission for {site_url}.")
             return "PERMISSION_DENIED"
-        print(f"An HTTP error occurred for {site_url}: {e}")
-    return all_query_data
-
-def process_query_data_into_position_distribution(query_data):
-    """Processes raw query data into aggregated clicks and impressions for position ranges."""
-    distribution = {
-        'clicks_pos_1_3': 0, 'impressions_pos_1_3': 0,
-        'clicks_pos_4_10': 0, 'impressions_pos_4_10': 0,
-        'clicks_pos_11_20': 0, 'impressions_pos_11_20': 0,
-        'clicks_pos_21_plus': 0, 'impressions_pos_21_plus': 0,
-        'total_clicks': 0, 'total_impressions': 0
-    }
-    for row in query_data:
-        clicks, impressions, position = row.get('clicks', 0), row.get('impressions', 0), row.get('position', 0)
-        if position >= 1:
-            distribution['total_clicks'] += clicks
-            distribution['total_impressions'] += impressions
-            if 1 <= position <= 3:
-                distribution['clicks_pos_1_3'] += clicks
-                distribution['impressions_pos_1_3'] += impressions
-            elif 4 <= position <= 10:
-                distribution['clicks_pos_4_10'] += clicks
-                distribution['impressions_pos_4_10'] += impressions
-            elif 11 <= position <= 20:
-                distribution['clicks_pos_11_20'] += clicks
-                distribution['impressions_pos_11_20'] += impressions
-            elif position >= 21:
-                distribution['clicks_pos_21_plus'] += clicks
-                distribution['impressions_pos_21_plus'] += impressions
-    return distribution
+        if e.resp.status in [400, 404]:
+             print(f"    - No data available for {site_url} from {start_date} to {end_date}.")
+        else:
+            print(f"An HTTP error occurred for {site_url}: {e}")
+    return None
 
 def create_multi_site_html_report(df, sorted_sites):
     """Generates an HTML report for multiple sites with an index."""
@@ -125,26 +118,25 @@ def create_multi_site_html_report(df, sorted_sites):
     if current_root_domain is not None:
         index_html += '</ul></li>'
     index_html += '</ul>'
+
     site_sections_html = generate_site_sections(df, sorted_sites)
+
     return f"""
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Query Position Distribution Report</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<title>Account-Wide GSC Performance Report</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>body{{padding:2rem;}}.table-responsive{{max-height:800px;}}h1,h2{{border-bottom:2px solid #dee2e6;padding-bottom:.5rem;margin-top:2rem;}}footer{{margin-top:3rem;text-align:center;color:#6c757d;}}</style></head>
-<body><div class="container-fluid"><h1 id="top">Query Position Distribution Report</h1><h2>Index</h2>{index_html}{site_sections_html}</div>
+<body><div class="container-fluid"><h1 id="top">Account-Wide GSC Performance Report</h1><h2>Index</h2>{index_html}{site_sections_html}</div>
 <footer><p><a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p></footer></body></html>"""
 
 def create_single_site_html_report(df, site_url):
     """Generates a simplified HTML report for a single site."""
     df_no_site = df.drop(columns=['site_url'])
-    for col in df_no_site.columns:
-        if ('clicks' in col or 'impressions' in col):
-            df_no_site[col] = df_no_site[col].apply(lambda x: f"{x:,.0f}")
     report_body = df_no_site.to_html(classes="table table-striped table-hover", index=False, border=0)
     return f"""
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Query Position Report for {site_url}</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<title>GSC Queries/Pages Report for {site_url}</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>body{{padding:2rem;}}h1{{border-bottom:2px solid #dee2e6;padding-bottom:.5rem;margin-top:2rem;}}footer{{margin-top:3rem;text-align:center;color:#6c757d;}}</style></head>
-<body><div class="container-fluid"><h1>Query Position Report for {site_url}</h1><div class="table-responsive">{report_body}</div></div>
+<body><div class="container-fluid"><h1>GSC Queries/Pages Report for {site_url}</h1><div class="table-responsive">{report_body}</div></div>
 <footer><p><a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p></footer></body></html>"""
 
 def generate_site_sections(df, sorted_sites):
@@ -155,9 +147,6 @@ def generate_site_sections(df, sorted_sites):
         sections_html += f'<h2 id="{anchor}" class="mt-5">{site}</h2>'
         site_df = df[df['site_url'] == site].drop(columns=['site_url'])
         if not site_df.empty:
-            for col in site_df.columns:
-                if ('clicks' in col or 'impressions' in col):
-                    site_df[col] = site_df[col].apply(lambda x: f"{x:,.0f}")
             sections_html += '<div class="table-responsive">'
             sections_html += site_df.to_html(classes="table table-striped table-hover", index=False, border=0)
             sections_html += '</div><p><a href="#top">Back to Top</a></p>'
@@ -190,7 +179,7 @@ def get_sort_key(site_url):
 
 def main():
     """Main function to run the analysis."""
-    parser = argparse.ArgumentParser(description='Run a query position analysis for a GSC property.')
+    parser = argparse.ArgumentParser(description='Run a monthly queries/pages analysis for a GSC property.')
     parser.add_argument('site_url', nargs='?', default=None, help='The URL of the site to analyse. If not provided, runs for all sites.')
     args = parser.parse_args()
 
@@ -217,25 +206,21 @@ def main():
             start_of_month = end_of_month.replace(day=1)
             start_date = start_of_month.strftime('%Y-%m-%d')
             end_date = end_of_month.strftime('%Y-%m-%d')
-
-            query_data = get_monthly_query_data(service, site_url, start_date, end_date)
-            if query_data == "PERMISSION_DENIED":
+            
+            print(f"  - Fetching data for {start_of_month.strftime('%Y-%m')}...")
+            data = get_monthly_performance_data(service, site_url, start_date, end_date)
+            if data == "PERMISSION_DENIED":
                 break
-            elif query_data:
-                distribution_data = process_query_data_into_position_distribution(query_data)
-                distribution_data['site_url'] = site_url
-                distribution_data['month'] = start_of_month.strftime('%Y-%m')
-                all_data.append(distribution_data)
+            elif data:
+                all_data.append({'site_url': site_url, 'month': start_of_month.strftime('%Y-%m'), **data})
     
     if not all_data:
         print("No performance data found.")
         return
 
     df = pd.DataFrame(all_data)
-    csv_column_order = ['site_url', 'month', 'clicks_pos_1_3', 'impressions_pos_1_3', 'clicks_pos_4_10', 
-                        'impressions_pos_4_10', 'clicks_pos_11_20', 'impressions_pos_11_20', 
-                        'clicks_pos_21_plus', 'impressions_pos_21_plus', 'total_clicks', 'total_impressions']
-    df = df.reindex(columns=csv_column_order)
+    column_order = ['site_url', 'month', 'clicks', 'impressions', 'ctr', 'position', 'queries', 'pages']
+    df = df[column_order]
     
     most_recent_month = (today.replace(day=1) - timedelta(days=1)).strftime('%Y-%m')
 
@@ -248,10 +233,10 @@ def main():
         
         host_dir = host_plain.replace('www.', '')
         output_dir = os.path.join('output', host_dir)
-        file_prefix = f"query-position-analysis-{host_dir.replace('.', '-')}-{most_recent_month}"
+        file_prefix = f"queries-pages-analysis-{host_dir.replace('.', '-')}-{most_recent_month}"
     else:
         output_dir = os.path.join('output', 'account')
-        file_prefix = f"query-position-analysis-account-wide-{most_recent_month}"
+        file_prefix = f"queries-pages-analysis-account-wide-{most_recent_month}"
 
     os.makedirs(output_dir, exist_ok=True)
     csv_output_path = os.path.join(output_dir, f'{file_prefix}.csv')
@@ -262,6 +247,9 @@ def main():
         print(f"\nSuccessfully exported CSV to {csv_output_path}")
 
         html_df = df.copy()
+        html_df['ctr'] = html_df['ctr'].apply(lambda x: f"{x:.2%}")
+        html_df['position'] = html_df['position'].apply(lambda x: f"{x:.2f}")
+
         if args.site_url:
             html_output = create_single_site_html_report(html_df, args.site_url)
         else:
