@@ -303,6 +303,10 @@ def main():
         df[['query', 'page']] = pd.DataFrame(df['keys'].tolist(), index=df.index)
         df.drop(columns=['keys'], inplace=True)
         
+        # Reorder columns for CSV output
+        csv_column_order = ['page', 'query', 'clicks', 'impressions', 'ctr', 'position']
+        df_csv = df[csv_column_order]
+
         # --- Output File Naming ---
         if args.site_url.startswith('sc-domain:'):
             host_plain = args.site_url.replace('sc-domain:', '')
@@ -321,7 +325,7 @@ def main():
 
         # --- Save CSV Report ---
         try:
-            df.to_csv(csv_output_path, index=False, encoding='utf-8')
+            df_csv.to_csv(csv_output_path, index=False, encoding='utf-8')
             print(f"\nSuccessfully created CSV report at {csv_output_path}")
         except IOError as e:
             print(f"Error writing CSV to file: {e}")
