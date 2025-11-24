@@ -125,6 +125,8 @@ def create_html_report(data_df, site_url, start_date, end_date):
         .accordion-button:not(.collapsed) {{ background-color: #e7f1ff; }}
         .table th:not(:first-child), .table td:not(:first-child) {{ text-align: right; }}
         .table th:first-child, .table td:first-child {{ text-align: left; }}
+        .badge-bg-primary {{ background-color: #0076AF;  }}
+        .badge-bg-secondary {{ background-color: #712784; }}
     </style>
 </head>
 <body>
@@ -196,9 +198,13 @@ def generate_accordion_html(grouped_df, primary_dim, secondary_dim):
         <div class="accordion-item">
             <h2 class="accordion-header" id="{header_id}">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{collapse_id}">
-                    <strong>{primary_val}</strong>&nbsp;
-                    <span class="badge bg-primary p-3 ms-auto me-2">Clicks: {total_clicks:,d}</span>
-                    <span class="badge bg-secondary p-3 me-2">Impressions: {total_impressions:,d}</span>
+                    <div class="d-flex w-100 align-items-center">
+                        <strong>{primary_val}</strong>&nbsp;
+                        <div class="ms-auto">
+                            <span class="badge badge-bg-primary p-3 me-3">Clicks: {total_clicks:,d}</span>
+                            <span class="badge badge-bg-secondary p-3 me-3">Impressions: {total_impressions:,d}</span>
+                        </div>
+                    </div>
                 </button>
             </h2>
             <div id="{collapse_id}" class="accordion-collapse collapse" data-bs-parent="#{accordion_id}">
