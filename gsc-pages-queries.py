@@ -201,9 +201,15 @@ def main():
     
     date_group = parser.add_mutually_exclusive_group()
     date_group.add_argument('--start-date', help='Start date in YYYY-MM-DD format.')
+    date_group.add_argument('--last-24-hours', action='store_true', help='Set date range to the last 24 hours.')
     date_group.add_argument('--last-7-days', action='store_true', help='Set date range to the last 7 days.')
     date_group.add_argument('--last-28-days', action='store_true', help='Set date range to the last 28 days.')
     date_group.add_argument('--last-month', action='store_true', help='Set date range to the last calendar month.')
+    date_group.add_argument('--last-quarter', action='store_true', help='Set date range to the last quarter.')
+    date_group.add_argument('--last-3-months', action='store_true', help='Set date range to the last 3 months.')
+    date_group.add_argument('--last-6-months', action='store_true', help='Set date range to the last 6 months.')
+    date_group.add_argument('--last-12-months', action='store_true', help='Set date range to the last 12 months.')
+    date_group.add_argument('--last-16-months', action='store_true', help='Set date range to the last 16 months.')
     
     parser.add_argument('--end-date', help='End date in YYYY-MM-DD format. Used only with --start-date.')
     
@@ -211,10 +217,21 @@ def main():
     
     today = date.today()
 
-    if not any([args.start_date, args.last_7_days, args.last_28_days, args.last_month]):
-        args.last_28_days = True
+    if not any([
+        args.start_date, args.last_24_hours, args.last_7_days, args.last_28_days,
+        args.last_month, args.last_quarter, args.last_3_months,
+        args.last_6_months, args.last_12_months, args.last_16_months
+    ]):
+        args.last_month = True
 
-    if args.last_7_days:
+    # Determine the date range based on the provided flags
+    if args.start_date and args.end_date:
+        start_date = args.start_date
+        end_date = args.end_date
+    elif args.last_24_hours:
+        start_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
+        end_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
+    elif args.last_7_days:
         start_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
         end_date = today.strftime('%Y-%m-%d')
     elif args.last_28_days:
@@ -225,6 +242,21 @@ def main():
         last_day_of_previous_month = first_day_of_current_month - timedelta(days=1)
         start_date = last_day_of_previous_month.replace(day=1).strftime('%Y-%m-%d')
         end_date = last_day_of_previous_month.strftime('%Y-%m-%d')
+    elif args.last_quarter:
+        start_date = (today - relativedelta(months=3)).strftime('%Y-%m-%d')
+        end_date = today.strftime('%Y-%m-%d')
+    elif args.last_3_months:
+        start_date = (today - relativedelta(months=3)).strftime('%Y-%m-%d')
+        end_date = today.strftime('%Y-%m-%d')
+    elif args.last_6_months:
+        start_date = (today - relativedelta(months=6)).strftime('%Y-%m-%d')
+        end_date = today.strftime('%Y-%m-%d')
+    elif args.last_12_months:
+        start_date = (today - relativedelta(months=12)).strftime('%Y-%m-%d')
+        end_date = today.strftime('%Y-%m-%d')
+    elif args.last_16_months:
+        start_date = (today - relativedelta(months=16)).strftime('%Y-%m-%d')
+        end_date = today.strftime('%Y-%m-%d')
     else: # Custom date range
         start_date = args.start_date
         end_date = args.end_date
