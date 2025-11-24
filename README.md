@@ -86,7 +86,9 @@ python gsc-pages-queries.py <site_url> [date_range_option]
 
 ### Output
 
-Generates an interactive HTML report in `output/<hostname>/`. The report has two tabs:
+Generates a CSV file containing the raw data and an interactive HTML report, both saved in `output/<hostname>/`.
+
+The HTML report has two tabs:
 1.  **Queries to Pages**: An accordion list of all queries. Each query can be expanded to show the specific pages it sends traffic to, along with clicks, impressions, CTR, and position for each page.
 2.  **Pages to Queries**: An accordion list of all pages. Each page can be expanded to show the queries that drive traffic to it.
 

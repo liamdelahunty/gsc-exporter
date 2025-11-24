@@ -303,11 +303,6 @@ def main():
         df[['query', 'page']] = pd.DataFrame(df['keys'].tolist(), index=df.index)
         df.drop(columns=['keys'], inplace=True)
         
-        # Format for HTML report
-        html_df = df.copy()
-        html_df['ctr'] = html_df['ctr'].apply(lambda x: f"{x:.2%}")
-        html_df['position'] = html_df['position'].apply(lambda x: f"{x:.2f}")
-
         # --- Output File Naming ---
         if args.site_url.startswith('sc-domain:'):
             host_plain = args.site_url.replace('sc-domain:', '')
@@ -319,17 +314,31 @@ def main():
         os.makedirs(output_dir, exist_ok=True)
         host_for_filename = host_dir.replace('.', '-')
         
-        file_name = f"gsc-pages-queries-{host_for_filename}-{start_date}-to-{end_date}.html"
-        output_path = os.path.join(output_dir, file_name)
+        # --- Define file paths ---
+        base_filename = f"gsc-pages-queries-{host_for_filename}-{start_date}-to-{end_date}"
+        csv_output_path = os.path.join(output_dir, f"{base_filename}.csv")
+        html_output_path = os.path.join(output_dir, f"{base_filename}.html")
 
-        # --- Generate and Save Report ---
+        # --- Save CSV Report ---
+        try:
+            df.to_csv(csv_output_path, index=False, encoding='utf-8')
+            print(f"\nSuccessfully created CSV report at {csv_output_path}")
+        except IOError as e:
+            print(f"Error writing CSV to file: {e}")
+
+        # --- Generate and Save HTML Report ---
+        # Format for HTML report
+        html_df = df.copy()
+        html_df['ctr'] = html_df['ctr'].apply(lambda x: f"{x:.2%}")
+        html_df['position'] = html_df['position'].apply(lambda x: f"{x:.2f}")
+
         html_report = create_html_report(html_df, args.site_url, start_date, end_date)
         try:
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(html_output_path, 'w', encoding='utf-8') as f:
                 f.write(html_report)
-            print(f"\nSuccessfully created HTML report at {output_path}")
+            print(f"Successfully created HTML report at {html_output_path}")
         except IOError as e:
-            print(f"Error writing to file: {e}")
+            print(f"Error writing HTML to file: {e}")
 
     else:
         print("No data found for the given site and date range.")
