@@ -71,14 +71,6 @@ python gsc_pages_exporter.py <site_url> [date_range_option]
 Generates a CSV and an HTML file containing a list of all URLs found in the specified period, saved to the `output/<hostname>/` directory.
 
 ---
-
-## performance-analysis.py
-
-Fetches and compares key performance metrics (clicks, impressions, CTR, position) between two time periods to identify trends and optimization opportunities.
-
-### Usage
-
-=======
 ## gsc-pages-queries.py
 
 Generates a detailed report showing the relationship between queries and the pages they drive traffic to, and vice-versa.
@@ -90,13 +82,15 @@ python gsc-pages-queries.py <site_url> [date_range_option]
 ```
 
 *   `<site_url>`: (Required) The full URL of the site property or a domain property.
-*   **Date Range Options**: Includes `--last-7-days`, `--last-28-days`, and `--last-month`. Defaults to the last 28 days.
+*   **Date Range Options**: Options like `--last-7-days`, `--last-month`, `--last-12-months`, etc., are available. If omitted, it defaults to the last full calendar month.
 
 ### Output
 
 Generates an interactive HTML report in `output/<hostname>/`. The report has two tabs:
 1.  **Queries to Pages**: An accordion list of all queries. Each query can be expanded to show the specific pages it sends traffic to, along with clicks, impressions, CTR, and position for each page.
 2.  **Pages to Queries**: An accordion list of all pages. Each page can be expanded to show the queries that drive traffic to it.
+
+The report's tables are formatted for readability, with right-aligned numeric columns and thousand separators for large numbers.
 
 ---
 
