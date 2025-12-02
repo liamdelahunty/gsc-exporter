@@ -70,23 +70,28 @@ def get_gsc_service():
 
     return build('webmasters', 'v3', credentials=creds)
 
-def get_performance_data(service, site_url, start_date, end_date):
-    """Fetches performance data from GSC for a given date range."""
+def get_performance_data(service, site_url, start_date, end_date, filters=None):
+    """Fetches performance data from GSC for a given date range and applies filters."""
     all_data = []
     start_row = 0
     row_limit = 25000 
     print(f"Fetching data for {site_url} from {start_date} to {end_date}...")
 
+    request_body = {
+        'startDate': start_date,
+        'endDate': end_date,
+        'dimensions': ['query', 'page'], # Request both query and page dimensions
+        'rowLimit': row_limit,
+        'startRow': start_row
+    }
+
+    if filters:
+        request_body['dimensionFilterGroups'] = [{'filters': filters}]
+
     while True:
         try:
-            request = {
-                'startDate': start_date,
-                'endDate': end_date,
-                'dimensions': ['page'],
-                'rowLimit': row_limit,
-                'startRow': start_row
-            }
-            response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
+            request_body['startRow'] = start_row # Update startRow for pagination
+            response = service.searchanalytics().query(siteUrl=site_url, body=request_body).execute()
 
             if 'rows' in response:
                 rows = response['rows']
@@ -109,7 +114,8 @@ def get_performance_data(service, site_url, start_date, end_date):
 
     # Convert list of dictionaries to a DataFrame
     df = pd.DataFrame(all_data)
-    df['page'] = df['keys'].apply(lambda x: x[0])
+    # Correctly extract 'query' and 'page' when both are dimensions
+    df[['query', 'page']] = pd.DataFrame(df['keys'].tolist(), index=df.index)
     df = df.drop(columns=['keys'])
     
     # Ensure all columns are numeric, setting non-numeric to NaN
@@ -138,8 +144,31 @@ def main():
     parser.add_argument('--end-date', help='End date in YYYY-MM-DD format for the current period.')
     parser.add_argument('--compare-to-previous-year', action='store_true', help='Compare the selected date range to the same period in the previous year.')
     
+    # Filtering arguments
+    parser.add_argument('--page-contains', help='Filter to include only pages containing this substring.')
+    parser.add_argument('--page-exact', help='Filter to include only this exact page URL.')
+    parser.add_argument('--page-not-contains', help='Filter to exclude pages containing this substring.')
+    parser.add_argument('--query-contains', help='Filter to include only queries containing this substring.')
+    parser.add_argument('--query-exact', help='Filter to include only this exact query.')
+    parser.add_argument('--query-not-contains', help='Filter to exclude queries containing this substring.')
+
     args = parser.parse_args()
     site_url = args.site_url
+
+    # Construct filters list based on arguments
+    filters_list = []
+    if args.page_contains:
+        filters_list.append({'dimension': 'page', 'operator': 'contains', 'expression': args.page_contains})
+    if args.page_exact:
+        filters_list.append({'dimension': 'page', 'operator': 'equals', 'expression': args.page_exact})
+    if args.page_not_contains:
+        filters_list.append({'dimension': 'page', 'operator': 'notContains', 'expression': args.page_not_contains})
+    if args.query_contains:
+        filters_list.append({'dimension': 'query', 'operator': 'contains', 'expression': args.query_contains})
+    if args.query_exact:
+        filters_list.append({'dimension': 'query', 'operator': 'equals', 'expression': args.query_exact})
+    if args.query_not_contains:
+        filters_list.append({'dimension': 'query', 'operator': 'notContains', 'expression': args.query_not_contains})
 
     # Set default comparison if none is chosen
     if not any([
@@ -297,8 +326,8 @@ def main():
         return
 
     # Fetch data for both periods
-    df_current = get_performance_data(service, args.site_url, current_start_date, current_end_date)
-    df_previous = get_performance_data(service, args.site_url, previous_start_date, previous_end_date)
+    df_current = get_performance_data(service, args.site_url, current_start_date, current_end_date, filters=filters_list)
+    df_previous = get_performance_data(service, args.site_url, previous_start_date, previous_end_date, filters=filters_list)
 
     if df_current.empty and df_previous.empty:
         print("No data found for either period. Exiting.")
