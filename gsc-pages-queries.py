@@ -186,7 +186,7 @@ def create_html_report(data_df, site_url, start_date, end_date, report_limit, su
         """
 
     # --- Final HTML Assembly ---
-    html = f"""
+    html_content = f"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -231,7 +231,7 @@ def create_html_report(data_df, site_url, start_date, end_date, report_limit, su
 </body>
 </html>
     """
-    return html
+    return html_content
 
 def generate_accordion_html(grouped_df, primary_dim, secondary_dim, report_limit, sub_table_limit):
     """Generates Bootstrap accordion HTML for the grouped data."""
