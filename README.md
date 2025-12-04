@@ -81,7 +81,7 @@ The script has two main modes of operation:
 
 1.  **Download Data from GSC:**
     ```bash
-    python gsc-pages-queries.py --site-url <site_url> [date_range_option] [options]
+    python gsc-pages-queries.py <site_url> [date_range_option] [options]
     ```
 
 2.  **Generate Report from CSV:**
@@ -91,15 +91,15 @@ The script has two main modes of operation:
 
 ### Data Source Options
 
-A data source is required. You must specify either `--site-url` or `--csv`.
+A data source is required. You must specify either `<site_url>` (positional argument), `--csv`, or use `--use-cache` with `<site_url>`.
 
-*   `--site-url <url>`: The full URL of the site property (e.g., `https://www.example.com`) or a domain property (e.g., `sc-domain:example.com`).
+*   `<site_url>`: The full URL of the site property (e.g., `https://www.example.com`) or a domain property (e.g., `sc-domain:example.com`). This is a positional argument.
 *   `--csv <path>`: Path to an existing CSV file to use as the data source, skipping the GSC download.
-*   `--use-cache`: Optional flag to use with `--site-url`. If a CSV file from a previous run exists for the same site and date range, it will be used instead of re-downloading data.
+*   `--use-cache`: Optional flag to use with `<site_url>`. If a CSV file from a previous run exists for the same site and date range, it will be used instead of re-downloading data.
 
 ### Other Options
 
-*   **Date Range**: Options like `--last-7-days`, `--last-month`, `--last-12-months`, etc., are available when using `--site-url`.
+*   **Date Range**: Options like `--last-7-days`, `--last-month`, `--last-12-months`, etc., are available when downloading data via `<site_url>`.
 *   **Report Size**:
     *   `--report-limit <number>`: Sets the maximum number of top-level items (e.g., queries or pages) to include in the HTML report. Defaults to 250.
     *   `--sub-table-limit <number>`: Sets the maximum number of rows to display within each accordion's sub-table. Defaults to 100.
@@ -108,13 +108,13 @@ A data source is required. You must specify either `--site-url` or `--csv`.
 
 1.  **Initial Download:** Run a large query to get all the data you need and save it.
     ```bash
-    python gsc-pages-queries.py --site-url https://www.example.com --last-12-months
+    python gsc-pages-queries.py https://www.example.com --last-12-months
     ```
     This creates a CSV file in the `output/` directory.
 
 2.  **Generate a Limited Report from Cache:** Now, quickly generate a smaller HTML report from the data you just saved without hitting the API again.
     ```bash
-    python gsc-pages-queries.py --site-url https://www.example.com --last-12-months --use-cache --report-limit 50
+    python gsc-pages-queries.py https://www.example.com --last-12-months --use-cache --report-limit 50
     ```
     The `--use-cache` flag finds and uses the CSV from the previous step. The output is an HTML report with only the top 50 items.
 
