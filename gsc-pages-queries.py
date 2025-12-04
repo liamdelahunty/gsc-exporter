@@ -255,9 +255,21 @@ def generate_accordion_html(grouped_df, primary_dim, secondary_dim, report_limit
 
 def main():
     """Main function to run the script."""
-    parser = argparse.ArgumentParser(description='Export Google Search Console pages and queries.')
-    parser.add_argument('site_url', help='The URL of the site to export data for.')
-    
+    parser = argparse.ArgumentParser(
+        description='Export Google Search Console pages and queries. Generates an HTML report from either live GSC data or a pre-existing CSV file.',
+        epilog='Example Usage:\n'
+               '  To download data: python gsc-pages-queries.py --site-url https://www.example.com --last-month\n'
+               '  To use cached data: python gsc-pages-queries.py --site-url https://www.example.com --last-month --use-cache\n'
+               '  To generate from a csv: python gsc-pages-queries.py --csv ./output/example-com/report.csv --report-limit 50',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    # --- Argument Groups ---
+    # Group for data source
+    source_group = parser.add_mutually_exclusive_group(required=True)
+    source_group.add_argument('--site-url', help='The URL of the site to export data for.')
+    source_group.add_argument('--csv', help='Path to a CSV file to generate the report from, skipping the download.')
+
+    # Group for date range
     date_group = parser.add_mutually_exclusive_group()
     date_group.add_argument('--start-date', help='Start date in YYYY-MM-DD format.')
     date_group.add_argument('--last-24-hours', action='store_true', help='Set date range to the last 24 hours.')
@@ -270,118 +282,160 @@ def main():
     date_group.add_argument('--last-12-months', action='store_true', help='Set date range to the last 12 months.')
     date_group.add_argument('--last-16-months', action='store_true', help='Set date range to the last 16 months.')
     
+    # Other arguments
     parser.add_argument('--end-date', help='End date in YYYY-MM-DD format. Used only with --start-date.')
+    parser.add_argument('--use-cache', action='store_true', help='Use a cached CSV file from a previous run if it exists.')
     parser.add_argument('--report-limit', type=int, default=250, help='Maximum number of primary items (queries/pages) to include in the HTML report. Default is 250.')
     parser.add_argument('--sub-table-limit', type=int, default=100, help='Maximum number of sub-items (pages/queries) to display in each section of the HTML report. Default is 100.')
     
     args = parser.parse_args()
 
-    # Add a correction for common typos in the site URL
-    if 'wwww.' in args.site_url:
-        args.site_url = args.site_url.replace('wwww.', 'www.')
+    # --- Main Logic ---
+    df = None
     
-    
-    today = date.today()
+    # --- Case 1: Generate report from a local CSV file ---
+    if args.csv:
+        if not os.path.exists(args.csv):
+            print(f"Error: CSV file not found at '{args.csv}'")
+            return
+        print(f"Generating report from CSV file: {args.csv}")
+        df = pd.read_csv(args.csv)
+        # Use placeholders for metadata as it cannot be inferred from the CSV alone
+        site_url = "Loaded from CSV"
+        start_date = "N/A"
+        end_date = "N/A"
+        # Try to parse info from filename for a better title
+        try:
+            filename = os.path.basename(args.csv)
+            parts = filename.replace('gsc-pages-queries-', '').replace('.csv', '').split('-to-')
+            if len(parts) == 2:
+                end_date = parts[1]
+                remaining_parts = parts[0].split('-')
+                start_date = remaining_parts[-1]
+                # This is imperfect, but better than nothing
+                site_url = '-'.join(remaining_parts[:-1]).replace('-', '.')
+        except Exception:
+            pass # Ignore parsing errors, placeholders will be used
 
-    if not any([
-        args.start_date, args.last_24_hours, args.last_7_days, args.last_28_days,
-        args.last_month, args.last_quarter, args.last_3_months,
-        args.last_6_months, args.last_12_months, args.last_16_months
-    ]):
-        args.last_month = True
+        html_output_path = args.csv.replace('.csv', '.html')
 
-    # Determine the date range based on the provided flags
-    if args.start_date and args.end_date:
-        start_date = args.start_date
-        end_date = args.end_date
-    elif args.last_24_hours:
-        start_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
-        end_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
-    elif args.last_7_days:
-        start_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
-        end_date = today.strftime('%Y-%m-%d')
-    elif args.last_28_days:
-        start_date = (today - timedelta(days=28)).strftime('%Y-%m-%d')
-        end_date = today.strftime('%Y-%m-%d')
-    elif args.last_month:
-        first_day_of_current_month = today.replace(day=1)
-        last_day_of_previous_month = first_day_of_current_month - timedelta(days=1)
-        start_date = last_day_of_previous_month.replace(day=1).strftime('%Y-%m-%d')
-        end_date = last_day_of_previous_month.strftime('%Y-%m-%d')
-    elif args.last_quarter:
-        start_date = (today - relativedelta(months=3)).strftime('%Y-%m-%d')
-        end_date = today.strftime('%Y-%m-%d')
-    elif args.last_3_months:
-        start_date = (today - relativedelta(months=3)).strftime('%Y-%m-%d')
-        end_date = today.strftime('%Y-%m-%d')
-    elif args.last_6_months:
-        start_date = (today - relativedelta(months=6)).strftime('%Y-%m-%d')
-        end_date = today.strftime('%Y-%m-%d')
-    elif args.last_12_months:
-        start_date = (today - relativedelta(months=12)).strftime('%Y-%m-%d')
-        end_date = today.strftime('%Y-%m-%d')
-    elif args.last_16_months:
-        start_date = (today - relativedelta(months=16)).strftime('%Y-%m-%d')
-        end_date = today.strftime('%Y-%m-%d')
-    else: # Custom date range
-        start_date = args.start_date
-        end_date = args.end_date
-
-    service = get_gsc_service()
-    if not service:
-        return
-
-    raw_data = get_pages_queries_data(service, args.site_url, start_date, end_date)
-    
-    if raw_data:
-        df = pd.DataFrame(raw_data)
-        # The 'keys' column contains a list of [query, page]
-        df[['query', 'page']] = pd.DataFrame(df['keys'].tolist(), index=df.index)
-        df.drop(columns=['keys'], inplace=True)
+    # --- Case 2: Download data or use cache ---
+    else:
+        # Add a correction for common typos in the site URL
+        if 'wwww.' in args.site_url:
+            args.site_url = args.site_url.replace('wwww.', 'www.')
         
-        # Reorder columns for CSV output
-        csv_column_order = ['page', 'query', 'clicks', 'impressions', 'ctr', 'position']
-        df_csv = df[csv_column_order]
+        today = date.today()
+
+        if not any([
+            args.start_date, args.last_24_hours, args.last_7_days, args.last_28_days,
+            args.last_month, args.last_quarter, args.last_3_months,
+            args.last_6_months, args.last_12_months, args.last_16_months
+        ]):
+            args.last_month = True
+
+        # Determine the date range based on the provided flags
+        if args.start_date and args.end_date:
+            start_date = args.start_date
+            end_date = args.end_date
+        elif args.last_24_hours:
+            start_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
+            end_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
+        elif args.last_7_days:
+            start_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+        elif args.last_28_days:
+            start_date = (today - timedelta(days=28)).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+        elif args.last_month:
+            first_day_of_current_month = today.replace(day=1)
+            last_day_of_previous_month = first_day_of_current_month - timedelta(days=1)
+            start_date = last_day_of_previous_month.replace(day=1).strftime('%Y-%m-%d')
+            end_date = last_day_of_previous_month.strftime('%Y-%m-%d')
+        elif args.last_quarter:
+            start_date = (today - relativedelta(months=3)).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+        elif args.last_3_months:
+            start_date = (today - relativedelta(months=3)).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+        elif args.last_6_months:
+            start_date = (today - relativedelta(months=6)).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+        elif args.last_12_months:
+            start_date = (today - relativedelta(months=12)).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+        elif args.last_16_months:
+            start_date = (today - relativedelta(months=16)).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+        else: # Custom date range
+            start_date = args.start_date
+            end_date = args.end_date
+
+        site_url = args.site_url
 
         # --- Output File Naming ---
-        if args.site_url.startswith('sc-domain:'):
-            host_plain = args.site_url.replace('sc-domain:', '')
+        if site_url.startswith('sc-domain:'):
+            host_plain = site_url.replace('sc-domain:', '')
         else:
-            host_plain = urlparse(args.site_url).netloc
+            host_plain = urlparse(site_url).netloc
         
         host_dir = host_plain.replace('www.', '')
         output_dir = os.path.join('output', host_dir)
         os.makedirs(output_dir, exist_ok=True)
         host_for_filename = host_dir.replace('.', '-')
         
-        # --- Define file paths ---
         base_filename = f"gsc-pages-queries-{host_for_filename}-{start_date}-to-{end_date}"
         csv_output_path = os.path.join(output_dir, f"{base_filename}.csv")
         html_output_path = os.path.join(output_dir, f"{base_filename}.html")
 
-        # --- Save CSV Report ---
-        try:
-            df_csv.to_csv(csv_output_path, index=False, encoding='utf-8')
-            print(f"\nSuccessfully created CSV report at {csv_output_path}")
-        except IOError as e:
-            print(f"Error writing CSV to file: {e}")
+        # Check for cached file if --use-cache is specified
+        if args.use_cache and os.path.exists(csv_output_path):
+            print(f"Found cached data at {csv_output_path}. Using it to generate report.")
+            df = pd.read_csv(csv_output_path)
+        else:
+            service = get_gsc_service()
+            if not service:
+                return
+            
+            raw_data = get_pages_queries_data(service, site_url, start_date, end_date)
+            if not raw_data:
+                print("No data found for the given site and date range.")
+                return
 
-        # --- Generate and Save HTML Report ---
+            df = pd.DataFrame(raw_data)
+            df[['query', 'page']] = pd.DataFrame(df['keys'].tolist(), index=df.index)
+            df.drop(columns=['keys'], inplace=True)
+            
+            # --- Save CSV Report ---
+            try:
+                # Reorder columns for CSV output
+                csv_column_order = ['page', 'query', 'clicks', 'impressions', 'ctr', 'position']
+                df_csv = df[csv_column_order]
+                df_csv.to_csv(csv_output_path, index=False, encoding='utf-8')
+                print(f"\nSuccessfully created CSV report at {csv_output_path}")
+            except IOError as e:
+                print(f"Error writing CSV to file: {e}")
+
+    # --- Generate and Save HTML Report ---
+    if df is not None:
         # Format for HTML report
         html_df = df.copy()
-        html_df['ctr'] = html_df['ctr'].apply(lambda x: f"{x:.2%}")
-        html_df['position'] = html_df['position'].apply(lambda x: f"{x:.2f}")
+        # Ensure required columns exist before formatting
+        if 'ctr' in html_df.columns:
+            html_df['ctr'] = html_df['ctr'].apply(lambda x: f"{x:.2%}")
+        if 'position' in html_df.columns:
+            html_df['position'] = html_df['position'].apply(lambda x: f"{x:.2f}")
 
-        html_report = create_html_report(html_df, args.site_url, start_date, end_date, args.report_limit, args.sub_table_limit)
+        html_report = create_html_report(html_df, site_url, start_date, end_date, args.report_limit, args.sub_table_limit)
         try:
             with open(html_output_path, 'w', encoding='utf-8') as f:
                 f.write(html_report)
             print(f"Successfully created HTML report at {html_output_path}")
         except IOError as e:
             print(f"Error writing HTML to file: {e}")
-
     else:
-        print("No data found for the given site and date range.")
+        print("No data available to generate a report.")
+
 
 if __name__ == '__main__':
     main()

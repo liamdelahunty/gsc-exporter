@@ -73,29 +73,60 @@ Generates a CSV and an HTML file containing a list of all URLs found in the spec
 ---
 ## gsc-pages-queries.py
 
-Generates a detailed report showing the relationship between queries and the pages they drive traffic to, and vice-versa.
+Generates a detailed, interactive HTML report showing the relationship between queries and pages. This script can either fetch live data from Google Search Console or generate a report from a previously saved CSV file, making it efficient to create different views of the same dataset.
 
 ### Usage
 
-```bash
-python gsc-pages-queries.py <site_url> [date_range_option] [options]
-```
+The script has two main modes of operation:
 
-*   `<site_url>`: (Required) The full URL of the site property or a domain property.
-*   **Date Range Options**: Options like `--last-7-days`, `--last-month`, `--last-12-months`, etc., are available. If omitted, it defaults to the last full calendar month.
-*   **Report Size Options**:
+1.  **Download Data from GSC:**
+    ```bash
+    python gsc-pages-queries.py --site-url <site_url> [date_range_option] [options]
+    ```
+
+2.  **Generate Report from CSV:**
+    ```bash
+    python gsc-pages-queries.py --csv <path_to_file.csv> [options]
+    ```
+
+### Data Source Options
+
+A data source is required. You must specify either `--site-url` or `--csv`.
+
+*   `--site-url <url>`: The full URL of the site property (e.g., `https://www.example.com`) or a domain property (e.g., `sc-domain:example.com`).
+*   `--csv <path>`: Path to an existing CSV file to use as the data source, skipping the GSC download.
+*   `--use-cache`: Optional flag to use with `--site-url`. If a CSV file from a previous run exists for the same site and date range, it will be used instead of re-downloading data.
+
+### Other Options
+
+*   **Date Range**: Options like `--last-7-days`, `--last-month`, `--last-12-months`, etc., are available when using `--site-url`.
+*   **Report Size**:
     *   `--report-limit <number>`: Sets the maximum number of top-level items (e.g., queries or pages) to include in the HTML report. Defaults to 250.
     *   `--sub-table-limit <number>`: Sets the maximum number of rows to display within each accordion's sub-table. Defaults to 100.
 
+### Example Workflow
+
+1.  **Initial Download:** Run a large query to get all the data you need and save it.
+    ```bash
+    python gsc-pages-queries.py --site-url https://www.example.com --last-12-months
+    ```
+    This creates a CSV file in the `output/` directory.
+
+2.  **Generate a Limited Report from Cache:** Now, quickly generate a smaller HTML report from the data you just saved without hitting the API again.
+    ```bash
+    python gsc-pages-queries.py --site-url https://www.example.com --last-12-months --use-cache --report-limit 50
+    ```
+    The `--use-cache` flag finds and uses the CSV from the previous step. The output is an HTML report with only the top 50 items.
+
 ### Output
 
-Generates a CSV file containing the raw data and an interactive HTML report, both saved in `output/<hostname>/`.
+Generates a CSV file (if downloading data) and an interactive HTML report.
 
 The HTML report has two tabs:
-1.  **Queries to Pages**: An accordion list of all queries. Each query can be expanded to show the specific pages it sends traffic to, along with clicks, impressions, CTR, and position for each page.
-2.  **Pages to Queries**: An accordion list of all pages. Each page can be expanded to show the queries that drive traffic to it.
+1.  **Queries to Pages**: An accordion list of queries. Each can be expanded to show the pages it sends traffic to.
+2.  **Pages to Queries**: An accordion list of pages. Each can be expanded to show the queries that drive traffic to it.
 
-The report's tables are formatted for readability, with right-aligned numeric columns and thousand separators for large numbers. If the report is truncated using the limit flags, a notification will appear in the report.
+If the report is truncated using the limit flags, a notification will appear at the top of the report.
 
 
 ---
