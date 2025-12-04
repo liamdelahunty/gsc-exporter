@@ -133,20 +133,47 @@ If the report is truncated using the limit flags, a notification will appear at 
 
 ## performance-analysis.py
 
-Fetches and compares key performance metrics (clicks, impressions, CTR, position) between two time periods to identify trends and optimization opportunities.
+Fetches and compares key performance metrics (clicks, impressions, CTR, position) between two time periods. It can download live data or generate a report from a previously saved comparison CSV, making it efficient to re-run an analysis.
 
 ### Usage
 
-```bash
-python performance-analysis.py <site_url> [comparison_option]
-```
+1.  **Download Data from GSC:**
+    ```bash
+    python performance-analysis.py <site_url> [comparison_option] [filters]
+    ```
 
-*   `<site_url>`: (Required) The full URL of the site property or a domain property.
+2.  **Generate Report from CSV:**
+    ```bash
+    python performance-analysis.py --csv <path_to_comparison_file.csv>
+    ```
+
+### Data Source Options
+
+*   `<site_url>`: The full URL of the site property. This is a positional argument, required unless `--csv` is used.
+*   `--csv <path>`: Path to an existing comparison CSV file to use as the data source, skipping the GSC download.
+*   `--use-cache`: Optional flag to use with `<site_url>`. If a comparison CSV from a previous run exists for the same site and date range, it will be used instead of re-downloading.
+
+### Other Options
+
 *   **Comparison Options**: Includes flags like `--last-28-days`, `--last-month`, and `--compare-to-previous-year`. Defaults to comparing the last full month to the month before it.
+*   **Filter Options**: Includes flags like `--page-contains`, `--query-exact`, etc., to filter the data downloaded from GSC.
+
+### Example Workflow
+
+1.  **Initial Download:** Run a comparison to get the data you need.
+    ```bash
+    python performance-analysis.py https://www.example.com --last-month
+    ```
+    This creates a `performance-comparison-....csv` file in the `output/` directory.
+
+2.  **Use Cache to Regenerate Report:** If you want to regenerate the HTML report from the exact same data, use the cache.
+    ```bash
+    python performance-analysis.py https://www.example.com --last-month --use-cache
+    ```
 
 ### Output
 
-Generates a detailed CSV file and an HTML report in `output/<hostname>/`. The report highlights best/worst performing content, rising stars, and more.
+Generates a detailed CSV file containing the merged data from both periods (if downloading) and an HTML report that highlights best/worst performing content, rising stars, and more.
 
 ---
 

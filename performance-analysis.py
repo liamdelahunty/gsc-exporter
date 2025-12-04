@@ -127,9 +127,23 @@ def get_performance_data(service, site_url, start_date, end_date, filters=None):
 
 def main():
     """Main function to run the performance analysis."""
-    parser = argparse.ArgumentParser(description='Analyze Google Search Console performance data.')
-    parser.add_argument('site_url', help='The URL of the site to analyze. Use sc-domain: for a domain property.')
+    parser = argparse.ArgumentParser(
+        description='Analyze Google Search Console performance data by comparing two periods.',
+        epilog='Example Usage:\n'
+               '  To download data: python performance-analysis.py https://www.example.com --last-28-days\n'
+               '  To use cached data: python performance-analysis.py https://www.example.com --last-28-days --use-cache\n'
+               '  To generate from a csv: python performance-analysis.py --csv ./output/example-com/report.csv',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    # --- Arguments ---
+    parser.add_argument('site_url', nargs='?', help='The URL of the site to analyze. Required unless --csv is used.')
 
+    # Data source
+    source_group = parser.add_mutually_exclusive_group()
+    source_group.add_argument('--csv', help='Path to a comparison CSV file to generate the report from, skipping the download.')
+    parser.add_argument('--use-cache', action='store_true', help='Use a cached comparison CSV file from a previous run if it exists.')
+
+    # Date range for comparison
     date_group = parser.add_mutually_exclusive_group()
     date_group.add_argument('--start-date', help='Start date in YYYY-MM-DD format for the current period.')
     date_group.add_argument('--last-24-hours', action='store_true', help='Compare the last 24 hours to the previous 24 hours.')
@@ -154,229 +168,282 @@ def main():
     parser.add_argument('--query-not-contains', help='Filter to exclude queries containing this substring.')
 
     args = parser.parse_args()
-    site_url = args.site_url
 
-    # Construct filters list based on arguments
-    filters_list = []
-    if args.page_contains:
-        filters_list.append({'dimension': 'page', 'operator': 'contains', 'expression': args.page_contains})
-    if args.page_exact:
-        filters_list.append({'dimension': 'page', 'operator': 'equals', 'expression': args.page_exact})
-    if args.page_not_contains:
-        filters_list.append({'dimension': 'page', 'operator': 'notContains', 'expression': args.page_not_contains})
-    if args.query_contains:
-        filters_list.append({'dimension': 'query', 'operator': 'contains', 'expression': args.query_contains})
-    if args.query_exact:
-        filters_list.append({'dimension': 'query', 'operator': 'equals', 'expression': args.query_exact})
-    if args.query_not_contains:
-        filters_list.append({'dimension': 'query', 'operator': 'notContains', 'expression': args.query_not_contains})
+    # --- Validation ---
+    if not args.site_url and not args.csv:
+        parser.error('A site_url is required unless you provide a --csv file.')
+    if args.use_cache and not args.site_url:
+        parser.error('A site_url is required when using --use-cache.')
 
-    # Set default comparison if none is chosen
-    if not any([
-        args.start_date, args.last_24_hours, args.last_7_days, args.last_28_days, 
-        args.last_month, args.last_quarter, args.last_3_months, 
-        args.last_6_months, args.last_12_months, args.last_16_months
-    ]):
-        args.last_month = True
-
-    print("Starting performance analysis...")
+    df_merged = None
     
-    today = date.today()
-    
-    if args.start_date and args.end_date:
-        current_start_date = args.start_date
-        current_end_date = args.end_date
-        
-        start_date_dt = datetime.strptime(current_start_date, '%Y-%m-%d').date()
-        end_date_dt = datetime.strptime(current_end_date, '%Y-%m-%d').date()
-        
-        if args.compare_to_previous_year:
-            previous_start_date_dt = start_date_dt - relativedelta(years=1)
-            previous_end_date_dt = end_date_dt - relativedelta(years=1)
-        else:
-            duration = (end_date_dt - start_date_dt).days
-            previous_end_date_dt = start_date_dt - timedelta(days=1)
-            previous_start_date_dt = previous_end_date_dt - timedelta(days=duration)
-        
-        previous_start_date = previous_start_date_dt.strftime('%Y-%m-%d')
-        previous_end_date = previous_end_date_dt.strftime('%Y-%m-%d')
-        
-        period_label = f"custom-period"
+    # --- Data Loading ---
 
-    elif args.last_24_hours:
-        current_start_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
-        current_end_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
-        if args.compare_to_previous_year:
-            previous_start_date = (today - timedelta(days=2) - relativedelta(years=1)).strftime('%Y-%m-%d')
-            previous_end_date = (today - timedelta(days=2) - relativedelta(years=1)).strftime('%Y-%m-%d')
-        else:
-            previous_start_date = (today - timedelta(days=3)).strftime('%Y-%m-%d')
-            previous_end_date = (today - timedelta(days=3)).strftime('%Y-%m-%d')
-        period_label = "last-24-hours"
-        
-    elif args.last_7_days:
-        current_start_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
-        current_end_date = today.strftime('%Y-%m-%d')
-        if args.compare_to_previous_year:
-            previous_start_date = (today - timedelta(days=7) - relativedelta(years=1)).strftime('%Y-%m-%d')
-            previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
-        else:
-            previous_start_date = (today - timedelta(days=14)).strftime('%Y-%m-%d')
-            previous_end_date = (today - timedelta(days=8)).strftime('%Y-%m-%d')
-        period_label = "last-7-days"
+    # Case 1: Load from a specific CSV file
+    if args.csv:
+        if not os.path.exists(args.csv):
+            print(f"Error: CSV file not found at '{args.csv}'")
+            return
+        print(f"Generating report from CSV file: {args.csv}")
+        df_merged = pd.read_csv(args.csv)
+        # Use placeholders for metadata
+        site_url = "Loaded from CSV"
+        current_start_date, current_end_date = "N/A", "N/A"
+        previous_start_date, previous_end_date = "N/A", "N/A"
+        html_output_path = args.csv.replace('.csv', '.html')
 
-    elif args.last_28_days:
-        current_start_date = (today - timedelta(days=28)).strftime('%Y-%m-%d')
-        current_end_date = today.strftime('%Y-%m-%d')
-        if args.compare_to_previous_year:
-            previous_start_date = (today - timedelta(days=28) - relativedelta(years=1)).strftime('%Y-%m-%d')
-            previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
-        else:
-            previous_start_date = (today - timedelta(days=56)).strftime('%Y-%m-%d')
-            previous_end_date = (today - timedelta(days=29)).strftime('%Y-%m-%d')
-        period_label = "last-28-days"
-
-    elif args.last_month:
-        first_day_of_current_month = today.replace(day=1)
-        current_end_date_dt = first_day_of_current_month - timedelta(days=1)
-        current_start_date_dt = current_end_date_dt.replace(day=1)
-        current_start_date = current_start_date_dt.strftime('%Y-%m-%d')
-        current_end_date = current_end_date_dt.strftime('%Y-%m-%d')
-        
-        if args.compare_to_previous_year:
-            previous_start_date_dt = current_start_date_dt - relativedelta(years=1)
-            previous_end_date_dt = current_end_date_dt - relativedelta(years=1)
-        else:
-            previous_end_date_dt = current_start_date_dt - timedelta(days=1)
-            previous_start_date_dt = previous_end_date_dt.replace(day=1)
-            
-        previous_start_date = previous_start_date_dt.strftime('%Y-%m-%d')
-        previous_end_date = previous_end_date_dt.strftime('%Y-%m-%d')
-        period_label = "last-month"
-        
-    elif args.last_quarter:
-        current_quarter = (today.month - 1) // 3
-        current_end_date_dt = datetime(today.year, 3 * current_quarter + 1, 1).date() - timedelta(days=1)
-        current_start_date_dt = current_end_date_dt.replace(day=1) - relativedelta(months=2)
-        current_start_date = current_start_date_dt.strftime('%Y-%m-%d')
-        current_end_date = current_end_date_dt.strftime('%Y-%m-%d')
-
-        if args.compare_to_previous_year:
-            previous_start_date_dt = current_start_date_dt - relativedelta(years=1)
-            previous_end_date_dt = current_end_date_dt - relativedelta(years=1)
-        else:
-            previous_end_date_dt = current_start_date_dt - timedelta(days=1)
-            previous_start_date_dt = previous_end_date_dt.replace(day=1) - relativedelta(months=2)
-            
-        previous_start_date = previous_start_date_dt.strftime('%Y-%m-%d')
-        previous_end_date = previous_end_date_dt.strftime('%Y-%m-%d')
-        period_label = "last-quarter"
-        
-    elif args.last_3_months:
-        current_start_date = (today - relativedelta(months=3)).strftime('%Y-%m-%d')
-        current_end_date = today.strftime('%Y-%m-%d')
-        if args.compare_to_previous_year:
-            previous_start_date = (today - relativedelta(months=3) - relativedelta(years=1)).strftime('%Y-%m-%d')
-            previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
-        else:
-            previous_start_date = (today - relativedelta(months=6)).strftime('%Y-%m-%d')
-            previous_end_date = (today - relativedelta(months=3) - timedelta(days=1)).strftime('%Y-%m-%d')
-        period_label = "last-3-months"
-
-    elif args.last_6_months:
-        current_start_date = (today - relativedelta(months=6)).strftime('%Y-%m-%d')
-        current_end_date = today.strftime('%Y-%m-%d')
-        if args.compare_to_previous_year:
-            previous_start_date = (today - relativedelta(months=6) - relativedelta(years=1)).strftime('%Y-%m-%d')
-            previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
-        else:
-            previous_start_date = (today - relativedelta(months=12)).strftime('%Y-%m-%d')
-            previous_end_date = (today - relativedelta(months=6) - timedelta(days=1)).strftime('%Y-%m-%d')
-        period_label = "last-6-months"
-
-    elif args.last_12_months:
-        current_start_date = (today - relativedelta(months=12)).strftime('%Y-%m-%d')
-        current_end_date = today.strftime('%Y-%m-%d')
-        if args.compare_to_previous_year:
-            previous_start_date = (today - relativedelta(months=12) - relativedelta(years=1)).strftime('%Y-%m-%d')
-            previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
-        else:
-            previous_start_date = (today - relativedelta(months=24)).strftime('%Y-%m-%d')
-            previous_end_date = (today - relativedelta(months=12) - timedelta(days=1)).strftime('%Y-%m-%d')
-        period_label = "last-12-months"
-
-    elif args.last_16_months:
-        current_start_date = (today - relativedelta(months=16)).strftime('%Y-%m-%d')
-        current_end_date = today.strftime('%Y-%m-%d')
-        if args.compare_to_previous_year:
-            previous_start_date = (today - relativedelta(months=16) - relativedelta(years=1)).strftime('%Y-%m-%d')
-            previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
-        else:
-            previous_start_date = (today - relativedelta(months=32)).strftime('%Y-%m-%d')
-            previous_end_date = (today - relativedelta(months=16) - timedelta(days=1)).strftime('%Y-%m-%d')
-        period_label = "last-16-months"
-
-    if args.compare_to_previous_year:
-        period_label += "-vs-prev-year"
-
-    print(f"Current period: {current_start_date} to {current_end_date}")
-    print(f"Previous period: {previous_start_date} to {previous_end_date}")
-
-    service = get_gsc_service()
-    if not service:
-        return
-
-    # Fetch data for both periods
-    df_current = get_performance_data(service, args.site_url, current_start_date, current_end_date, filters=filters_list)
-    df_previous = get_performance_data(service, args.site_url, previous_start_date, previous_end_date, filters=filters_list)
-
-    if df_current.empty and df_previous.empty:
-        print("No data found for either period. Exiting.")
-        return
-
-    # --- Data Processing and Comparison ---
-    df_current.rename(columns={
-        'clicks': 'clicks_current', 'impressions': 'impressions_current',
-        'ctr': 'ctr_current', 'position': 'position_current'
-    }, inplace=True)
-
-    df_previous.rename(columns={
-        'clicks': 'clicks_previous', 'impressions': 'impressions_previous',
-        'ctr': 'ctr_previous', 'position': 'position_previous'
-    }, inplace=True)
-
-    # Merge the two dataframes
-    if not df_previous.empty:
-        df_merged = pd.merge(df_current, df_previous, on='page', how='outer')
+    # Case 2: Download data or use cache
     else:
-        df_merged = df_current
-        for col in ['clicks_previous', 'impressions_previous', 'ctr_previous', 'position_previous']:
-            df_merged[col] = 0
+        site_url = args.site_url
+        # Set default comparison if none is chosen
+        if not any([
+            args.start_date, args.last_24_hours, args.last_7_days, args.last_28_days, 
+            args.last_month, args.last_quarter, args.last_3_months, 
+            args.last_6_months, args.last_12_months, args.last_16_months
+        ]):
+            args.last_month = True
 
+        print("Starting performance analysis...")
+        
+        today = date.today()
+        
+        if args.start_date and args.end_date:
+            current_start_date = args.start_date
+            current_end_date = args.end_date
+            
+            start_date_dt = datetime.strptime(current_start_date, '%Y-%m-%d').date()
+            end_date_dt = datetime.strptime(current_end_date, '%Y-%m-%d').date()
+            
+            if args.compare_to_previous_year:
+                previous_start_date_dt = start_date_dt - relativedelta(years=1)
+                previous_end_date_dt = end_date_dt - relativedelta(years=1)
+            else:
+                duration = (end_date_dt - start_date_dt).days
+                previous_end_date_dt = start_date_dt - timedelta(days=1)
+                previous_start_date_dt = previous_end_date_dt - timedelta(days=duration)
+            
+            previous_start_date = previous_start_date_dt.strftime('%Y-%m-%d')
+            previous_end_date = previous_end_date_dt.strftime('%Y-%m-%d')
+            
+            period_label = f"custom-period"
 
-    df_merged.fillna(0, inplace=True)
+        elif args.last_24_hours:
+            current_start_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
+            current_end_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
+            if args.compare_to_previous_year:
+                previous_start_date = (today - timedelta(days=2) - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_end_date = (today - timedelta(days=2) - relativedelta(years=1)).strftime('%Y-%m-%d')
+            else:
+                previous_start_date = (today - timedelta(days=3)).strftime('%Y-%m-%d')
+                previous_end_date = (today - timedelta(days=3)).strftime('%Y-%m-%d')
+            period_label = "last-24-hours"
+            
+        elif args.last_7_days:
+            current_start_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
+            current_end_date = today.strftime('%Y-%m-%d')
+            if args.compare_to_previous_year:
+                previous_start_date = (today - timedelta(days=7) - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
+            else:
+                previous_start_date = (today - timedelta(days=14)).strftime('%Y-%m-%d')
+                previous_end_date = (today - timedelta(days=8)).strftime('%Y-%m-%d')
+            period_label = "last-7-days"
+
+        elif args.last_28_days:
+            current_start_date = (today - timedelta(days=28)).strftime('%Y-%m-%d')
+            current_end_date = today.strftime('%Y-%m-%d')
+            if args.compare_to_previous_year:
+                previous_start_date = (today - timedelta(days=28) - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
+            else:
+                previous_start_date = (today - timedelta(days=56)).strftime('%Y-%m-%d')
+                previous_end_date = (today - timedelta(days=29)).strftime('%Y-%m-%d')
+            period_label = "last-28-days"
+
+        elif args.last_month:
+            first_day_of_current_month = today.replace(day=1)
+            current_end_date_dt = first_day_of_current_month - timedelta(days=1)
+            current_start_date_dt = current_end_date_dt.replace(day=1)
+            current_start_date = current_start_date_dt.strftime('%Y-%m-%d')
+            current_end_date = current_end_date_dt.strftime('%Y-%m-%d')
+            
+            if args.compare_to_previous_year:
+                previous_start_date_dt = current_start_date_dt - relativedelta(years=1)
+                previous_end_date_dt = current_end_date_dt - relativedelta(years=1)
+            else:
+                previous_end_date_dt = current_start_date_dt - timedelta(days=1)
+                previous_start_date_dt = previous_end_date_dt.replace(day=1)
+                
+            previous_start_date = previous_start_date_dt.strftime('%Y-%m-%d')
+            previous_end_date = previous_end_date_dt.strftime('%Y-%m-%d')
+            period_label = "last-month"
+            
+        elif args.last_quarter:
+            current_quarter = (today.month - 1) // 3
+            current_end_date_dt = datetime(today.year, 3 * current_quarter + 1, 1).date() - timedelta(days=1)
+            current_start_date_dt = current_end_date_dt.replace(day=1) - relativedelta(months=2)
+            current_start_date = current_start_date_dt.strftime('%Y-%m-%d')
+            current_end_date = current_end_date_dt.strftime('%Y-%m-%d')
+
+            if args.compare_to_previous_year:
+                previous_start_date_dt = current_start_date_dt - relativedelta(years=1)
+                previous_end_date_dt = current_end_date_dt - relativedelta(years=1)
+            else:
+                previous_end_date_dt = current_start_date_dt - timedelta(days=1)
+                previous_start_date_dt = previous_end_date_dt.replace(day=1) - relativedelta(months=2)
+                
+            previous_start_date = previous_start_date_dt.strftime('%Y-%m-%d')
+            previous_end_date = previous_end_date_dt.strftime('%Y-%m-%d')
+            period_label = "last-quarter"
+            
+        elif args.last_3_months:
+            current_start_date = (today - relativedelta(months=3)).strftime('%Y-%m-%d')
+            current_end_date = today.strftime('%Y-%m-%d')
+            if args.compare_to_previous_year:
+                previous_start_date = (today - relativedelta(months=3) - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
+            else:
+                previous_start_date = (today - relativedelta(months=6)).strftime('%Y-%m-%d')
+                previous_end_date = (today - relativedelta(months=3) - timedelta(days=1)).strftime('%Y-%m-%d')
+            period_label = "last-3-months"
+
+        elif args.last_6_months:
+            current_start_date = (today - relativedelta(months=6)).strftime('%Y-%m-%d')
+            current_end_date = today.strftime('%Y-%m-%d')
+            if args.compare_to_previous_year:
+                previous_start_date = (today - relativedelta(months=6) - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
+            else:
+                previous_start_date = (today - relativedelta(months=12)).strftime('%Y-%m-%d')
+                previous_end_date = (today - relativedelta(months=6) - timedelta(days=1)).strftime('%Y-%m-%d')
+            period_label = "last-6-months"
+
+        elif args.last_12_months:
+            current_start_date = (today - relativedelta(months=12)).strftime('%Y-%m-%d')
+            current_end_date = today.strftime('%Y-%m-%d')
+            if args.compare_to_previous_year:
+                previous_start_date = (today - relativedelta(months=12) - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
+            else:
+                previous_start_date = (today - relativedelta(months=24)).strftime('%Y-%m-%d')
+                previous_end_date = (today - relativedelta(months=12) - timedelta(days=1)).strftime('%Y-%m-%d')
+            period_label = "last-12-months"
+
+        elif args.last_16_months:
+            current_start_date = (today - relativedelta(months=16)).strftime('%Y-%m-%d')
+            current_end_date = today.strftime('%Y-%m-%d')
+            if args.compare_to_previous_year:
+                previous_start_date = (today - relativedelta(months=16) - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
+            else:
+                previous_start_date = (today - relativedelta(months=32)).strftime('%Y-%m-%d')
+                previous_end_date = (today - relativedelta(months=16) - timedelta(days=1)).strftime('%Y-%m-%d')
+            period_label = "last-16-months"
+
+        if args.compare_to_previous_year:
+            period_label += "-vs-prev-year"
+            
+        # --- File Naming ---
+        if site_url.startswith('sc-domain:'):
+            host_plain = site_url.replace('sc-domain:', '')
+        else:
+            host_plain = urlparse(site_url).netloc
+        host_dir = host_plain.replace('www.', '')
+        output_dir = os.path.join('output', host_dir)
+        os.makedirs(output_dir, exist_ok=True)
+        host_for_filename = host_dir.replace('.', '-')
+
+        csv_file_name = f"performance-comparison-{host_for_filename}-{period_label}-{current_start_date}-to-{current_end_date}.csv"
+        csv_output_path = os.path.join(output_dir, csv_file_name)
+        html_output_path = os.path.join(output_dir, csv_file_name.replace('.csv', '.html'))
+
+        # Check for cached file
+        if args.use_cache and os.path.exists(csv_output_path):
+            print(f"Found cached data at {csv_output_path}. Using it to generate report.")
+            df_merged = pd.read_csv(csv_output_path)
+        else:
+            print(f"Current period: {current_start_date} to {current_end_date}")
+            print(f"Previous period: {previous_start_date} to {previous_end_date}")
+            
+            # Construct filters list
+            filters_list = []
+            if args.page_contains:
+                filters_list.append({'dimension': 'page', 'operator': 'contains', 'expression': args.page_contains})
+            if args.page_exact:
+                filters_list.append({'dimension': 'page', 'operator': 'equals', 'expression': args.page_exact})
+            if args.page_not_contains:
+                filters_list.append({'dimension': 'page', 'operator': 'notContains', 'expression': args.page_not_contains})
+            if args.query_contains:
+                filters_list.append({'dimension': 'query', 'operator': 'contains', 'expression': args.query_contains})
+            if args.query_exact:
+                filters_list.append({'dimension': 'query', 'operator': 'equals', 'expression': args.query_exact})
+            if args.query_not_contains:
+                filters_list.append({'dimension': 'query', 'operator': 'notContains', 'expression': args.query_not_contains})
+
+            service = get_gsc_service()
+            if not service:
+                return
+
+            # Fetch data for both periods
+            df_current = get_performance_data(service, args.site_url, current_start_date, current_end_date, filters=filters_list)
+            df_previous = get_performance_data(service, args.site_url, previous_start_date, previous_end_date, filters=filters_list)
+
+            if df_current.empty and df_previous.empty:
+                print("No data found for either period. Exiting.")
+                return
+
+            # --- Data Processing and Comparison ---
+            df_current.rename(columns={
+                'clicks': 'clicks_current', 'impressions': 'impressions_current',
+                'ctr': 'ctr_current', 'position': 'position_current'
+            }, inplace=True)
+
+            df_previous.rename(columns={
+                'clicks': 'clicks_previous', 'impressions': 'impressions_previous',
+                'ctr': 'ctr_previous', 'position': 'position_previous'
+            }, inplace=True)
+
+            if not df_previous.empty:
+                df_merged = pd.merge(df_current, df_previous, on='page', how='outer')
+            else:
+                df_merged = df_current
+                for col in ['clicks_previous', 'impressions_previous', 'ctr_previous', 'position_previous']:
+                    df_merged[col] = 0
+
+            df_merged.fillna(0, inplace=True)
+            
+            # --- Save Merged CSV ---
+            try:
+                df_merged.to_csv(csv_output_path, index=False, encoding='utf-8')
+                print(f"\nSuccessfully exported comparison data to {csv_output_path}")
+            except PermissionError:
+                print(f"\nError: Permission denied when trying to write to {csv_output_path}")
+                return
+
+    # --- Report Generation from df_merged ---
+    if df_merged is None:
+        print("No data available to generate a report.")
+        return
 
     # Calculate deltas
     df_merged['clicks_delta'] = df_merged['clicks_current'] - df_merged['clicks_previous']
     df_merged['impressions_delta'] = df_merged['impressions_current'] - df_merged['impressions_previous']
     df_merged['ctr_delta'] = df_merged['ctr_current'] - df_merged['ctr_previous']
-    # For position, a smaller number is better, so a negative delta is an improvement
     df_merged['position_delta'] = df_merged['position_previous'] - df_merged['position_current']
     
     # Sort for analysis
     df_best = df_merged.sort_values(by='clicks_delta', ascending=False).head(20)
     df_worst = df_merged.sort_values(by='clicks_delta', ascending=True).head(20)
 
-    # Identify low CTR opportunities (high impressions, low CTR)
-    # Thresholds: at least 1000 impressions and CTR < 1%
+    # Identify low CTR opportunities
     low_ctr_threshold_impressions = 1000
     low_ctr_threshold_ctr = 0.01
-    df_low_ctr = df_current[
-        (df_current['impressions_current'] >= low_ctr_threshold_impressions) &
-        (df_current['ctr_current'] < low_ctr_threshold_ctr)
+    df_low_ctr = df_merged[
+        (df_merged['impressions_current'] >= low_ctr_threshold_impressions) &
+        (df_merged['ctr_current'] < low_ctr_threshold_ctr)
     ].sort_values(by='impressions_current', ascending=False).head(20)
 
-    # Identify Rising Stars
+    # Identify Rising and Falling Stars
     rising_stars_prev_impressions_max = 50
     rising_stars_curr_impressions_min = 500
     df_rising_stars = df_merged[
@@ -384,38 +451,16 @@ def main():
         (df_merged['impressions_current'] >= rising_stars_curr_impressions_min)
     ].sort_values(by='impressions_current', ascending=False).head(20)
 
-    # Identify Falling Stars
     falling_stars_prev_clicks_min = 500
     falling_stars_curr_clicks_max = 50
     df_falling_stars = df_merged[
         (df_merged['clicks_previous'] >= falling_stars_prev_clicks_min) &
         (df_merged['clicks_current'] < falling_stars_curr_clicks_max)
     ].sort_values(by='clicks_delta', ascending=True).head(20)
-
-    # --- Output Generation ---
-    if site_url.startswith('sc-domain:'):
-        host_plain = site_url.replace('sc-domain:', '')
-    else:
-        host_plain = urlparse(site_url).netloc
     
-    host_dir = host_plain.replace('www.', '')
-    output_dir = os.path.join('output', host_dir)
-    os.makedirs(output_dir, exist_ok=True)
-    host_for_filename = host_dir.replace('.', '-')
-
-    csv_file_name = f"performance-comparison-{host_for_filename}-{period_label}-{current_start_date}-to-{current_end_date}.csv"
-    csv_output_path = os.path.join(output_dir, csv_file_name)
-
-    html_file_name = f"performance-report-{host_for_filename}-{period_label}-{current_start_date}-to-{current_end_date}.html"
-    html_output_path = os.path.join(output_dir, html_file_name)
     try:
-        # Save detailed comparison to CSV
-        df_merged.to_csv(csv_output_path, index=False, encoding='utf-8')
-        print(f"\nSuccessfully exported comparison data to {csv_output_path}")
-
-        # Generate and save HTML report
         html_output = create_html_report(
-            page_title=f"Performance Analysis for {host_dir}",
+            page_title=f"Performance Analysis for {site_url}",
             current_period_str=f"{current_start_date} to {current_end_date}",
             previous_period_str=f"{previous_start_date} to {previous_end_date}",
             df_best=df_best,
@@ -429,8 +474,7 @@ def main():
         print(f"Successfully created HTML report at {html_output_path}")
     except PermissionError:
         print(f"\nError: Permission denied when trying to write to the output directory.")
-        print(f"Please make sure you have write permissions for the directory: {output_dir}")
-        print(f"Also, check if the file is already open in another program: {csv_file_name} or {html_file_name}")
+        print(f"Also, check if the file is already open in another program.")
 
 
 def create_html_report(page_title, current_period_str, previous_period_str, df_best, df_worst, df_low_ctr, df_rising_stars, df_falling_stars):
