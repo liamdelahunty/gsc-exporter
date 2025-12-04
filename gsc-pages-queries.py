@@ -20,6 +20,8 @@ from google.auth import exceptions
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from urllib.parse import urlparse
+import sys
+import html
 import re
 import argparse
 
@@ -102,17 +104,29 @@ def get_pages_queries_data(service, site_url, start_date, end_date):
             return None
     return all_data
 
-def create_html_report(data_df, site_url, start_date, end_date, report_limit, sub_table_limit):
+def create_html_report(data_df, site_url, start_date, end_date, report_limit, sub_table_limit, command, brand_terms):
     """Generates an HTML report for pages and queries."""
     
+    # --- Report Details Alert ---
+    brand_terms_str = ", ".join(sorted(list(brand_terms))) if brand_terms else "None"
+    info_alert_html = f"""
+        <div class="alert alert-secondary">
+            <strong>Report Details:</strong>
+            <ul>
+                <li><strong>Command:</strong> <code>{html.escape(' '.join(command.split()))}</code></li>
+                <li><strong>Brand Terms Used:</strong> {html.escape(brand_terms_str)}</li>
+            </ul>
+        </div>
+    """
+
     # --- Truncation Alert ---
     query_count = data_df['query'].nunique()
     page_count = data_df['page'].nunique()
     is_truncated = query_count > report_limit or page_count > report_limit
 
-    alert_html = ""
+    truncation_alert_html = ""
     if is_truncated:
-        alert_html = f"""
+        truncation_alert_html = f"""
         <div class="alert alert-info">
             <strong>Report Truncated:</strong> To improve performance, this HTML report has been shortened.
             <ul>
@@ -197,7 +211,8 @@ def create_html_report(data_df, site_url, start_date, end_date, report_limit, su
         <h2>{site_url}</h2>
         <p class="text-muted">{start_date} to {end_date}</p>
 
-        {alert_html}
+        {info_alert_html}
+        {truncation_alert_html}
 
         <ul class="nav nav-tabs" id="myTab" role="tablist">
             {query_tabs}
@@ -539,7 +554,16 @@ def main():
         if 'position' in html_df.columns:
             html_df['position'] = html_df['position'].apply(lambda x: f"{x:.2f}")
 
-        html_report = create_html_report(html_df, site_url, start_date, end_date, args.report_limit, args.sub_table_limit)
+        html_report = create_html_report(
+            data_df=html_df, 
+            site_url=site_url, 
+            start_date=start_date, 
+            end_date=end_date, 
+            report_limit=args.report_limit, 
+            sub_table_limit=args.sub_table_limit,
+            command=' '.join(sys.argv),
+            brand_terms=brand_terms
+        )
         try:
             with open(html_output_path, 'w', encoding='utf-8') as f:
                 f.write(html_report)
