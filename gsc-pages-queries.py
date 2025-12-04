@@ -299,6 +299,87 @@ def main():
     if args.use_cache and not args.site_url:
         parser.error('site_url is required when using --use-cache to identify the site for caching.')
 
+    # --- Main Logic ---
+    df = None
+    
+    # --- Case 1: Generate report from a local CSV file ---
+    if args.csv:
+        if not os.path.exists(args.csv):
+            print(f"Error: CSV file not found at '{args.csv}'")
+            return
+        print(f"Generating report from CSV file: {args.csv}")
+        df = pd.read_csv(args.csv)
+        # Use placeholders for metadata as it cannot be inferred from the CSV alone
+        site_url = "Loaded from CSV"
+        start_date = "N/A"
+        end_date = "N/A"
+        # Try to parse info from filename for a better title
+        try:
+            filename = os.path.basename(args.csv)
+            parts = filename.replace('gsc-pages-queries-', '').replace('.csv', '').split('-to-')
+            if len(parts) == 2:
+                end_date = parts[1]
+                remaining_parts = parts[0].split('-')
+                start_date = remaining_parts[-1]
+                # This is imperfect, but better than nothing
+                site_url = '-'.join(remaining_parts[:-1]).replace('-', '.')
+        except Exception:
+            pass # Ignore parsing errors, placeholders will be used
+
+        html_output_path = args.csv.replace('.csv', '.html')
+
+    # --- Case 2: Download data or use cache ---
+    else:
+        # Add a correction for common typos in the site URL
+        if 'wwww.' in args.site_url:
+            args.site_url = args.site_url.replace('wwww.', 'www.')
+        
+        today = date.today()
+
+        if not any([
+            args.start_date, args.last_24_hours, args.last_7_days, args.last_28_days,
+            args.last_month, args.last_quarter, args.last_3_months,
+            args.last_6_months, args.last_12_months, args.last_16_months
+        ]):
+            args.last_month = True
+
+        # Determine the date range based on the provided flags
+        if args.start_date and args.end_date:
+            start_date = args.start_date
+            end_date = args.end_date
+        elif args.last_24_hours:
+            start_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
+            end_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
+        elif args.last_7_days:
+            start_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+        elif args.last_28_days:
+            start_date = (today - timedelta(days=28)).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+        elif args.last_month:
+            first_day_of_current_month = today.replace(day=1)
+            last_day_of_previous_month = first_day_of_current_month - timedelta(days=1)
+            start_date = last_day_of_previous_month.replace(day=1).strftime('%Y-%m-%d')
+            end_date = last_day_of_previous_month.strftime('%Y-%m-%d')
+        elif args.last_quarter:
+            start_date = (today - relativedelta(months=3)).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+        elif args.last_3_months:
+            start_date = (today - relativedelta(months=3)).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+        elif args.last_6_months:
+            start_date = (today - relativedelta(months=6)).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+        elif args.last_12_months:
+            start_date = (today - relativedelta(months=12)).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+        elif args.last_16_months:
+            start_date = (today - relativedelta(months=16)).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+        else: # Custom date range
+            start_date = args.start_date
+            end_date = args.end_date
+
         site_url = args.site_url
 
         # --- Output File Naming ---
