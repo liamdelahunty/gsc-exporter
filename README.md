@@ -45,6 +45,7 @@ This suite includes several scripts for different types of analysis:
 *   [gsc_pages_exporter.py](#gsc-pages-exporter)
 *   [gsc-pages-queries.py](#gsc-pages-queries.py)
 *   [key-performance-metrics.py](#key-performance-metrics)
+*   [monthly-summary-report.py](#monthly-summary-report)
 *   [performance-analysis.py](#performance-analysis)
 *   [queries-pages-analysis.py](#queries-pages-analysis)
 *   [query-position-analysis.py](#query-position-distribution-analysis)
@@ -268,3 +269,33 @@ python query-position-analysis.py
 
 *   **Single Site**: Generates a CSV and an HTML file in `output/<hostname>/` detailing the monthly query position distribution.
 *   **All Sites**: Generates `output/account/` with a CSV and an HTML report providing an account-wide breakdown.
+---
+
+## monthly-summary-report.py
+
+Generates a concise account-wide or single-site summary of Google Search Console performance for the *last complete calendar month*. This report provides a quick overview of key metrics and counts.
+
+### Usage
+
+**For a single site:**
+`ash
+python monthly-summary-report.py <site_url>
+`
+*   <site_url>: The full URL of the site property (e.g., https://www.example.com) or a domain property (e.g., sc-domain:example.com).
+
+**For all sites in your account (recommended for account-wide overview):**
+`ash
+python monthly-summary-report.py
+`
+This will generate a report for all sites you have access to, aggregating data for the last complete month.
+
+### Output
+
+*   **HTML Report**: A single HTML file located in output/account/ (for account-wide) or output/<hostname>/ (for single site), named monthly-summary-report-account-wide-YYYY-MM.html or monthly-summary-report-hostname-YYYY-MM.html. This report features:
+    *   Clicks, Impressions, CTR, and Average Position.
+    *   Unique Query and Page counts.
+    *   Domains sorted alphabetically.
+    *   Numbers formatted for readability (e.g., 1,234).
+    *   A warning (*) if unique query or page counts might be truncated due to Google Search Console API limits, with a note explaining the truncation.
+*   **CSV Report**: An accompanying CSV file with the raw data.
+

@@ -2,6 +2,10 @@
 
 This document provides an overview of the Python scripts in this repository.
 
+## monthly-summary-report.py
+
+Generates a concise account-wide or single-site summary of Google Search Console performance for the last complete calendar month. This report consolidates key performance metrics (clicks, impressions, CTR, position) and unique query/page counts into a single overview table.
+
 ## gsc_pages_exporter.py
 
 Exports all known pages from a GSC property for a given date range into CSV and HTML files.
