@@ -99,7 +99,7 @@ def generate_wrapped_narrative(wrapped_data):
 
     # Overall Summary
     narratives['overall_summary'] = (
-        f"In {wrapped_data['year']}, your site received an incredible "
+        f"In the period {wrapped_data['report_period']}, your site received an incredible "
         f"{wrapped_data['total_clicks']:,} clicks from search, generating "
         f"{wrapped_data['total_impressions']:,} impressions across Google Search."
     )
@@ -245,12 +245,26 @@ def main():
         most_clicked_month = "N/A"
         most_clicked_month_clicks = 0
 
+    # Ensure output directory exists
+    if site_url.startswith('sc-domain:'):
+        host_plain = site_url.replace('sc-domain:', '')
+    else:
+        host_plain = urlparse(site_url).netloc
+    
+    host_dir = host_plain.replace('www.', '')
+    output_dir = os.path.join('output', host_dir)
+    os.makedirs(output_dir, exist_ok=True)
+    host_for_filename = host_dir.replace('.', '-')
+
     # --- Analysis Complete ---
     print("\nAnalysis complete.")
 
     wrapped_data = {
         'site_url': site_url,
-        'year': date_range_label.replace("_", " "), # Use a descriptive label
+        'hostname': host_plain,
+        'report_period': date_range_label.replace("_", " "),
+        'start_date': start_date,
+        'end_date': end_date,
         'total_clicks': total_clicks,
         'total_impressions': total_impressions,
         'top_page': top_pages[0]['url'] if top_pages else "N/A",
@@ -281,17 +295,6 @@ def main():
 
     # Render the template
     html_output = template.render(wrapped_data=wrapped_data, narratives=narratives)
-
-    # Ensure output directory exists
-    if site_url.startswith('sc-domain:'):
-        host_plain = site_url.replace('sc-domain:', '')
-    else:
-        host_plain = urlparse(site_url).netloc
-    
-    host_dir = host_plain.replace('www.', '')
-    output_dir = os.path.join('output', host_dir)
-    os.makedirs(output_dir, exist_ok=True)
-    host_for_filename = host_dir.replace('.', '-')
 
     # Save the rendered HTML to a file
     html_filename = f"gsc-wrapped-report-{host_for_filename}-{date_range_label}.html"
