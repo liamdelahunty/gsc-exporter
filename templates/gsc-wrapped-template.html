@@ -63,13 +63,26 @@
         <div class="card">
             <div class="card-header">Your Top Performers</div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-4">
-                        <h5>Your Top 5 Pages</h5>
-                        <ul class="top-list">
+                <!-- Nav tabs -->
+                <ul class="nav nav-tabs" id="topPerformersTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="top-pages-tab" data-bs-toggle="tab" data-bs-target="#top-pages" type="button" role="tab" aria-controls="top-pages" aria-selected="true">Top 5 Pages</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="brand-queries-tab" data-bs-toggle="tab" data-bs-target="#brand-queries" type="button" role="tab" aria-controls="brand-queries" aria-selected="false">Top 5 Brand Queries</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="non-brand-queries-tab" data-bs-toggle="tab" data-bs-target="#non-brand-queries" type="button" role="tab" aria-controls="non-brand-queries" aria-selected="false">Top 5 Non-Brand Queries</button>
+                    </li>
+                </ul>
+
+                <!-- Tab panes -->
+                <div class="tab-content" id="topPerformersTabContent">
+                    <div class="tab-pane fade show active" id="top-pages" role="tabpanel" aria-labelledby="top-pages-tab">
+                        <ul class="top-list mt-3">
                             {% for page in wrapped_data.top_pages %}
                             <li>
-                                <span class="item-name">{{ page.url }}</span>
+                                <span class="item-name"><a href="{{ page.url }}" target="_blank">{{ page.url }}</a></span>
                                 <span class="item-clicks">{{ "{:,.0f}".format(page.clicks) }} clicks</span>
                             </li>
                             {% else %}
@@ -77,9 +90,8 @@
                             {% endfor %}
                         </ul>
                     </div>
-                    <div class="col-md-6 mb-4">
-                        <h5>Your Top 5 Brand Queries</h5>
-                        <ul class="top-list">
+                    <div class="tab-pane fade" id="brand-queries" role="tabpanel" aria-labelledby="brand-queries-tab">
+                        <ul class="top-list mt-3">
                             {% for query in wrapped_data.top_brand_queries %}
                             <li>
                                 <span class="item-name">{{ query.query }}</span>
@@ -90,9 +102,8 @@
                             {% endfor %}
                         </ul>
                     </div>
-                    <div class="col-md-6 mb-4">
-                        <h5>Your Top 5 Non-Brand Queries</h5>
-                        <ul class="top-list">
+                    <div class="tab-pane fade" id="non-brand-queries" role="tabpanel" aria-labelledby="non-brand-queries-tab">
+                        <ul class="top-list mt-3">
                             {% for query in wrapped_data.top_non_brand_queries %}
                             <li>
                                 <span class="item-name">{{ query.query }}</span>
@@ -104,14 +115,54 @@
                         </ul>
                     </div>
                 </div>
-                <div class="card mt-3">
-                    <div class="card-body">
-                        <h5 class="card-title text-info">Your Busiest Month</h5>
-                        <p class="card-text">
-                            <span class="metric-value">{{ wrapped_data.most_clicked_month }}</span>
-                            <span class="metric-label">with</span>
-                            <strong class="d-block">{{ "{:,.0f}".format(wrapped_data.most_clicked_month_clicks) }} clicks</strong>
-                        </p>
+                <div class="row mt-4">
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h5 class="card-title text-primary mb-2">Busiest Month (Clicks)</h5>
+                                <p class="card-text">
+                                    <span class="metric-value" style="font-size: 2.2rem;">{{ wrapped_data.most_clicked_month }}</span>
+                                    <span class="metric-label">with</span>
+                                    <strong class="d-block" style="font-size: 1.3rem;">{{ "{:,.0f}".format(wrapped_data.most_clicked_month_clicks) }} clicks</strong>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h5 class="card-title text-success mb-2">Top Impression Month</h5>
+                                <p class="card-text">
+                                    <span class="metric-value" style="font-size: 2.2rem;">{{ wrapped_data.most_impressed_month }}</span>
+                                    <span class="metric-label">with</span>
+                                    <strong class="d-block" style="font-size: 1.3rem;">{{ "{:,.0f}".format(wrapped_data.most_impressed_month_impressions) }} impressions</strong>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h5 class="card-title text-danger mb-2">Highest CTR Month</h5>
+                                <p class="card-text">
+                                    <span class="metric-value" style="font-size: 2.2rem;">{{ wrapped_data.highest_ctr_month }}</span>
+                                    <span class="metric-label">with an average CTR of</span>
+                                    <strong class="d-block" style="font-size: 1.3rem;">{{ "{:,.2%}".format(wrapped_data.highest_ctr_month_ctr) }}</strong>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h5 class="card-title text-warning mb-2">Best Position Month</h5>
+                                <p class="card-text">
+                                    <span class="metric-value" style="font-size: 2.2rem;">{{ wrapped_data.best_position_month }}</span>
+                                    <span class="metric-label">with an average position of</span>
+                                    <strong class="d-block" style="font-size: 1.3rem;">{{ "{:,.1f}".format(wrapped_data.best_position_month_position) }}</strong>
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

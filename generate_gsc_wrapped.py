@@ -208,9 +208,13 @@ def generate_wrapped_narrative(wrapped_data):
 def main():
     parser = argparse.ArgumentParser(
         description='Generate a "Google Organic Wrapped"-style report for Google Search Console data.',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='Example Usage:\n'
+               '  To download data: python generate_gsc_wrapped.py https://www.example.com --last-12-months\n'
+               '  To generate from a csv: python generate_gsc_wrapped.py --csv ./output/example-com/gsc-pages-queries-example-com-2024-01-01-to-2024-12-31.csv --site_url https://www.example.com',
     )
-    parser.add_argument('site_url', help='The URL of the site to generate the report for.')
+    parser.add_argument('site_url', nargs='?', help='The URL of the site to generate the report for. Required unless --csv is used, but needed for "Busiest Month" calculation.')
+    parser.add_argument('--csv', help='Path to a CSV file to generate the report from. The CSV should contain "page", "query", "clicks", and "impressions" columns.')
 
     date_group = parser.add_mutually_exclusive_group()
     date_group.add_argument(
@@ -238,14 +242,36 @@ def main():
     
     args = parser.parse_args()
 
+    if not args.site_url and not args.csv:
+        parser.error('`site_url` is required unless --csv is provided.')
+
+    if args.csv and not args.site_url:
+        print("Warning: `site_url` not provided with --csv. The 'Busiest Month' calculation will be skipped.")
+
     if args.start_date and not args.end_date:
         parser.error("--start-date must be used with --end-date.")
 
     site_url = args.site_url
     today = date.today()
     date_range_label = ""
+    start_date = None
+    end_date = None
 
-    if args.last_12_months:
+    if args.csv:
+        if args.year_to_date or args.last_12_months or args.start_date:
+            print("Warning: Date range flags (--year-to-date, etc.) are ignored when --csv is used.")
+        try:
+            filename = os.path.basename(args.csv)
+            parts = re.findall(r'(\d{4}-\d{2}-\d{2})-to-(\d{4}-\d{2}-\d{2})', filename)
+            if parts:
+                start_date = parts[0][0]
+                end_date = parts[0][1]
+                date_range_label = f"{start_date}_to_{end_date}"
+            else:
+                date_range_label = "Custom CSV Data"
+        except Exception:
+            date_range_label = "Custom CSV Data"
+    elif args.last_12_months:
         end_of_last_month = today.replace(day=1) - timedelta(days=1)
         start_of_12_months_ago = (end_of_last_month - relativedelta(months=11)).replace(day=1)
         start_date = start_of_12_months_ago.strftime('%Y-%m-%d')
@@ -261,65 +287,91 @@ def main():
         end_date = end_of_last_month.strftime('%Y-%m-%d')
         date_range_label = f"{today.year}-YTD"
 
-    service = get_gsc_service()
-    if not service:
-        return
-
-    print(f"Fetching GSC data for {site_url} from {start_date} to {end_date}...")
-
-    # --- Efficient Data Fetching ---
+    # --- Data Loading and Processing ---
+    is_csv_input = bool(args.csv)
+    gsc_service = None
     
-    # 1. Total Clicks and Impressions
-    total_agg_data = get_gsc_data(service, site_url, start_date, end_date, dimensions=[], paginate=False)
-    total_clicks = total_agg_data[0]['clicks'] if total_agg_data else 0
-    total_impressions = total_agg_data[0]['impressions'] if total_agg_data else 0
+    if is_csv_input:
+        if not os.path.exists(args.csv):
+            print(f"Error: CSV file not found at '{args.csv}'")
+            return
+        print(f"Loading data from CSV: {args.csv}")
+        df = pd.read_csv(args.csv)
+        
+        required_cols = ['page', 'query', 'clicks', 'impressions']
+        if not all(col in df.columns for col in required_cols):
+            print(f"Error: CSV must contain columns: {', '.join(required_cols)}")
+            return
+        
+        print("Processing data from CSV...")
+        total_clicks = df['clicks'].sum()
+        total_impressions = df['impressions'].sum()
 
-    # 2. Top 5 Pages by Clicks
-    top_pages_data = get_gsc_data(service, site_url, start_date, end_date, dimensions=['page'], row_limit=5, paginate=False)
-    top_pages = []
-    if top_pages_data:
-        for item in top_pages_data:
-            top_pages.append({'url': item['keys'][0], 'clicks': item['clicks']})
-    
-    # 3. Top Queries for Brand/Non-Brand classification (fetch more to ensure enough for top 5 of each)
-    all_top_queries_for_classification = get_gsc_data(service, site_url, start_date, end_date, dimensions=['query'], row_limit=500, paginate=False)
-    
+        top_pages_df = df.groupby('page')['clicks'].sum().nlargest(5).reset_index()
+        top_pages = [{'url': row['page'], 'clicks': row['clicks']} for _, row in top_pages_df.iterrows()]
+
+        queries_df = df.groupby('query')[['clicks', 'impressions']].sum().reset_index()
+        
+        unique_pages = df['page'].nunique()
+        unique_queries = df['query'].nunique()
+        unique_pages_str = f"{unique_pages:,}"
+        unique_queries_str = f"{unique_queries:,}"
+
+    else:
+        gsc_service = get_gsc_service()
+        if not gsc_service:
+            return
+        
+        print(f"Fetching GSC data for {site_url} from {start_date} to {end_date}...")
+        total_agg_data = get_gsc_data(gsc_service, site_url, start_date, end_date, dimensions=[], paginate=False)
+        total_clicks = total_agg_data[0]['clicks'] if total_agg_data else 0
+        total_impressions = total_agg_data[0]['impressions'] if total_agg_data else 0
+
+        top_pages_data = get_gsc_data(gsc_service, site_url, start_date, end_date, dimensions=['page'], row_limit=5, paginate=False)
+        top_pages = [{'url': item['keys'][0], 'clicks': item['clicks']} for item in top_pages_data] if top_pages_data else []
+
+        all_top_queries_data = get_gsc_data(gsc_service, site_url, start_date, end_date, dimensions=['query'], row_limit=500, paginate=False)
+        queries_df = pd.DataFrame(all_top_queries_data)
+        if not queries_df.empty:
+            queries_df['query'] = queries_df['keys'].apply(lambda x: x[0])
+            queries_df.drop(columns=['keys'], inplace=True)
+        
+        page_count_batch = get_gsc_data(gsc_service, site_url, start_date, end_date, dimensions=['page'], row_limit=25000, paginate=False)
+        unique_pages = len(page_count_batch) if page_count_batch is not None else 0
+        unique_pages_str = "25,000+" if unique_pages == 25000 else f"{unique_pages:,}"
+        
+        query_count_batch = get_gsc_data(gsc_service, site_url, start_date, end_date, dimensions=['query'], row_limit=25000, paginate=False)
+        unique_queries = len(query_count_batch) if query_count_batch is not None else 0
+        unique_queries_str = "25,000+" if unique_queries == 25000 else f"{unique_queries:,}"
+
+    # --- Brand Classification (Shared Logic) ---
     top_brand_queries = []
     top_non_brand_queries = []
-
-    if all_top_queries_for_classification:
-        queries_df = pd.DataFrame(all_top_queries_for_classification)
-        queries_df['query'] = pd.DataFrame(queries_df['keys'].tolist(), index=queries_df.index)
-        queries_df.drop(columns=['keys'], inplace=True)
-
-        brand_terms = set()
+    brand_terms = set()
+    
+    if 'query' in queries_df.columns and not queries_df.empty:
         # Priority 1: --brand-terms-file flag
         if args.brand_terms_file:
             if os.path.exists(args.brand_terms_file):
-                with open(args.brand_terms_file, 'r') as f:
-                    file_terms = [line.strip().lower() for line in f if line.strip()]
-                    brand_terms.update(file_terms)
-                print(f"Loaded {len(file_terms)} brand terms from {args.brand_terms_file}")
+                with open(args.brand_terms_file, 'r') as f: brand_terms.update(line.strip().lower() for line in f if line.strip())
+                print(f"Loaded {len(brand_terms)} brand terms from {args.brand_terms_file}")
             else:
                 print(f"Warning: Brand terms file not found at '{args.brand_terms_file}'.")
         
-        # Priority 2: Automatic file in /config (if no explicit file and brand detection is on)
-        elif not args.no_brand_detection:
-            root_domain = get_root_domain(site_url)
+        # Priority 2: Automatic file in /config
+        elif not args.no_brand_detection and args.site_url:
+            root_domain = get_root_domain(args.site_url)
             if root_domain:
-                file_name_root = root_domain.split('.')[0]
-                config_file_path = os.path.join('config', f'brand-terms-{file_name_root}.txt')
+                config_file_path = os.path.join('config', f'brand-terms-{root_domain.split(".")[0]}.txt')
                 if os.path.exists(config_file_path):
-                    with open(config_file_path, 'r') as f:
-                        config_terms = [line.strip().lower() for line in f if line.strip()]
-                        brand_terms.update(config_terms)
-                    print(f"Loaded {len(config_terms)} brand terms from {config_file_path} (auto-detected).")
+                    with open(config_file_path, 'r') as f: brand_terms.update(line.strip().lower() for line in f if line.strip())
+                    print(f"Loaded {len(brand_terms)} brand terms from {config_file_path} (auto-detected).")
 
-        # Priority 3: Auto-detection from URL (if brand detection is on and no terms loaded yet)
-        if not args.no_brand_detection and not brand_terms:
-            brand_terms.update(get_brand_terms(site_url))
+        # Priority 3: Auto-detection from URL
+        if not args.no_brand_detection and not brand_terms and args.site_url:
+            brand_terms.update(get_brand_terms(args.site_url))
 
-        # Priority 4: --brand-terms from command line (always adds to the set)
+        # Priority 4: --brand-terms from command line
         if args.brand_terms:
             brand_terms.update(term.lower() for term in args.brand_terms)
 
@@ -329,76 +381,92 @@ def main():
             queries_df['brand_type'] = queries_df['query'].str.contains(pattern, case=False, regex=True).map({True: 'Brand', False: 'Non-Brand'})
 
             top_brand_queries_df = queries_df[queries_df['brand_type'] == 'Brand'].nlargest(5, 'clicks')
-            for _, row in top_brand_queries_df.iterrows():
-                top_brand_queries.append({'query': row['query'], 'clicks': row['clicks']})
+            top_brand_queries = [{'query': r['query'], 'clicks': r['clicks']} for _, r in top_brand_queries_df.iterrows()]
             
             top_non_brand_queries_df = queries_df[queries_df['brand_type'] == 'Non-Brand'].nlargest(5, 'clicks')
-            for _, row in top_non_brand_queries_df.iterrows():
-                top_non_brand_queries.append({'query': row['query'], 'clicks': row['clicks']})
+            top_non_brand_queries = [{'query': r['query'], 'clicks': r['clicks']} for _, r in top_non_brand_queries_df.iterrows()]
         else:
-            print("No brand terms specified or detected, all queries will be treated as non-brand for classification purposes.")
+            print("No brand terms specified or detected; all queries are considered non-brand.")
             top_non_brand_queries_df = queries_df.nlargest(5, 'clicks')
-            for _, row in top_non_brand_queries_df.iterrows():
-                top_non_brand_queries.append({'query': row['query'], 'clicks': row['clicks']})
-            
-    # Fallback for top_query if no brand/non-brand queries found
-    top_query = top_non_brand_queries[0]['query'] if top_non_brand_queries else (top_brand_queries[0]['query'] if top_brand_queries else "N/A")
-    top_query_clicks = top_non_brand_queries[0]['clicks'] if top_non_brand_queries else (top_brand_queries[0]['clicks'] if top_brand_queries else 0)
+            top_non_brand_queries = [{'query': r['query'], 'clicks': r['clicks']} for _, r in top_non_brand_queries_df.iterrows()]
 
+    top_query = (top_non_brand_queries[0]['query'] if top_non_brand_queries else (top_brand_queries[0]['query'] if top_brand_queries else "N/A"))
+    top_query_clicks = (top_non_brand_queries[0]['clicks'] if top_non_brand_queries else (top_brand_queries[0]['clicks'] if top_brand_queries else 0))
 
-    # 4. Total Unique Pages and Queries (by fetching one large batch and checking its size)
-    page_count_batch = get_gsc_data(service, site_url, start_date, end_date, dimensions=['page'], row_limit=25000, paginate=False)
-    unique_pages = len(page_count_batch) if page_count_batch is not None else 0
-    unique_pages_str = f"{unique_pages:,}"
-    if unique_pages == 25000:
-        unique_pages_str = "25,000+"
+    # --- Monthly Performance Calculation ---
+    most_clicked_month, most_clicked_month_clicks = "N/A", 0
+    most_impressed_month, most_impressed_month_impressions = "N/A", 0
+    highest_ctr_month, highest_ctr_month_ctr = "N/A", 0.0
+    best_position_month, best_position_month_position = "N/A", 0.0
+
+    if site_url and start_date and end_date:
+        if not gsc_service: gsc_service = get_gsc_service() # Authenticate if not already
         
-    query_count_batch = get_gsc_data(service, site_url, start_date, end_date, dimensions=['query'], row_limit=25000, paginate=False)
-    unique_queries = len(query_count_batch) if query_count_batch is not None else 0
-    unique_queries_str = f"{unique_queries:,}"
-    if unique_queries == 25000:
-        unique_queries_str = "25,000+"
+        if gsc_service:
+            print("Fetching daily data for monthly performance calculation...")
+            daily_data = get_gsc_data(gsc_service, site_url, start_date, end_date, dimensions=['date'], paginate=True)
+            if daily_data:
+                df_daily = pd.DataFrame(daily_data)
+                df_daily['date'] = pd.to_datetime(df_daily['keys'].apply(lambda x: x[0]))
+                df_daily['month'] = df_daily['date'].dt.to_period('M')
+                
+                # Clicks
+                monthly_clicks = df_daily.groupby('month')['clicks'].sum().nlargest(1)
+                if not monthly_clicks.empty:
+                    most_clicked_month = monthly_clicks.index[0].strftime('%B')
+                    most_clicked_month_clicks = monthly_clicks.values[0]
+                
+                # Impressions
+                monthly_impressions = df_daily.groupby('month')['impressions'].sum().nlargest(1)
+                if not monthly_impressions.empty:
+                    most_impressed_month = monthly_impressions.index[0].strftime('%B')
+                    most_impressed_month_impressions = monthly_impressions.values[0]
 
-    # 5. Month with Most Clicks
-    daily_data = get_gsc_data(service, site_url, start_date, end_date, dimensions=['date'], paginate=True) # Paginate here is fine
-    if daily_data:
-        df_daily = pd.DataFrame(daily_data)
-        df_daily[['date']] = pd.DataFrame(df_daily['keys'].tolist(), index=df_daily.index)
-        df_daily['date'] = pd.to_datetime(df_daily['date'])
-        df_daily['month'] = df_daily['date'].dt.to_period('M')
-        monthly_clicks = df_daily.groupby('month')['clicks'].sum().nlargest(1).reset_index()
-        most_clicked_month = monthly_clicks.iloc[0]['month'].strftime('%B') if not monthly_clicks.empty else "N/A"
-        most_clicked_month_clicks = monthly_clicks.iloc[0]['clicks'] if not monthly_clicks.empty else 0
+                # CTR
+                monthly_agg = df_daily.groupby('month').agg(total_clicks=('clicks', 'sum'), total_impressions=('impressions', 'sum')).reset_index()
+                monthly_agg['monthly_ctr'] = monthly_agg['total_clicks'] / monthly_agg['total_impressions']
+                highest_ctr_month_series = monthly_agg.loc[monthly_agg['monthly_ctr'].idxmax()]
+                highest_ctr_month = highest_ctr_month_series['month'].strftime('%B')
+                highest_ctr_month_ctr = highest_ctr_month_series['monthly_ctr']
+
+                # Position
+                monthly_position = df_daily.groupby('month')['position'].mean().nsmallest(1) # smaller is better
+                if not monthly_position.empty:
+                    best_position_month = monthly_position.index[0].strftime('%B')
+                    best_position_month_position = monthly_position.values[0]
+        else:
+            print("Warning: GSC authentication failed. Skipping monthly performance calculation.")
     else:
-        most_clicked_month = "N/A"
-        most_clicked_month_clicks = 0
+        print("Warning: Skipping monthly performance calculation (site_url and date range required).")
 
-    # Ensure output directory exists
-    if site_url.startswith('sc-domain:'):
-        host_plain = site_url.replace('sc-domain:', '')
-    else:
-        host_plain = urlparse(site_url).netloc
-    
-    host_dir = host_plain.replace('www.', '')
-    output_dir = os.path.join('output', host_dir)
-    os.makedirs(output_dir, exist_ok=True)
-    host_for_filename = host_dir.replace('.', '-')
+    # --- Report Generation ---
+    if site_url:
+        host_plain = urlparse(site_url).netloc if not site_url.startswith('sc-domain:') else site_url.replace('sc-domain:', '')
+        host_dir = host_plain.replace('www.', '')
+        output_dir = os.path.join('output', host_dir)
+        os.makedirs(output_dir, exist_ok=True)
+        host_for_filename = host_dir.replace('.', '-')
+    else: # Fallback for CSV-only case
+        host_plain = "csv-report"
+        output_dir = "output"
+        os.makedirs(output_dir, exist_ok=True)
+        host_for_filename = "csv-report"
 
-    # --- Analysis Complete ---
+
     print("\nAnalysis complete.")
 
     wrapped_data = {
-        'site_url': site_url,
+        'site_url': site_url or "CSV Data",
         'hostname': host_plain,
         'report_period': date_range_label.replace("_", " "),
-        'start_date': start_date,
-        'end_date': end_date,
+        'start_date': start_date or "N/A",
+        'end_date': end_date or "N/A",
         'total_clicks': total_clicks,
         'total_impressions': total_impressions,
         'top_page': top_pages[0]['url'] if top_pages else "N/A",
         'top_page_clicks': top_pages[0]['clicks'] if top_pages else 0,
-        'top_query': top_query, # still keep single top_query for narrative
-        'top_query_clicks': top_query_clicks, # still keep single top_query_clicks for narrative
+        'top_query': top_query,
+        'top_query_clicks': top_query_clicks,
         'top_pages': top_pages,
         'top_brand_queries': top_brand_queries,
         'top_non_brand_queries': top_non_brand_queries,
@@ -406,6 +474,12 @@ def main():
         'unique_queries_str': unique_queries_str,
         'most_clicked_month': most_clicked_month,
         'most_clicked_month_clicks': most_clicked_month_clicks,
+        'most_impressed_month': most_impressed_month,
+        'most_impressed_month_impressions': most_impressed_month_impressions,
+        'highest_ctr_month': highest_ctr_month,
+        'highest_ctr_month_ctr': highest_ctr_month_ctr,
+        'best_position_month': best_position_month,
+        'best_position_month_position': best_position_month_position,
     }
 
     print("\n--- Google Organic Wrapped Key Metrics ---")
@@ -435,9 +509,6 @@ def main():
         print(f"\nSuccessfully created Google Organic Wrapped HTML report at {html_output_path}")
     except IOError as e:
         print(f"Error writing HTML report to file: {e}")
-
-if __name__ == '__main__':
-    main()
 
 
 if __name__ == '__main__':
