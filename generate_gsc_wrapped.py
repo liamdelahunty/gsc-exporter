@@ -214,6 +214,7 @@ def main():
 
     parser.add_argument('--no-brand-detection', action='store_true', help='Disable automatic brand term detection.')
     parser.add_argument('--brand-terms', nargs='+', help='A list of additional brand terms to include in the analysis.')
+    parser.add_argument('--brand-terms-file', help='Path to a text file containing brand terms, one per line.')
     
     args = parser.parse_args()
 
@@ -276,6 +277,15 @@ def main():
             brand_terms.update(get_brand_terms(site_url))
         if args.brand_terms:
             brand_terms.update(term.lower() for term in args.brand_terms)
+        
+        if args.brand_terms_file:
+            if os.path.exists(args.brand_terms_file):
+                with open(args.brand_terms_file, 'r') as f:
+                    file_terms = [line.strip().lower() for line in f if line.strip()]
+                    brand_terms.update(file_terms)
+                print(f"Loaded {len(file_terms)} brand terms from {args.brand_terms_file}")
+            else:
+                print(f"Warning: Brand terms file not found at '{args.brand_terms_file}'")
 
         if brand_terms:
             print(f"Classifying queries with brand terms: {brand_terms}")

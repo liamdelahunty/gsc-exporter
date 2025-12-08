@@ -66,7 +66,11 @@ Creates a "Google Organic Wrapped"-style annual summary for a single GSC propert
 python generate_gsc_wrapped.py <site_url> [date_range_option]
 ```
 *   `<site_url>`: (Required) The full URL of the site property.
-*   **Date Range Options**: By default, the script runs for the current year-to-date. You can use `--last-12-months` to get the last 12 complete months, or specify a custom range with `--start-date` and `--end-date`.
+*   **Date Range Options**: By default, a YTD report is generated. You can use `--last-12-months` or a custom range with `--start-date` and `--end-date`.
+*   **Brand Analysis Options**:
+    *   `--brand-terms <term1> <term2>`: Specify brand terms directly on the command line.
+    *   `--brand-terms-file <path>`: Provide a path to a text file containing brand terms (one per line).
+    *   `--no-brand-detection`: Disable the brand vs. non-brand classification.
 
 ### Output
 
