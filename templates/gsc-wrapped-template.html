@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GSC Wrapped {{ wrapped_data.year }} for {{ wrapped_data.site_url }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; color: #343a40; }
+        .container { max-width: 960px; margin-top: 40px; margin-bottom: 40px; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .header h1 { font-size: 3.5rem; color: #007bff; font-weight: bold; }
+        .header p { font-size: 1.2rem; color: #6c757d; }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 30px; overflow: hidden; }
+        .card-header { background-color: #007bff; color: white; padding: 1.5rem; font-size: 1.5rem; font-weight: bold; border-bottom: none; }
+        .card-body { padding: 2rem; }
+        .metric-value { font-size: 2.5rem; font-weight: bold; color: #343a40; display: block; margin-top: 10px; }
+        .metric-label { font-size: 1rem; color: #6c757d; display: block; }
+        .narrative-section { background-color: #e9ecef; border-radius: 10px; padding: 25px; margin-bottom: 30px; }
+        .narrative-section p { font-size: 1.1rem; line-height: 1.8; color: #495057; }
+        .narrative-section strong { color: #007bff; }
+        .footer { text-align: center; margin-top: 50px; font-size: 0.9rem; color: #6c757d; }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .stat-item { background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center; }
+        .stat-item .value { font-size: 2rem; font-weight: bold; color: #28a745; }
+        .stat-item .label { font-size: 0.9rem; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>GSC Wrapped {{ wrapped_data.year }}</h1>
+            <p>A look back at your search performance for <strong>{{ wrapped_data.site_url }}</strong></p>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Your Year in Numbers</div>
+            <div class="card-body stat-grid">
+                <div class="stat-item">
+                    <span class="value">{{ "{:,.0f}".format(wrapped_data.total_clicks) }}</span>
+                    <span class="label">Total Clicks</span>
+                </div>
+                <div class="stat-item">
+                    <span class="value">{{ "{:,.0f}".format(wrapped_data.total_impressions) }}</span>
+                    <span class="label">Total Impressions</span>
+                </div>
+                <div class="stat-item">
+                    <span class="value">{{ "{:,.0f}".format(wrapped_data.unique_queries) }}</span>
+                    <span class="label">Unique Queries</span>
+                </div>
+                <div class="stat-item">
+                    <span class="value">{{ "{:,.0f}".format(wrapped_data.unique_pages) }}</span>
+                    <span class="label">Unique Pages</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Your Top Performers</div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title text-primary">Your #1 Page</h5>
+                                <p class="card-text">
+                                    <span class="metric-value">{{ "{:,.0f}".format(wrapped_data.top_page_clicks) }} clicks</span>
+                                    <span class="metric-label">for</span>
+                                    <strong class="d-block text-break">{{ wrapped_data.top_page }}</strong>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title text-success">Your #1 Query</h5>
+                                <p class="card-text">
+                                    <span class="metric-value">{{ "{:,.0f}".format(wrapped_data.top_query_clicks) }} clicks</span>
+                                    <span class="metric-label">for the query</span>
+                                    <strong class="d-block">{{ wrapped_data.top_query }}</strong>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h5 class="card-title text-info">Your Busiest Month</h5>
+                        <p class="card-text">
+                            <span class="metric-value">{{ wrapped_data.most_clicked_month }}</span>
+                            <span class="metric-label">with</span>
+                            <strong class="d-block">{{ "{:,.0f}".format(wrapped_data.most_clicked_month_clicks) }} clicks</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Your GSC Story</div>
+            <div class="card-body">
+                <div class="narrative-section">
+                    <p><strong>{{ narratives.overall_summary }}</strong></p>
+                </div>
+                <div class="narrative-section">
+                    <p><strong>{{ narratives.top_page_highlight }}</strong></p>
+                </div>
+                <div class="narrative-section">
+                    <p><strong>{{ narratives.top_query_highlight }}</strong></p>
+                </div>
+                <div class="narrative-section">
+                    <p><strong>{{ narratives.reach_breadth }}</strong></p>
+                </div>
+                <div class="narrative-section">
+                    <p><strong>{{ narratives.busiest_month }}</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Generated by gsc-page-exporter | Data from Google Search Console</p>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
