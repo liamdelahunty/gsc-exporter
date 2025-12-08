@@ -135,16 +135,56 @@ def generate_wrapped_narrative(wrapped_data):
     return narratives
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate a "Spotify Wrapped" style report for Google Search Console data.')
+    parser = argparse.ArgumentParser(
+        description='Generate a "Spotify Wrapped" style report for Google Search Console data.',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument('site_url', help='The URL of the site to generate the report for.')
-    parser.add_argument('--year', type=int, default=datetime.now().year - 1, help='The year for which to generate the report. Defaults to the previous year.')
+
+    date_group = parser.add_mutually_exclusive_group()
+    date_group.add_argument(
+        '--year-to-date',
+        action='store_true',
+        help='(Default) Analyse from Jan 1st of the current year to the end of the last complete month.'
+    )
+    date_group.add_argument(
+        '--last-12-months',
+        action='store_true',
+        help='Analyse the last 12 complete months.'
+    )
+    date_group.add_argument(
+        '--start-date',
+        help='Start date in YYYY-MM-DD format. Must be used with --end-date.'
+    )
+    parser.add_argument(
+        '--end-date',
+        help='End date in YYYY-MM-DD format. Used only with --start-date.'
+    )
     
     args = parser.parse_args()
-    site_url = args.site_url
-    target_year = args.year
 
-    start_date = f"{target_year}-01-01"
-    end_date = f"{target_year}-12-31"
+    if args.start_date and not args.end_date:
+        parser.error("--start-date must be used with --end-date.")
+
+    site_url = args.site_url
+    today = date.today()
+    date_range_label = ""
+
+    if args.last_12_months:
+        end_of_last_month = today.replace(day=1) - timedelta(days=1)
+        start_of_12_months_ago = (end_of_last_month - relativedelta(months=11)).replace(day=1)
+        start_date = start_of_12_months_ago.strftime('%Y-%m-%d')
+        end_date = end_of_last_month.strftime('%Y-%m-%d')
+        date_range_label = f"{start_date}_to_{end_date}"
+    elif args.start_date and args.end_date:
+        start_date = args.start_date
+        end_date = args.end_date
+        date_range_label = f"{start_date}_to_{end_date}"
+    else:  # Default to --year-to-date
+        end_of_last_month = today.replace(day=1) - timedelta(days=1)
+        start_date = f"{today.year}-01-01"
+        end_date = end_of_last_month.strftime('%Y-%m-%d')
+        date_range_label = f"{today.year}-YTD"
 
     service = get_gsc_service()
     if not service:
@@ -154,7 +194,7 @@ def main():
     raw_data = get_gsc_data(service, site_url, start_date, end_date, dimensions=['date', 'query', 'page'])
 
     if not raw_data:
-        print("No data found for the given site and year.")
+        print(f"No data found for the given site and date range ({start_date} to {end_date}).")
         return
 
     df = pd.DataFrame(raw_data)
@@ -177,7 +217,7 @@ def main():
     host_for_filename = host_dir.replace('.', '-')
     
     # Save raw data to CSV for debugging/re-use
-    csv_filename = f"gsc-wrapped-raw-data-{host_for_filename}-{target_year}.csv"
+    csv_filename = f"gsc-wrapped-raw-data-{host_for_filename}-{date_range_label}.csv"
     csv_output_path = os.path.join(output_dir, csv_filename)
     
     try:
@@ -214,7 +254,7 @@ def main():
 
     wrapped_data = {
         'site_url': site_url,
-        'year': target_year,
+        'year': date_range_label.replace("_", " "), # Use a descriptive label
         'total_clicks': total_clicks,
         'total_impressions': total_impressions,
         'top_page': top_page,
@@ -245,7 +285,7 @@ def main():
     html_output = template.render(wrapped_data=wrapped_data, narratives=narratives)
 
     # Save the rendered HTML to a file
-    html_filename = f"gsc-wrapped-report-{host_for_filename}-{target_year}.html"
+    html_filename = f"gsc-wrapped-report-{host_for_filename}-{date_range_label}.html"
     html_output_path = os.path.join(output_dir, html_filename)
 
     try:
