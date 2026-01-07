@@ -181,10 +181,11 @@ Generates a page-level report showing the total clicks, impressions, CTR, averag
 ### Usage
 
 ```bash
-python page-level-report.py <site_url> [date_range_option]
+python page-level-report.py <site_url> [date_range_option] [--strip-query-strings]
 ```
 
 *   `<site_url>`: (Required) The full URL of the site property (e.g., `https://www.example.com`) or a domain property (e.g., `sc-domain:example.com`).
+*   `--strip-query-strings`: (Optional) Removes query strings from page URLs before aggregating data. This is useful for rolling up pages like `page?id=1` and `page?id=2` into a single `page` entry. When used, the output filename will include a `-no-query` suffix.
 
 *   **Date Range Options**: Options like `--last-7-days`, `--last-month`, etc., are available. If omitted, it defaults to the last calendar month.
 

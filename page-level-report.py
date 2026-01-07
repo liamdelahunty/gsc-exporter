@@ -43,7 +43,6 @@ def get_gsc_service():
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             try:
-                print("Credentials have expired. Attempting to refresh...")
                 creds.refresh(Request())
             except exceptions.RefreshError as e:
                 print(f"Error refreshing token: {e}")
@@ -151,6 +150,7 @@ def main():
     parser = argparse.ArgumentParser(description='Generate a page-level report with clicks, impressions, CTR, and unique query counts.')
     parser.add_argument('site_url', help='The URL of the site to analyse. Use sc-domain: for a domain property.')
     parser.add_argument('--search-type', default='web', choices=['web', 'image', 'video', 'news', 'discover', 'googleNews'], help='The search type to query. Defaults to "web".')
+    parser.add_argument('--strip-query-strings', action='store_true', help='Remove query strings from page URLs before aggregating data.')
 
     date_group = parser.add_mutually_exclusive_group()
     date_group.add_argument('--start-date', help='Start date in YYYY-MM-DD format.')
@@ -237,13 +237,42 @@ def main():
     # Fetch page-query data (potentially sampled) to get query counts
     df_page_query = get_gsc_data(service, site_url, start_date, end_date, ['page', 'query'], args.search_type)
     
+    # Strip query strings if the flag is set
+    if args.strip_query_strings:
+        print("Stripping query strings from page URLs...")
+        # Apply stripping to both dataframes
+        df_pages['page'] = df_pages['page'].str.split('?').str[0]
+        if not df_page_query.empty:
+            df_page_query['page'] = df_page_query['page'].str.split('?').str[0]
+        
+        # After stripping, df_pages might have duplicate pages that need to be re-aggregated
+        # For df_pages, sum clicks and impressions, re-calculate CTR and position
+        df_pages = df_pages.groupby('page').agg(
+            clicks=('clicks', 'sum'),
+            impressions=('impressions', 'sum'),
+            # Recalculate weighted position sum for correct average later
+            impression_weighted_position=('impressions', lambda x: (x * df_pages.loc[x.index, 'position']).sum())
+        ).reset_index()
+        # Recalculate CTR
+        df_pages['ctr'] = df_pages.apply(
+            lambda row: row['clicks'] / row['impressions'] if row['impressions'] > 0 else 0,
+            axis=1
+        )
+        # Recalculate average position
+        df_pages['position'] = df_pages.apply(
+            lambda row: row['impression_weighted_position'] / row['impressions'] if row['impressions'] > 0 else 0,
+            axis=1
+        )
+        df_pages.drop(columns=['impression_weighted_position'], inplace=True)
+
+
     # Calculate query counts from the page-query data
     if not df_page_query.empty:
         query_counts = df_page_query.groupby('page')['query'].nunique().reset_index()
         query_counts.rename(columns={'query': 'query_count'}, inplace=True)
         # Merge query counts into the main page-level dataframe
         df_pages = pd.merge(df_pages, query_counts, on='page', how='left')
-        df_pages['query_count'].fillna(0, inplace=True)
+        df_pages['query_count'] = df_pages['query_count'].fillna(0) # Fix FutureWarning
     else:
         df_pages['query_count'] = 0
 
@@ -252,12 +281,10 @@ def main():
     total_clicks = df_pages['clicks'].sum()
     total_impressions = df_pages['impressions'].sum()
     avg_ctr = total_clicks / total_impressions if total_impressions > 0 else 0
-    # Calculate weighted average position from the page-level data
-    df_pages['impression_weighted_position'] = df_pages['impressions'] * df_pages['position']
-    total_impression_weighted_position = df_pages['impression_weighted_position'].sum()
+    # Calculate weighted average position for the whole site based on df_pages
+    total_impression_weighted_position = (df_pages['impressions'] * df_pages['position']).sum()
     avg_position = total_impression_weighted_position / total_impressions if total_impressions > 0 else 0
     
-    # Get total unique queries from the (potentially sampled) page-query data
     total_unique_queries = df_page_query['query'].nunique() if not df_page_query.empty else 0
 
     summary_data = {
@@ -284,7 +311,8 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     host_for_filename = host_dir.replace('.', '-')
 
-    file_prefix = f"page-level-report-{host_for_filename}-{period_label}-{start_date}-to-{end_date}"
+    filename_suffix = "-no-query" if args.strip_query_strings else ""
+    file_prefix = f"page-level-report-{host_for_filename}-{period_label}-{start_date}-to-{end_date}{filename_suffix}"
     csv_output_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_output_path = os.path.join(output_dir, f"{file_prefix}.html")
 
