@@ -42,7 +42,7 @@ The first time you run any of these scripts, a new tab will open in your web bro
 
 This suite includes several scripts for different types of analysis:
 
-*   [gsc_pages_exporter.py](#gsc-pages-exporter)
+*   [gsc_pages_exporter.py](#gsc_pages_exporter.py)
 *   [gsc-pages-queries.py](#gsc-pages-queries.py)
 *   [key-performance-metrics.py](#key-performance-metrics)
 *   [monthly-summary-report.py](#monthly-summary-report)
@@ -54,8 +54,7 @@ This suite includes several scripts for different types of analysis:
 
 ---
 
-## gsc_pages_exporter.py
----
+## gsc_pages_exporter.py---
 ## generate_gsc_wrapped.py
 
 Creates a "Google Organic Wrapped"-style annual summary for a single GSC property, presenting your year in search in a fun, engaging format.
@@ -129,24 +128,7 @@ python run_for_all_properties.py --last-12-months
 
 The script will print real-time output from each `generate_gsc_wrapped.py` run to your console. HTML reports will be saved in their respective property-specific directories under the `output/` folder, following the naming conventions described in the `generate_gsc_wrapped.py` section.
 
----
-## gsc_pages_exporter.py
 
-Exports all known pages from a GSC property for a given date range.
-
-### Usage
-
-```bash
-python gsc_pages_exporter.py <site_url> [date_range_option]
-```
-
-*   `<site_url>`: (Required) The full URL of the site property (e.g., `https://www.example.com`) or a domain property (e.g., `sc-domain:example.com`).
-
-*   **Date Range Options**: Options like `--last-7-days`, `--last-month`, `--start-date YYYY-MM-DD`, etc., are available. If omitted, it defaults to the last full month.
-
-### Output
-
-Generates a CSV and an HTML file containing a list of all URLs found in the specified period, saved to the `output/<hostname>/` directory.
 
 ### Usage
 
