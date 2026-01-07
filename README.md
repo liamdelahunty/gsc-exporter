@@ -12,6 +12,7 @@ This repository contains a collection of Python scripts designed to connect to t
 | `performance-analysis.py` | Compares two time periods (e.g., month-over-month) to find performance changes, rising stars, and content decay. |
 | `queries-pages-analysis.py` | Extends `key-performance-metrics` by adding unique query and page counts to the 16-month view. |
 | `query-position-analysis.py` | Tracks the distribution of query ranking positions over 16 months, with charts to visualize the trends. |
+| `query-segmentation-report.py` | Groups top queries into position buckets (1-3, 4-10, etc.) to identify high-performance keywords at different ranking levels. |
 | `gsc-pages-queries.py` | Generates a detailed, interactive report to explore the relationship between specific queries and the pages they lead to. |
 | `page-level-report.py` | Generates a page-level report including clicks, impressions, CTR, position, and unique query counts for each URL. |
 | `gsc_pages_exporter.py` | Exports a simple, bulk list of all pages discovered within a given date range. |
@@ -85,6 +86,7 @@ This suite includes several scripts for different types of analysis:
 *   [monthly-summary-report.py](#monthly-summary-report)
 *   [performance-analysis.py](#performance-analysis)
 *   [queries-pages-analysis.py](#queries-pages-analysis)
+*   [query-segmentation-report.py](#query-segmentation-reportpy)
 *   [query-position-analysis.py](#query-position-distribution-analysis)
 *   [snapshot-report.py](#snapshot-report.py)
 *   [generate_gsc_wrapped.py](#google-organic-wrapped-report)
@@ -350,6 +352,24 @@ python query-position-analysis.py
 
 *   **Single Site**: Generates a CSV and an HTML file in `output/<hostname>/` detailing the monthly query position distribution. The HTML report includes numbers formatted for readability (e.g., 1,234) and line charts visualizing clicks and impressions by position, as well as total clicks and impressions over time.
 *   **All Sites**: Generates `output/account/` with a CSV and an HTML report providing an account-wide breakdown.
+
+---
+
+## query-segmentation-report.py
+
+Generates a report that segments top queries by their ranking position buckets (1-3, 4-10, 11-20, and 21+).
+
+### Usage
+```bash
+python query-segmentation-report.py <site_url> [date_range_option]
+```
+*   `<site_url>`: (Required) The full URL of the site property (e.g., `https://www.example.com`) or a domain property (e.g., `sc-domain:example.com`).
+
+*   **Date Range Options**: Options like `--last-month`, etc., are available. If omitted, it defaults to the last calendar month.
+
+### Output
+Generates a CSV and an HTML file in `output/<hostname>/`. The report contains four tables, each showing the top 25 queries (by clicks) for one of the position segments.
+
 ---
 
 ## monthly-summary-report.py
