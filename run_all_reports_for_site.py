@@ -41,6 +41,7 @@ def main():
         "performance-analysis.py",
         "queries-pages-analysis.py",
         "query-position-analysis.py",
+        "query-segmentation-report.py",
         "snapshot-report.py",
     ]
 
