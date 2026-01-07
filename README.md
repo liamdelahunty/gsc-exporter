@@ -17,6 +17,7 @@ This suite includes several scripts for different types of analysis:
 *   [query-position-analysis.py](#query-position-distribution-analysis)
 *   [snapshot-report.py](#snapshot-report.py)
 *   [generate_gsc_wrapped.py](#google-organic-wrapped-report)
+*   [run_for_sites.py](#run-for-sites)
 
 ---
 
@@ -361,6 +362,41 @@ python run_for_all_properties.py --last-12-months
 ### Output
 
 The script will print real-time output from each `generate_gsc_wrapped.py` run to your console. HTML reports will be saved in their respective property-specific directories under the `output/` folder, following the naming conventions described in the `generate_gsc_wrapped.py` section.
+
+## run_for_sites.py
+
+Executes a specified analysis script for a predefined list of Google Search Console properties. This is useful for running reports on a specific subset of your sites.
+
+### Usage
+
+The script can be run in two ways:
+
+1.  **Provide sites as command-line arguments:**
+    ```bash
+    python run_for_sites.py <script_to_run.py> <site_url_1> <site_url_2> ...
+    ```
+
+2.  **Provide sites from a text file:**
+    ```bash
+    python run_for_sites.py <script_to_run.py> --sites-file <path_to_file.txt>
+    ```
+    The text file should contain one site URL per line. Lines starting with `#` will be ignored.
+
+### Example
+
+To run `query-position-analysis.py` for three specific sites:
+```bash
+python run_for_sites.py query-position-analysis.py https://www.example.com https://www.example.co.uk https://www.example.org
+```
+
+To run `snapshot-report.py` for all sites listed in `my_sites.txt` for the last 7 days:
+```bash
+# First, create my_sites.txt
+# https://www.example.com
+# https://www.croneri.co.uk
+
+python run_for_sites.py snapshot-report.py --sites-file my_sites.txt --last-7-days
+```
 
 ---
 

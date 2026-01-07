@@ -11,6 +11,7 @@ def show_help():
         "key-performance-metrics.py": "Provides a monthly overview of key performance metrics (clicks, impressions, CTR, average position). It can run for a single site or for all properties in a GSC account. The output is a CSV file and an HTML report.",
         "queries-pages-analysis.py": "Extends the `key-performance-metrics.py` script by also fetching the number of unique queries and pages for each month. It can also run for a single site or for all properties in a GSC account. The output is a CSV file and an HTML report.",
         "query-position-analysis.py": "Focuses on the distribution of query positions, breaking down clicks and impressions into predefined ranking buckets. It can also run for a single site or for all properties in a GSC account. The output is a CSV file and an HTML report.",
+        "run_for_sites.py": "Executes a specified analysis script for a predefined list of GSC properties. This is useful for running reports on a specific subset of your sites.",
         "run_all.bat": "Executes all python scripts for a given site URL. After the scripts finish running, an index.html file will be generated in the output/<hostname>/ directory. This index.html file will contain links to all the generated HTML reports for that specific site.",
         "show_help.py": "Displays this help information."
     }
