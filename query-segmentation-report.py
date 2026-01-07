@@ -3,7 +3,7 @@ Generates a report that segments top queries by their ranking position buckets.
 
 This script fetches query performance data for a specified date range, categorizes
 each query into a position bucket (1-3, 4-10, 11-20, 21+), and then exports a
-report showing the top 25 queries for each segment.
+report showing the top 50 queries for each segment.
 
 Usage:
     python query-segmentation-report.py <site_url> [date_range_flag]
@@ -128,8 +128,12 @@ def create_html_report(segments, report_title, period_str):
 
         df_html = df_segment.copy()
         
-        # Reorder columns: query first, then metrics
-        cols = ['query', 'clicks', 'impressions', 'ctr', 'position']
+        # Manually add 1-based row number
+        df_html = df_html.reset_index(drop=True)
+        df_html.insert(0, 'Row #', df_html.index + 1) # Insert as first column
+
+        # Reorder columns: Row #, query, then metrics
+        cols = ['Row #', 'query', 'clicks', 'impressions', 'ctr', 'position']
         df_html = df_html[cols]
 
         # Format numbers for readability
@@ -138,8 +142,8 @@ def create_html_report(segments, report_title, period_str):
         df_html['ctr'] = df_html['ctr'].apply(lambda x: f"{x:.2%}")
         df_html['position'] = df_html['position'].apply(lambda x: f"{x:.2f}")
         
-        # Add row number by setting index=True and styling the header
-        report_body += df_html.to_html(classes="table table-striped table-hover", index=True, border=0)
+        # Generate HTML table (index=False because 'Row #' is already a column)
+        report_body += df_html.to_html(classes="table table-striped table-hover", index=False, border=0)
 
     return f"""
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
