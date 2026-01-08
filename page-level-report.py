@@ -117,17 +117,45 @@ def get_gsc_data(service, site_url, start_date, end_date, dimensions, search_typ
 
 def create_html_report(df, report_title, period_str, summary_data):
     """Generates an HTML report from the DataFrame."""
-    
+
     df_html = df.copy()
-    
+
     # Format numbers for readability
     df_html['clicks'] = df_html['clicks'].apply(lambda x: f"{int(x):,}")
     df_html['impressions'] = df_html['impressions'].apply(lambda x: f"{int(x):,}")
-    df_html['query_count'] = df_html['query_count'].apply(lambda x: f"{int(x):,}")
+    if 'Query #' in df_html.columns:
+        df_html['Query #'] = df_html['Query #'].apply(lambda x: f"{int(x):,}")
     df_html['ctr'] = df_html['ctr'].apply(lambda x: f"{x:.2%}")
     df_html['position'] = df_html['position'].apply(lambda x: f"{x:.2f}")
-    
-    report_body = df_html.to_html(classes="table table-striped table-hover", index=False, border=0)
+
+    # Manual HTML table generation using divs and bootstrap grid
+    table_header = '''
+<div class="container">
+  <div class="row fw-bold py-2 bg-dark text-white">
+    <div class="col-6">Page</div>
+    <div class="col-1 text-end">Clicks</div>
+    <div class="col-1 text-end">Impressions</div>
+    <div class="col-1 text-end">CTR</div>
+    <div class="col-1 text-end">Position</div>
+    <div class="col-2 text-end">Query #</div>
+  </div>
+'''
+
+    table_body = ""
+    for i, row in df_html.iterrows():
+        bg_class = "bg-light" if i % 2 == 0 else ""
+        table_body += f'''
+  <div class="row py-2 border-bottom {bg_class}">
+    <div class="col-6" style="word-wrap: break-word; overflow-wrap: break-word;">{row['page']}</div>
+    <div class="col-1 text-end">{row['clicks']}</div>
+    <div class="col-1 text-end">{row['impressions']}</div>
+    <div class="col-1 text-end">{row['ctr']}</div>
+    <div class="col-1 text-end">{row['position']}</div>
+    <div class="col-2 text-end">{row['Query #']}</div>
+  </div>
+'''
+
+    report_body = table_header + table_body + '</div>'
 
     summary_html = "<h2 class='mt-5'>Overall Summary</h2><table class='table table-bordered' style='max-width: 500px;'>"
     for key, value in summary_data.items():
@@ -137,9 +165,13 @@ def create_html_report(df, report_title, period_str, summary_data):
     return f"""
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{report_title}</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<style>body{{padding:2rem;}}h1,h2{{border-bottom:2px solid #dee2e6;padding-bottom:.5rem;margin-top:2rem;}}.table thead th {{background-color: #434343;color: #ffffff;text-align: left;}}.table {{ table-layout: fixed; width: 100%; }} .table td {{ word-wrap: break-word; overflow-wrap: break-word; }}footer{{margin-top:3rem;text-align:center;color:#6c757d;}}</style></head>
+<style>
+body {{ padding: 2rem; }}
+h1, h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem; }}
+footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
+</style></head>
 <body><div class="container-fluid"><h1>{report_title}</h1><p class="text-muted">Analysis for the period: {period_str}</p>
-<div class="table-responsive">{report_body}</div>
+{report_body}
 {summary_html}
 </div>
 <footer><p><a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p></footer></body></html>"""
@@ -147,10 +179,16 @@ def create_html_report(df, report_title, period_str, summary_data):
 
 def main():
     """Main function to run the page-level report."""
-    parser = argparse.ArgumentParser(description='Generate a page-level report with clicks, impressions, CTR, and unique query counts.')
+    parser = argparse.ArgumentParser(
+        description='Generate a page-level report with clicks, impressions, CTR, and unique query counts.',
+        epilog='Example usage:\n'
+               '  python page-level-report.py https://www.example.com --last-28-days\n'
+               '  To use cached data: python page-level-report.py https://www.example.com --last-28-days --use-cache\n'
+    )
     parser.add_argument('site_url', help='The URL of the site to analyse. Use sc-domain: for a domain property.')
     parser.add_argument('--search-type', default='web', choices=['web', 'image', 'video', 'news', 'discover', 'googleNews'], help='The search type to query. Defaults to "web".')
     parser.add_argument('--strip-query-strings', action='store_true', help='Remove query strings from page URLs before aggregating data.')
+    parser.add_argument('--use-cache', action='store_true', help='Use a cached CSV file from a previous run if it exists.')
 
     date_group = parser.add_mutually_exclusive_group()
     date_group.add_argument('--start-date', help='Start date in YYYY-MM-DD format.')
@@ -221,86 +259,8 @@ def main():
         start_date = (today - relativedelta(months=16)).strftime('%Y-%m-%d')
         end_date = today.strftime('%Y-%m-%d')
         period_label = "last-16-months"
-    
-    print(f"Using date range: {start_date} to {end_date}")
 
-    service = get_gsc_service()
-    if not service:
-        return
-
-    # Fetch page-level data (unsampled)
-    df_pages = get_gsc_data(service, site_url, start_date, end_date, ['page'], args.search_type)
-    if df_pages.empty:
-        print("No page data found for the specified period. Exiting.")
-        return
-        
-    # Fetch page-query data (potentially sampled) to get query counts
-    df_page_query = get_gsc_data(service, site_url, start_date, end_date, ['page', 'query'], args.search_type)
-    
-    # Strip query strings if the flag is set
-    if args.strip_query_strings:
-        print("Stripping query strings from page URLs...")
-        # Apply stripping to both dataframes
-        df_pages['page'] = df_pages['page'].str.split('?').str[0]
-        if not df_page_query.empty:
-            df_page_query['page'] = df_page_query['page'].str.split('?').str[0]
-        
-        # After stripping, df_pages might have duplicate pages that need to be re-aggregated
-        # For df_pages, sum clicks and impressions, re-calculate CTR and position
-        df_pages = df_pages.groupby('page').agg(
-            clicks=('clicks', 'sum'),
-            impressions=('impressions', 'sum'),
-            # Recalculate weighted position sum for correct average later
-            impression_weighted_position=('impressions', lambda x: (x * df_pages.loc[x.index, 'position']).sum())
-        ).reset_index()
-        # Recalculate CTR
-        df_pages['ctr'] = df_pages.apply(
-            lambda row: row['clicks'] / row['impressions'] if row['impressions'] > 0 else 0,
-            axis=1
-        )
-        # Recalculate average position
-        df_pages['position'] = df_pages.apply(
-            lambda row: row['impression_weighted_position'] / row['impressions'] if row['impressions'] > 0 else 0,
-            axis=1
-        )
-        df_pages.drop(columns=['impression_weighted_position'], inplace=True)
-
-
-    # Calculate query counts from the page-query data
-    if not df_page_query.empty:
-        query_counts = df_page_query.groupby('page')['query'].nunique().reset_index()
-        query_counts.rename(columns={'query': 'query_count'}, inplace=True)
-        # Merge query counts into the main page-level dataframe
-        df_pages = pd.merge(df_pages, query_counts, on='page', how='left')
-        df_pages['query_count'] = df_pages['query_count'].fillna(0) # Fix FutureWarning
-    else:
-        df_pages['query_count'] = 0
-
-    # Calculate summary statistics from the unsampled page-level data
-    total_pages = len(df_pages)
-    total_clicks = df_pages['clicks'].sum()
-    total_impressions = df_pages['impressions'].sum()
-    avg_ctr = total_clicks / total_impressions if total_impressions > 0 else 0
-    # Calculate weighted average position for the whole site based on df_pages
-    total_impression_weighted_position = (df_pages['impressions'] * df_pages['position']).sum()
-    avg_position = total_impression_weighted_position / total_impressions if total_impressions > 0 else 0
-    
-    total_unique_queries = df_page_query['query'].nunique() if not df_page_query.empty else 0
-
-    summary_data = {
-        "Number of Pages": f"{total_pages:,}",
-        "Total Clicks": f"{total_clicks:,.0f}",
-        "Total Impressions": f"{total_impressions:,.0f}",
-        "Average CTR": f"{avg_ctr:.2%}",
-        "Average Position": f"{avg_position:.2f}",
-        "Total Unique Queries": f"{total_unique_queries:,}"
-    }
-
-    # Finalize the report dataframe
-    page_level_data = df_pages[['page', 'clicks', 'impressions', 'ctr', 'position', 'query_count']].copy()
-    page_level_data = page_level_data.sort_values(by='clicks', ascending=False)
-    
-    # --- Output Generation ---
+    # Define output paths
     if site_url.startswith('sc-domain:'):
         host_plain = site_url.replace('sc-domain:', '')
     else:
@@ -316,11 +276,93 @@ def main():
     csv_output_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_output_path = os.path.join(output_dir, f"{file_prefix}.html")
 
-    try:
+    page_level_data = None
+    summary_data = None
+
+    if args.use_cache and os.path.exists(csv_output_path):
+        print(f"Found cached data at {csv_output_path}. Using it to generate report.")
+        page_level_data = pd.read_csv(csv_output_path)
+        # Manually convert 'Query #' column back to integer if it exists
+        if 'Query #' in page_level_data.columns:
+             page_level_data.rename(columns={'Query #': 'query_count'}, inplace=True)
+
+    if page_level_data is None:
+        print(f"Using date range: {start_date} to {end_date}")
+        service = get_gsc_service()
+        if not service:
+            return
+
+        # Fetch page-level data (unsampled)
+        df_pages = get_gsc_data(service, site_url, start_date, end_date, ['page'], args.search_type)
+        if df_pages.empty:
+            print("No page data found for the specified period. Exiting.")
+            return
+            
+        # Fetch page-query data (potentially sampled) to get query counts
+        df_page_query = get_gsc_data(service, site_url, start_date, end_date, ['page', 'query'], args.search_type)
+        
+        # Strip query strings if the flag is set
+        if args.strip_query_strings:
+            print("Stripping query strings from page URLs...")
+            df_pages['page'] = df_pages['page'].str.split('?').str[0]
+            if not df_page_query.empty:
+                df_page_query['page'] = df_page_query['page'].str.split('?').str[0]
+            
+            df_pages = df_pages.groupby('page').agg(
+                clicks=('clicks', 'sum'),
+                impressions=('impressions', 'sum'),
+                impression_weighted_position=('impressions', lambda x: (x * df_pages.loc[x.index, 'position']).sum())
+            ).reset_index()
+            df_pages['ctr'] = df_pages.apply(lambda row: row['clicks'] / row['impressions'] if row['impressions'] > 0 else 0, axis=1)
+            df_pages['position'] = df_pages.apply(lambda row: row['impression_weighted_position'] / row['impressions'] if row['impressions'] > 0 else 0, axis=1)
+            df_pages.drop(columns=['impression_weighted_position'], inplace=True)
+
+        # Calculate query counts from the page-query data
+        if not df_page_query.empty:
+            query_counts = df_page_query.groupby('page')['query'].nunique().reset_index()
+            query_counts.rename(columns={'query': 'query_count'}, inplace=True)
+            df_pages = pd.merge(df_pages, query_counts, on='page', how='left')
+            df_pages['query_count'] = df_pages['query_count'].fillna(0)
+        else:
+            df_pages['query_count'] = 0
+
+        # Finalize the report dataframe
+        page_level_data = df_pages[['page', 'clicks', 'impressions', 'ctr', 'position', 'query_count']].copy()
+        page_level_data = page_level_data.sort_values(by='clicks', ascending=False)
+        
         # Save CSV
         page_level_data.to_csv(csv_output_path, index=False, encoding='utf-8')
         print(f"\nSuccessfully exported page-level data to {csv_output_path}")
+        print(f"Hint: To recreate this report from the saved data, use the --use-cache flag.")
 
+    # Always calculate summary data from the page_level_data dataframe
+    total_pages = len(page_level_data)
+    total_clicks = page_level_data['clicks'].sum()
+    total_impressions = page_level_data['impressions'].sum()
+    avg_ctr = total_clicks / total_impressions if total_impressions > 0 else 0
+    total_impression_weighted_position = (page_level_data['impressions'] * page_level_data['position']).sum()
+    avg_position = total_impression_weighted_position / total_impressions if total_impressions > 0 else 0
+    
+    # Total unique queries cannot be determined from the cached file, so handle this case
+    if args.use_cache and os.path.exists(csv_output_path):
+        total_unique_queries_str = "N/A (from cache)"
+    else:
+        total_unique_queries = df_page_query['query'].nunique() if not df_page_query.empty else 0
+        total_unique_queries_str = f"{total_unique_queries:,}"
+
+    summary_data = {
+        "Number of Pages": f"{total_pages:,}",
+        "Total Clicks": f"{total_clicks:,.0f}",
+        "Total Impressions": f"{total_impressions:,.0f}",
+        "Average CTR": f"{avg_ctr:.2%}",
+        "Average Position": f"{avg_position:.2f}",
+        "Total Unique Queries": total_unique_queries_str
+    }
+    
+    # Rename column for HTML report
+    page_level_data.rename(columns={'query_count': 'Query #'}, inplace=True)
+
+    try:
         # Generate and save HTML report
         html_output = create_html_report(
             df=page_level_data,
