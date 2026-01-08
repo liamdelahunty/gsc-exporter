@@ -115,7 +115,7 @@ def get_gsc_data(service, site_url, start_date, end_date, dimensions, search_typ
         
     return df
 
-def create_html_report(df, report_title, period_str, summary_data):
+def create_html_report(df, report_title, period_str, summary_data, limit=None, total_rows=None):
     """Generates an HTML report from the DataFrame."""
 
     df_html = df.copy()
@@ -127,6 +127,16 @@ def create_html_report(df, report_title, period_str, summary_data):
         df_html['Query #'] = df_html['Query #'].apply(lambda x: f"{int(x):,}")
     df_html['ctr'] = df_html['ctr'].apply(lambda x: f"{x:.2%}")
     df_html['position'] = df_html['position'].apply(lambda x: f"{x:.2f}")
+
+    # --- Truncation Alert ---
+    truncation_alert_html = ""
+    if limit is not None and total_rows is not None and total_rows > limit:
+        truncation_alert_html = f"""
+        <div class="alert alert-info">
+            <strong>Report Truncated:</strong> This HTML report is showing the top <strong>{limit:,}</strong> pages out of a total of <strong>{total_rows:,}</strong>.
+            The full, unfiltered data is available in the accompanying CSV file.
+        </div>
+        """
 
     # Manual HTML table generation using divs and bootstrap grid
     table_header = '''
@@ -171,6 +181,7 @@ h1, h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2
 footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
 </style></head>
 <body><div class="container-fluid"><h1>{report_title}</h1><p class="text-muted">Analysis for the period: {period_str}</p>
+{truncation_alert_html}
 {report_body}
 {summary_html}
 </div>
@@ -189,6 +200,7 @@ def main():
     parser.add_argument('--search-type', default='web', choices=['web', 'image', 'video', 'news', 'discover', 'googleNews'], help='The search type to query. Defaults to "web".')
     parser.add_argument('--strip-query-strings', action='store_true', help='Remove query strings from page URLs before aggregating data.')
     parser.add_argument('--use-cache', action='store_true', help='Use a cached CSV file from a previous run if it exists.')
+    parser.add_argument('--limit', type=int, default=250, help='Limit the number of pages in the HTML report. Default is 250.')
 
     date_group = parser.add_mutually_exclusive_group()
     date_group.add_argument('--start-date', help='Start date in YYYY-MM-DD format.')
@@ -361,14 +373,19 @@ def main():
     
     # Rename column for HTML report
     page_level_data.rename(columns={'query_count': 'Query #'}, inplace=True)
+    
+    # Apply limit for HTML report
+    html_df = page_level_data.head(args.limit)
 
     try:
         # Generate and save HTML report
         html_output = create_html_report(
-            df=page_level_data,
+            df=html_df,
             report_title=f"Page-Level Report for {host_dir}",
             period_str=f"{start_date} to {end_date}",
-            summary_data=summary_data
+            summary_data=summary_data,
+            limit=args.limit,
+            total_rows=len(page_level_data)
         )
         with open(html_output_path, 'w', encoding='utf-8') as f:
             f.write(html_output)
