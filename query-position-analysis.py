@@ -180,6 +180,10 @@ def create_single_site_html_report(df, report_title):
     <div class="col-lg-6"><div class="card"><div class="card-header"><h3>Impressions by Position</h3></div><div class="card-body"><canvas id="impressionsChart"></canvas></div></div></div>
 </div>
 <div class="row my-4">
+    <div class="col-lg-6"><div class="card"><div class="card-header"><h3>Stacked Clicks by Position</h3></div><div class="card-body"><canvas id="stackedClicksChart"></canvas></div></div></div>
+    <div class="col-lg-6"><div class="card"><div class="card-header"><h3>Stacked Impressions by Position</h3></div><div class="card-body"><canvas id="stackedImpressionsChart"></canvas></div></div></div>
+</div>
+<div class="row my-4">
     <div class="col-lg-6"><div class="card"><div class="card-header"><h3>Total Clicks</h3></div><div class="card-body"><canvas id="totalClicksChart"></canvas></div></div></div>
     <div class="col-lg-6"><div class="card"><div class="card-header"><h3>Total Impressions</h3></div><div class="card-body"><canvas id="totalImpressionsChart"></canvas></div></div></div>
 </div>
@@ -196,7 +200,8 @@ def create_single_site_html_report(df, report_title):
                 {{'label': 'Clicks Pos 4-10', 'data': data.map(row => row.clicks_pos_4_10), 'borderColor': 'rgba(54, 162, 235, 1)'}},
                 {{'label': 'Clicks Pos 11-20', 'data': data.map(row => row.clicks_pos_11_20), 'borderColor': 'rgba(255, 206, 86, 1)'}},
                 {{'label': 'Clicks Pos 21+', 'data': data.map(row => row.clicks_pos_21_plus), 'borderColor': 'rgba(255, 99, 132, 1)'}}
-            ]
+            ],
+            'options': {{ scales: {{ y: {{ beginAtZero: true }} }} }}
         }},
         'impressions': {{
             'element': 'impressionsChart',
@@ -205,29 +210,53 @@ def create_single_site_html_report(df, report_title):
                 {{'label': 'Impressions Pos 4-10', 'data': data.map(row => row.impressions_pos_4_10), 'borderColor': 'rgba(54, 162, 235, 1)'}},
                 {{'label': 'Impressions Pos 11-20', 'data': data.map(row => row.impressions_pos_11_20), 'borderColor': 'rgba(255, 206, 86, 1)'}},
                 {{'label': 'Impressions Pos 21+', 'data': data.map(row => row.impressions_pos_21_plus), 'borderColor': 'rgba(255, 99, 132, 1)'}}
-            ]
+            ],
+            'options': {{ scales: {{ y: {{ beginAtZero: true }} }} }}
+        }},
+        'stacked_clicks': {{
+            'element': 'stackedClicksChart',
+            'datasets': [
+                {{'label': 'Clicks Pos 1-3', 'data': data.map(row => row.clicks_pos_1_3), 'borderColor': 'rgba(75, 192, 192, 1)', 'backgroundColor': 'rgba(75, 192, 192, 0.5)'}},
+                {{'label': 'Clicks Pos 4-10', 'data': data.map(row => row.clicks_pos_4_10), 'borderColor': 'rgba(54, 162, 235, 1)', 'backgroundColor': 'rgba(54, 162, 235, 0.5)'}},
+                {{'label': 'Clicks Pos 11-20', 'data': data.map(row => row.clicks_pos_11_20), 'borderColor': 'rgba(255, 206, 86, 1)', 'backgroundColor': 'rgba(255, 206, 86, 0.5)'}},
+                {{'label': 'Clicks Pos 21+', 'data': data.map(row => row.clicks_pos_21_plus), 'borderColor': 'rgba(255, 99, 132, 1)', 'backgroundColor': 'rgba(255, 99, 132, 0.5)'}}
+            ],
+            'options': {{ scales: {{ y: {{ stacked: true, beginAtZero: true }} }} }}
+        }},
+        'stacked_impressions': {{
+            'element': 'stackedImpressionsChart',
+            'datasets': [
+                {{'label': 'Impressions Pos 1-3', 'data': data.map(row => row.impressions_pos_1_3), 'borderColor': 'rgba(75, 192, 192, 1)', 'backgroundColor': 'rgba(75, 192, 192, 0.5)'}},
+                {{'label': 'Impressions Pos 4-10', 'data': data.map(row => row.impressions_pos_4_10), 'borderColor': 'rgba(54, 162, 235, 1)', 'backgroundColor': 'rgba(54, 162, 235, 0.5)'}},
+                {{'label': 'Impressions Pos 11-20', 'data': data.map(row => row.impressions_pos_11_20), 'borderColor': 'rgba(255, 206, 86, 1)', 'backgroundColor': 'rgba(255, 206, 86, 0.5)'}},
+                {{'label': 'Impressions Pos 21+', 'data': data.map(row => row.impressions_pos_21_plus), 'borderColor': 'rgba(255, 99, 132, 1)', 'backgroundColor': 'rgba(255, 99, 132, 0.5)'}}
+            ],
+            'options': {{ scales: {{ y: {{ stacked: true, beginAtZero: true }} }} }}
         }},
         'total_clicks': {{
             'element': 'totalClicksChart',
             'datasets': [
                 {{'label': 'Total Clicks', 'data': data.map(row => row.total_clicks), 'borderColor': 'rgba(153, 102, 255, 1)'}}
-            ]
+            ],
+            'options': {{ scales: {{ y: {{ beginAtZero: true }} }} }}
         }},
         'total_impressions': {{
             'element': 'totalImpressionsChart',
             'datasets': [
                 {{'label': 'Total Impressions', 'data': data.map(row => row.total_impressions), 'borderColor': 'rgba(255, 159, 64, 1)'}}
-            ]
+            ],
+            'options': {{ scales: {{ y: {{ beginAtZero: true }} }} }}
         }}
     }};
     for (const [key, config] of Object.entries(chartConfig)) {{
+        const isStacked = key.startsWith('stacked');
         new Chart(document.getElementById(config.element), {{
             type: 'line',
             data: {{
                 labels: labels,
-                datasets: config.datasets.map(ds => ({{...ds, fill: false, tension: 0.1}}))
+                datasets: config.datasets.map(ds => ({{...ds, fill: isStacked, tension: 0.1}}))
             }},
-            options: {{ scales: {{ y: {{ beginAtZero: true }} }} }}
+            options: config.options
         }});
     }}
 </script>
@@ -345,51 +374,10 @@ def main():
     """Main function to run the analysis."""
     parser = argparse.ArgumentParser(description='Run a query position analysis for a GSC property.')
     parser.add_argument('site_url', nargs='?', default=None, help='The URL of the site to analyse. If not provided, runs for all sites.')
+    parser.add_argument('--use-cache', action='store_true', help='Use a cached CSV file from a previous run if it exists.')
     args = parser.parse_args()
 
-    service = get_gsc_service()
-    if not service:
-        return
-
-    if args.site_url:
-        sites = [args.site_url]
-    else:
-        sites = get_all_sites(service)
-        if not sites:
-            print("No sites found in your account.")
-            return
-        sites.sort(key=get_sort_key)
-
-    all_data = []
     today = date.today()
-
-    for site_url in sites:
-        print(f"\nFetching data for site: {site_url}")
-        for i in range(1, 17):
-            end_of_month = today.replace(day=1) - relativedelta(months=i - 1) - timedelta(days=1)
-            start_of_month = end_of_month.replace(day=1)
-            start_date = start_of_month.strftime('%Y-%m-%d')
-            end_date = end_of_month.strftime('%Y-%m-%d')
-
-            query_data = get_monthly_query_data(service, site_url, start_date, end_date)
-            if query_data == "PERMISSION_DENIED":
-                break
-            elif query_data:
-                distribution_data = process_query_data_into_position_distribution(query_data)
-                distribution_data['site_url'] = site_url
-                distribution_data['month'] = start_of_month.strftime('%Y-%m')
-                all_data.append(distribution_data)
-    
-    if not all_data:
-        print("No performance data found.")
-        return
-
-    df = pd.DataFrame(all_data)
-    csv_column_order = ['site_url', 'month', 'clicks_pos_1_3', 'impressions_pos_1_3', 'clicks_pos_4_10', 
-                        'impressions_pos_4_10', 'clicks_pos_11_20', 'impressions_pos_11_20', 
-                        'clicks_pos_21_plus', 'impressions_pos_21_plus', 'total_clicks', 'total_impressions']
-    df = df.reindex(columns=csv_column_order)
-    
     most_recent_month = (today.replace(day=1) - timedelta(days=1)).strftime('%Y-%m')
 
     if args.site_url:
@@ -410,15 +398,73 @@ def main():
     csv_output_path = os.path.join(output_dir, f'{file_prefix}.csv')
     html_output_path = os.path.join(output_dir, f'{file_prefix}.html')
     
-    try:
-        df.to_csv(csv_output_path, index=False)
-        print(f"\nSuccessfully exported CSV to {csv_output_path}")
+    df = None
+    sites = []
 
-        html_df = df.copy()
+    if args.use_cache and os.path.exists(csv_output_path):
+        print(f"Found cached data at {csv_output_path}. Using it to generate report.")
+        df = pd.read_csv(csv_output_path)
+        if 'site_url' in df.columns:
+            sites = sorted(df['site_url'].unique(), key=get_sort_key)
+
+    if df is None:
+        service = get_gsc_service()
+        if not service:
+            return
+
         if args.site_url:
-            html_output = create_single_site_html_report(html_df, args.site_url)
+            sites = [args.site_url]
         else:
-            html_output = create_multi_site_html_report(html_df, sites)
+            sites = get_all_sites(service)
+            if not sites:
+                print("No sites found in your account.")
+                return
+            sites.sort(key=get_sort_key)
+
+        all_data = []
+        
+        for site_url in sites:
+            print(f"\nFetching data for site: {site_url}")
+            for i in range(1, 17):
+                end_of_month = today.replace(day=1) - relativedelta(months=i - 1) - timedelta(days=1)
+                start_of_month = end_of_month.replace(day=1)
+                start_date = start_of_month.strftime('%Y-%m-%d')
+                end_date = end_of_month.strftime('%Y-%m-%d')
+
+                query_data = get_monthly_query_data(service, site_url, start_date, end_date)
+                if query_data == "PERMISSION_DENIED":
+                    break
+                elif query_data:
+                    distribution_data = process_query_data_into_position_distribution(query_data)
+                    distribution_data['site_url'] = site_url
+                    distribution_data['month'] = start_of_month.strftime('%Y-%m')
+                    all_data.append(distribution_data)
+        
+        if not all_data:
+            print("No performance data found.")
+            return
+
+        df = pd.DataFrame(all_data)
+        csv_column_order = ['site_url', 'month', 'clicks_pos_1_3', 'impressions_pos_1_3', 'clicks_pos_4_10', 
+                            'impressions_pos_4_10', 'clicks_pos_11_20', 'impressions_pos_11_20', 
+                            'clicks_pos_21_plus', 'impressions_pos_21_plus', 'total_clicks', 'total_impressions']
+        df = df.reindex(columns=csv_column_order)
+
+        try:
+            df.to_csv(csv_output_path, index=False)
+            print(f"\nSuccessfully exported CSV to {csv_output_path}")
+            print(f"Hint: To recreate this report from the saved data, use the --use-cache flag.")
+        except PermissionError:
+            print(f"\nError: Permission denied when writing to the output directory.")
+            return
+            
+    # Proceed with report generation
+    try:
+        if args.site_url:
+            df_single = df[df['site_url'] == args.site_url]
+            html_output = create_single_site_html_report(df_single, args.site_url)
+        else:
+            html_output = create_multi_site_html_report(df, sites)
         
         with open(html_output_path, 'w', encoding='utf-8') as f:
             f.write(html_output)
