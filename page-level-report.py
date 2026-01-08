@@ -137,7 +137,7 @@ def create_html_report(df, report_title, period_str, summary_data):
     return f"""
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{report_title}</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<style>body{{padding:2rem;}}h1,h2{{border-bottom:2px solid #dee2e6;padding-bottom:.5rem;margin-top:2rem;}}.table thead th {{background-color: #434343;color: #ffffff;text-align: left;}}footer{{margin-top:3rem;text-align:center;color:#6c757d;}}</style></head>
+<style>body{{padding:2rem;}}h1,h2{{border-bottom:2px solid #dee2e6;padding-bottom:.5rem;margin-top:2rem;}}.table thead th {{background-color: #434343;color: #ffffff;text-align: left;}}.table {{ table-layout: fixed; width: 100%; }} .table td {{ word-wrap: break-word; overflow-wrap: break-word; }}footer{{margin-top:3rem;text-align:center;color:#6c757d;}}</style></head>
 <body><div class="container-fluid"><h1>{report_title}</h1><p class="text-muted">Analysis for the period: {period_str}</p>
 <div class="table-responsive">{report_body}</div>
 {summary_html}
