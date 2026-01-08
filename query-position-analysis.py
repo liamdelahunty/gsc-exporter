@@ -180,6 +180,10 @@ def create_single_site_html_report(df, report_title):
     <div class="col-lg-6"><div class="card"><div class="card-header"><h3>Impressions by Position</h3></div><div class="card-body"><canvas id="impressionsChart"></canvas></div></div></div>
 </div>
 <div class="row my-4">
+    <div class="col-lg-6"><div class="card"><div class="card-header"><h3>Stacked Clicks by Position</h3></div><div class="card-body"><canvas id="stackedClicksChart"></canvas></div></div></div>
+    <div class="col-lg-6"><div class="card"><div class="card-header"><h3>Stacked Impressions by Position</h3></div><div class="card-body"><canvas id="stackedImpressionsChart"></canvas></div></div></div>
+</div>
+<div class="row my-4">
     <div class="col-lg-6"><div class="card"><div class="card-header"><h3>Total Clicks</h3></div><div class="card-body"><canvas id="totalClicksChart"></canvas></div></div></div>
     <div class="col-lg-6"><div class="card"><div class="card-header"><h3>Total Impressions</h3></div><div class="card-body"><canvas id="totalImpressionsChart"></canvas></div></div></div>
 </div>
@@ -196,7 +200,8 @@ def create_single_site_html_report(df, report_title):
                 {{'label': 'Clicks Pos 4-10', 'data': data.map(row => row.clicks_pos_4_10), 'borderColor': 'rgba(54, 162, 235, 1)'}},
                 {{'label': 'Clicks Pos 11-20', 'data': data.map(row => row.clicks_pos_11_20), 'borderColor': 'rgba(255, 206, 86, 1)'}},
                 {{'label': 'Clicks Pos 21+', 'data': data.map(row => row.clicks_pos_21_plus), 'borderColor': 'rgba(255, 99, 132, 1)'}}
-            ]
+            ],
+            'options': {{ scales: {{ y: {{ beginAtZero: true }} }} }}
         }},
         'impressions': {{
             'element': 'impressionsChart',
@@ -205,29 +210,53 @@ def create_single_site_html_report(df, report_title):
                 {{'label': 'Impressions Pos 4-10', 'data': data.map(row => row.impressions_pos_4_10), 'borderColor': 'rgba(54, 162, 235, 1)'}},
                 {{'label': 'Impressions Pos 11-20', 'data': data.map(row => row.impressions_pos_11_20), 'borderColor': 'rgba(255, 206, 86, 1)'}},
                 {{'label': 'Impressions Pos 21+', 'data': data.map(row => row.impressions_pos_21_plus), 'borderColor': 'rgba(255, 99, 132, 1)'}}
-            ]
+            ],
+            'options': {{ scales: {{ y: {{ beginAtZero: true }} }} }}
+        }},
+        'stacked_clicks': {{
+            'element': 'stackedClicksChart',
+            'datasets': [
+                {{'label': 'Clicks Pos 1-3', 'data': data.map(row => row.clicks_pos_1_3), 'borderColor': 'rgba(75, 192, 192, 1)', 'backgroundColor': 'rgba(75, 192, 192, 0.5)'}},
+                {{'label': 'Clicks Pos 4-10', 'data': data.map(row => row.clicks_pos_4_10), 'borderColor': 'rgba(54, 162, 235, 1)', 'backgroundColor': 'rgba(54, 162, 235, 0.5)'}},
+                {{'label': 'Clicks Pos 11-20', 'data': data.map(row => row.clicks_pos_11_20), 'borderColor': 'rgba(255, 206, 86, 1)', 'backgroundColor': 'rgba(255, 206, 86, 0.5)'}},
+                {{'label': 'Clicks Pos 21+', 'data': data.map(row => row.clicks_pos_21_plus), 'borderColor': 'rgba(255, 99, 132, 1)', 'backgroundColor': 'rgba(255, 99, 132, 0.5)'}}
+            ],
+            'options': {{ scales: {{ y: {{ stacked: true, beginAtZero: true }} }} }}
+        }},
+        'stacked_impressions': {{
+            'element': 'stackedImpressionsChart',
+            'datasets': [
+                {{'label': 'Impressions Pos 1-3', 'data': data.map(row => row.impressions_pos_1_3), 'borderColor': 'rgba(75, 192, 192, 1)', 'backgroundColor': 'rgba(75, 192, 192, 0.5)'}},
+                {{'label': 'Impressions Pos 4-10', 'data': data.map(row => row.impressions_pos_4_10), 'borderColor': 'rgba(54, 162, 235, 1)', 'backgroundColor': 'rgba(54, 162, 235, 0.5)'}},
+                {{'label': 'Impressions Pos 11-20', 'data': data.map(row => row.impressions_pos_11_20), 'borderColor': 'rgba(255, 206, 86, 1)', 'backgroundColor': 'rgba(255, 206, 86, 0.5)'}},
+                {{'label': 'Impressions Pos 21+', 'data': data.map(row => row.impressions_pos_21_plus), 'borderColor': 'rgba(255, 99, 132, 1)', 'backgroundColor': 'rgba(255, 99, 132, 0.5)'}}
+            ],
+            'options': {{ scales: {{ y: {{ stacked: true, beginAtZero: true }} }} }}
         }},
         'total_clicks': {{
             'element': 'totalClicksChart',
             'datasets': [
                 {{'label': 'Total Clicks', 'data': data.map(row => row.total_clicks), 'borderColor': 'rgba(153, 102, 255, 1)'}}
-            ]
+            ],
+            'options': {{ scales: {{ y: {{ beginAtZero: true }} }} }}
         }},
         'total_impressions': {{
             'element': 'totalImpressionsChart',
             'datasets': [
                 {{'label': 'Total Impressions', 'data': data.map(row => row.total_impressions), 'borderColor': 'rgba(255, 159, 64, 1)'}}
-            ]
+            ],
+            'options': {{ scales: {{ y: {{ beginAtZero: true }} }} }}
         }}
     }};
     for (const [key, config] of Object.entries(chartConfig)) {{
+        const isStacked = key.startsWith('stacked');
         new Chart(document.getElementById(config.element), {{
             type: 'line',
             data: {{
                 labels: labels,
-                datasets: config.datasets.map(ds => ({{...ds, fill: false, tension: 0.1}}))
+                datasets: config.datasets.map(ds => ({{...ds, fill: isStacked, tension: 0.1}}))
             }},
-            options: {{ scales: {{ y: {{ beginAtZero: true }} }} }}
+            options: config.options
         }});
     }}
 </script>
