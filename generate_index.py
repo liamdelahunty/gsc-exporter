@@ -21,10 +21,10 @@ def generate_index_html(site_url):
             return
 
         html_files = sorted([f for f in output_dir.glob('*.html') if f.name != 'index.html'])
-        resource_files = sorted(Path('resources').glob('how-to-read-the-gsc-wrapped-report.html'))
+        # resource_files = sorted(Path('resources').glob('how-to-read-the-gsc-wrapped-report.html')) # Removed this line as requested
         
-        if not html_files and not resource_files:
-            print(f"No HTML reports or resource files found to index.")
+        if not html_files: # resource_files check removed here
+            print(f"No HTML reports found to index.")
             return
 
         index_content = f"""
@@ -57,20 +57,10 @@ def generate_index_html(site_url):
         else:
             index_content += '<p>No reports found in this directory.</p>'
 
-        index_content += """
-        </div>
-
-        <h2>How-to Guides</h2>
-        <div class="list-group">
-"""
-        if resource_files:
-            for resource_file in resource_files:
-                # Relative path from output/<hostname>/ to resources/
-                relative_path = os.path.join('..', '..', resource_file)
-                index_content += f'            <a href="{relative_path}" class="list-group-item list-group-item-action">{resource_file.stem.replace("-", " ").title()}</a>\n'
-        else:
-            index_content += '<p>No how-to guides found.</p>'
-
+        # Removing the "How-to Guides" section if it only contained the wrapped report
+        # If there are other how-to guides, a more complex filter would be needed.
+        # Given the original code explicitly listed only this one, removing it is sufficient.
+        
         index_content += """
         </div>
     </div>
