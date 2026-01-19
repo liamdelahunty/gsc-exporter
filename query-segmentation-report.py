@@ -179,7 +179,7 @@ def create_html_report(segments, report_title, period_str, chart_data_json):
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-body{{padding:2rem;}}
+body{padding:2rem;}}
 h1,h2{{border-bottom:2px solid #dee2e6;padding-bottom:.5rem;margin-top:2rem;}}
 .table thead th {{background-color: #434343;color: #ffffff;text-align: left;}}
 footer{{margin-top:3rem;text-align:center;color:#6c757d;}}
@@ -190,12 +190,9 @@ footer{{margin-top:3rem;text-align:center;color:#6c757d;}}
 <h1>{report_title}</h1><p class="text-muted">Analysis for the period: {period_str}</p>
 
 <div class="row">
-    <div class="col-lg-4"><div class="card"><div class="card-header"><h3>Clicks by Segment</h3></div><div class="card-body"><canvas id="clicksPieChart"></canvas></div></div></div>
-    <div class="col-lg-4"><div class="card"><div class="card-header"><h3>Impressions by Segment</h3></div><div class="card-body"><canvas id="impressionsPieChart"></canvas></div></div></div>
+    <div class="col-lg-4"><div class="card"><div class="card-header"><h3>Clicks & Impressions by Segment</h3></div><div class="card-body" style="height: 400px;"><canvas id="combinedDonutChart"></canvas></div></div></div>
     <div class="col-lg-4"><div class="card"><div class="card-header"><h3>Query Count by Segment</h3></div><div class="card-body"><canvas id="queryCountChart"></canvas></div></div></div>
-</div>
-<div class="row">
-    <div class="col-lg-12"><div class="card"><div class="card-header"><h3>Average CTR by Segment</h3></div><div class="card-body"><canvas id="ctrBarChart"></canvas></div></div></div>
+    <div class="col-lg-4"><div class="card"><div class="card-header"><h3>Average CTR by Segment</h3></div><div class="card-body"><canvas id="ctrBarChart"></canvas></div></div></div>
 </div>
 
 <div class="table-responsive">{report_body}</div>
@@ -207,36 +204,38 @@ footer{{margin-top:3rem;text-align:center;color:#6c757d;}}
     const colors = ['rgba(75, 192, 192, 0.7)', 'rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)', 'rgba(255, 99, 132, 0.7)'];
     const borderColors = ['rgba(75, 192, 192, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 'rgba(255, 99, 132, 1)'];
 
-    // Clicks Pie Chart
-    new Chart(document.getElementById('clicksPieChart'), {{
-        type: 'pie',
+    // Combined Clicks & Impressions Donut Chart
+    new Chart(document.getElementById('combinedDonutChart'), {{
+        type: 'doughnut',
         data: {{
             labels: labels,
             datasets: [{{
-                label: 'Total Clicks',
+                label: 'Impressions',
+                data: chartData.impressions,
+                backgroundColor: colors.map(c => c.replace('0.7', '0.5')),
+                borderColor: borderColors,
+                borderWidth: 1
+            }}, {{
+                label: 'Clicks',
                 data: chartData.clicks,
                 backgroundColor: colors,
                 borderColor: borderColors,
                 borderWidth: 1
             }}]
         }},
-        options: {{ responsive: true, maintainAspectRatio: false }}
-    }});
-
-    // Impressions Pie Chart
-    new Chart(document.getElementById('impressionsPieChart'), {{
-        type: 'pie',
-        data: {{
-            labels: labels,
-            datasets: [{{
-                label: 'Total Impressions',
-                data: chartData.impressions,
-                backgroundColor: colors,
-                borderColor: borderColors,
-                borderWidth: 1
-            }}]
-        }},
-        options: {{ responsive: true, maintainAspectRatio: false }}
+        options: {{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {{
+                legend: {{
+                    position: 'top',
+                }},
+                title: {{
+                    display: true,
+                    text: 'Outer: Impressions, Inner: Clicks'
+                }}
+            }}
+        }}
     }});
 
     // Query Count Bar Chart
