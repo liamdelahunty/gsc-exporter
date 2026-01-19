@@ -190,12 +190,9 @@ footer{{margin-top:3rem;text-align:center;color:#6c757d;}}
 <h1>{report_title}</h1><p class="text-muted">Analysis for the period: {period_str}</p>
 
 <div class="row">
-    <div class="col-lg-4"><div class="card"><div class="card-header"><h3>Clicks by Segment</h3></div><div class="card-body"><canvas id="clicksPieChart"></canvas></div></div></div>
-    <div class="col-lg-4"><div class="card"><div class="card-header"><h3>Impressions by Segment</h3></div><div class="card-body"><canvas id="impressionsPieChart"></canvas></div></div></div>
+    <div class="col-lg-4"><div class="card"><div class="card-header"><h3>Clicks & Impressions by Segment</h3></div><div class="card-body" style="height: 400px;"><canvas id="combinedDonutChart"></canvas></div></div></div>
     <div class="col-lg-4"><div class="card"><div class="card-header"><h3>Query Count by Segment</h3></div><div class="card-body"><canvas id="queryCountChart"></canvas></div></div></div>
-</div>
-<div class="row">
-    <div class="col-lg-12"><div class="card"><div class="card-header"><h3>Average CTR by Segment</h3></div><div class="card-body"><canvas id="ctrBarChart"></canvas></div></div></div>
+    <div class="col-lg-4"><div class="card"><div class="card-header"><h3>Average CTR by Segment</h3></div><div class="card-body"><canvas id="ctrBarChart"></canvas></div></div></div>
 </div>
 
 <div class="table-responsive">{report_body}</div>
@@ -207,79 +204,81 @@ footer{{margin-top:3rem;text-align:center;color:#6c757d;}}
     const colors = ['rgba(75, 192, 192, 0.7)', 'rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)', 'rgba(255, 99, 132, 0.7)'];
     const borderColors = ['rgba(75, 192, 192, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 'rgba(255, 99, 132, 1)'];
 
-    // Clicks Pie Chart
-    new Chart(document.getElementById('clicksPieChart'), {{
-        type: 'pie',
-        data: {{
+    // Combined Clicks & Impressions Donut Chart
+    new Chart(document.getElementById('combinedDonutChart'), {{{{
+        type: 'doughnut',
+        data: {{{{
             labels: labels,
-            datasets: [{{
-                label: 'Total Clicks',
+            datasets: [{{{{
+                label: 'Impressions',
+                data: chartData.impressions,
+                backgroundColor: colors.map(c => c.replace('0.7', '0.5')),
+                borderColor: borderColors,
+                borderWidth: 1
+            }}}}, {{{{
+                label: 'Clicks',
                 data: chartData.clicks,
                 backgroundColor: colors,
                 borderColor: borderColors,
                 borderWidth: 1
-            }}]
-        }},
-        options: {{ responsive: true, maintainAspectRatio: false }}
-    }});
-
-    // Impressions Pie Chart
-    new Chart(document.getElementById('impressionsPieChart'), {{
-        type: 'pie',
-        data: {{
-            labels: labels,
-            datasets: [{{
-                label: 'Total Impressions',
-                data: chartData.impressions,
-                backgroundColor: colors,
-                borderColor: borderColors,
-                borderWidth: 1
-            }}]
-        }},
-        options: {{ responsive: true, maintainAspectRatio: false }}
-    }});
+            }}}}]
+        }}}},
+        options: {{{{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {{{{
+                legend: {{{{
+                    position: 'top',
+                }}}},
+                title: {{{{
+                    display: true,
+                    text: 'Outer: Impressions, Inner: Clicks'
+                }}}}
+            }}}}
+        }}}}
+    }}}});
 
     // Query Count Bar Chart
-    new Chart(document.getElementById('queryCountChart'), {{
+    new Chart(document.getElementById('queryCountChart'), {{{{
         type: 'bar',
-        data: {{
+        data: {{{{
             labels: labels,
-            datasets: [{{
+            datasets: [{{{{
                 label: 'Number of Unique Queries',
                 data: chartData.query_count,
                 backgroundColor: colors,
                 borderColor: borderColors,
                 borderWidth: 1
-            }}]
-        }},
-        options: {{
+            }}}}]
+        }}}},
+        options: {{{{
             responsive: true,
             maintainAspectRatio: false,
             scales: {{ y: {{ beginAtZero: true }} }},
             plugins: {{ legend: {{ display: false }} }}
-        }}
-    }});
+        }}}}
+    }}}});
 
     // CTR Bar Chart
-    new Chart(document.getElementById('ctrBarChart'), {{
+    new Chart(document.getElementById('ctrBarChart'), {{{{
         type: 'bar',
-        data: {{
+        data: {{{{
             labels: labels,
-            datasets: [{{
+            datasets: [{{{{
                 label: 'Average CTR (%)',
                 data: chartData.avg_ctr,
                 backgroundColor: colors,
                 borderColor: borderColors,
                 borderWidth: 1
-            }}]
-        }},
-        options: {{
+            }}}}]
+        }}}},
+        options: {{{{
             responsive: true,
             maintainAspectRatio: false,
             scales: {{ y: {{ beginAtZero: true, ticks: {{ callback: value => value + '%' }} }} }},
             plugins: {{ legend: {{ display: false }} }}
-        }}
-    }});
+        }}}}
+    }}}});
 </script>
 </body></html>"""
 
