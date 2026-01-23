@@ -425,7 +425,7 @@ def main():
         # Generate and save HTML report
         html_output = create_html_report(
             segments=segmented_dfs,
-            report_title=f"Query Segmentation Report for {host_dir}",
+            report_title=f"Google Organic Query Segmentation Report for {host_dir}",
             period_str=f"{start_date} to {end_date}",
             chart_data=chart_data,
             chart_data_json=chart_data_json
