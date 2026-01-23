@@ -403,11 +403,11 @@ def main():
             host_dir = host_plain.replace('www.', '')
             output_dir = os.path.join('output', host_dir)
             file_prefix = f"monthly-summary-report-{host_dir.replace('.', '-')}-{start_date}-to-{end_date}"
-            report_title = f"Monthly Summary for {site_output_name}"
+            report_title = f"Google Organic Monthly Summary for {site_output_name}"
         else:
             output_dir = os.path.join('output', 'account')
             file_prefix = f"monthly-summary-report-account-wide-{start_date}-to-{end_date}"
-            report_title = "Monthly Summary Report"
+            report_title = "Google Organic Monthly Summary Report"
 
         os.makedirs(output_dir, exist_ok=True)
         csv_output_path = os.path.join(output_dir, f'{file_prefix}.csv')
