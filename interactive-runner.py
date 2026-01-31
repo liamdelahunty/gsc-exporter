@@ -1,7 +1,9 @@
-"""An interactive command-line tool to run Google Search Console reports.
+"""
+An interactive command-line tool to run Google Search Console reports.
 
 This script guides the user through selecting a GSC property, choosing a report,
-and providing flags, before executing the chosen report script."""
+and providing flags, before executing the chosen report script.
+"""
 import os
 import subprocess
 import sys
@@ -165,4 +167,4 @@ def main():
         
     print("\n" + "-"*50)
     print(f"Running command: {' '.join(command)}")
-    print("-" * 50 + "\n")
+    print("-
