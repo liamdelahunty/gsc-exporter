@@ -35,6 +35,10 @@
     <div class="container">
         <h1 class="mt-5">Script Flags</h1>
 
+        <div class="alert alert-info">
+            <strong>Note on Date Flags:</strong> All date-related flags like <code>--last-7-days</code>, <code>--last-28-days</code>, and <code>--last-month</code> are dynamic. They calculate date ranges based on the <strong>latest date for which data is available</strong> in Google Search Console, not based on today's calendar date. This accounts for GSC's typical data processing delay.
+        </div>
+
         <h2 class="mt-4">gsc_pages_exporter.py</h2>
         <ul>
             <li><code>&lt;site_url&gt;</code> (positional argument)</li>

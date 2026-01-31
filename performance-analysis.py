@@ -71,6 +71,47 @@ def get_gsc_service():
 
     return build('webmasters', 'v3', credentials=creds)
 
+def get_latest_available_gsc_date(service, site_url, max_retries=5):
+    """
+    Determines the latest date for which GSC data is available by querying
+    backwards from today.
+    """
+    current_date = date.today()
+    for i in range(max_retries):
+        check_date = current_date - timedelta(days=i)
+        check_date_str = check_date.strftime('%Y-%m-%d')
+        
+        print(f"Checking for GSC data availability on: {check_date_str}...")
+        try:
+            request = {
+                'startDate': check_date_str,
+                'endDate': check_date_str,
+                'dimensions': ['date'], # Only need to check for any data
+                'rowLimit': 1,
+                'startRow': 0
+            }
+            response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
+            
+            if 'rows' in response and response['rows']:
+                print(f"Latest available GSC data found for: {check_date_str}")
+                return check_date
+            else:
+                print(f"No data for {check_date_str}, checking previous day.")
+        except HttpError as e:
+            # GSC returns 400 if date range is too recent (no data yet)
+            if e.resp.status == 400:
+                print(f"No data for {check_date_str}, checking previous day (HTTP 400).")
+            else:
+                print(f"An HTTP error occurred while checking date {check_date_str}: {e}")
+                print("Continuing to check previous days.")
+        except Exception as e:
+            print(f"An unexpected error occurred while checking date {check_date_str}: {e}")
+            print("Continuing to check previous days.")
+            
+    print(f"Could not determine latest available GSC date within {max_retries} days. Using today's date as a fallback.")
+    return current_date # Fallback to today if no data found after retries
+
+
 def get_performance_data(service, site_url, start_date, end_date, filters=None):
     """Fetches performance data from GSC for a given date range and applies filters."""
     all_data = []
@@ -205,7 +246,11 @@ def main():
 
         print("Starting performance analysis...")
         
-        today = date.today()
+        service = get_gsc_service()
+        if not service:
+            return
+
+        latest_available_date = get_latest_available_gsc_date(service, site_url)
         
         if args.start_date and args.end_date:
             current_start_date = args.start_date
@@ -228,40 +273,40 @@ def main():
             period_label = f"custom-period"
 
         elif args.last_24_hours:
-            current_start_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
-            current_end_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
+            current_start_date = (latest_available_date - timedelta(days=1)).strftime('%Y-%m-%d')
+            current_end_date = (latest_available_date - timedelta(days=1)).strftime('%Y-%m-%d')
             if args.compare_to_previous_year:
-                previous_start_date = (today - timedelta(days=2) - relativedelta(years=1)).strftime('%Y-%m-%d')
-                previous_end_date = (today - timedelta(days=2) - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_start_date = (latest_available_date - timedelta(days=1) - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_end_date = (latest_available_date - timedelta(days=1) - relativedelta(years=1)).strftime('%Y-%m-%d')
             else:
-                previous_start_date = (today - timedelta(days=3)).strftime('%Y-%m-%d')
-                previous_end_date = (today - timedelta(days=3)).strftime('%Y-%m-%d')
+                previous_start_date = (latest_available_date - timedelta(days=2)).strftime('%Y-%m-%d')
+                previous_end_date = (latest_available_date - timedelta(days=2)).strftime('%Y-%m-%d')
             period_label = "last-24-hours"
             
         elif args.last_7_days:
-            current_start_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
-            current_end_date = today.strftime('%Y-%m-%d')
+            current_start_date = (latest_available_date - timedelta(days=6)).strftime('%Y-%m-%d')
+            current_end_date = latest_available_date.strftime('%Y-%m-%d')
             if args.compare_to_previous_year:
-                previous_start_date = (today - timedelta(days=7) - relativedelta(years=1)).strftime('%Y-%m-%d')
-                previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_start_date = (latest_available_date - timedelta(days=6) - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_end_date = (latest_available_date - relativedelta(years=1)).strftime('%Y-%m-%d')
             else:
-                previous_start_date = (today - timedelta(days=14)).strftime('%Y-%m-%d')
-                previous_end_date = (today - timedelta(days=8)).strftime('%Y-%m-%d')
+                previous_start_date = (latest_available_date - timedelta(days=13)).strftime('%Y-%m-%d')
+                previous_end_date = (latest_available_date - timedelta(days=7)).strftime('%Y-%m-%d')
             period_label = "last-7-days"
 
         elif args.last_28_days:
-            current_start_date = (today - timedelta(days=28)).strftime('%Y-%m-%d')
-            current_end_date = today.strftime('%Y-%m-%d')
+            current_start_date = (latest_available_date - timedelta(days=27)).strftime('%Y-%m-%d')
+            current_end_date = latest_available_date.strftime('%Y-%m-%d')
             if args.compare_to_previous_year:
-                previous_start_date = (today - timedelta(days=28) - relativedelta(years=1)).strftime('%Y-%m-%d')
-                previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_start_date = (latest_available_date - timedelta(days=27) - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_end_date = (latest_available_date - relativedelta(years=1)).strftime('%Y-%m-%d')
             else:
-                previous_start_date = (today - timedelta(days=56)).strftime('%Y-%m-%d')
-                previous_end_date = (today - timedelta(days=29)).strftime('%Y-%m-%d')
+                previous_start_date = (latest_available_date - timedelta(days=55)).strftime('%Y-%m-%d')
+                previous_end_date = (latest_available_date - timedelta(days=28)).strftime('%Y-%m-%d')
             period_label = "last-28-days"
 
         elif args.last_month:
-            first_day_of_current_month = today.replace(day=1)
+            first_day_of_current_month = latest_available_date.replace(day=1)
             current_end_date_dt = first_day_of_current_month - timedelta(days=1)
             current_start_date_dt = current_end_date_dt.replace(day=1)
             current_start_date = current_start_date_dt.strftime('%Y-%m-%d')
@@ -279,8 +324,8 @@ def main():
             period_label = "last-month"
             
         elif args.last_quarter:
-            current_quarter = (today.month - 1) // 3
-            current_end_date_dt = datetime(today.year, 3 * current_quarter + 1, 1).date() - timedelta(days=1)
+            current_quarter = (latest_available_date.month - 1) // 3
+            current_end_date_dt = datetime(latest_available_date.year, 3 * current_quarter + 1, 1).date() - timedelta(days=1)
             current_start_date_dt = current_end_date_dt.replace(day=1) - relativedelta(months=2)
             current_start_date = current_start_date_dt.strftime('%Y-%m-%d')
             current_end_date = current_end_date_dt.strftime('%Y-%m-%d')
@@ -297,47 +342,47 @@ def main():
             period_label = "last-quarter"
             
         elif args.last_3_months:
-            current_start_date = (today - relativedelta(months=3)).strftime('%Y-%m-%d')
-            current_end_date = today.strftime('%Y-%m-%d')
+            current_start_date = (latest_available_date - relativedelta(months=3) + timedelta(days=1)).strftime('%Y-%m-%d')
+            current_end_date = latest_available_date.strftime('%Y-%m-%d')
             if args.compare_to_previous_year:
-                previous_start_date = (today - relativedelta(months=3) - relativedelta(years=1)).strftime('%Y-%m-%d')
-                previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_start_date = (latest_available_date - relativedelta(months=3) + timedelta(days=1) - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_end_date = (latest_available_date - relativedelta(years=1)).strftime('%Y-%m-%d')
             else:
-                previous_start_date = (today - relativedelta(months=6)).strftime('%Y-%m-%d')
-                previous_end_date = (today - relativedelta(months=3) - timedelta(days=1)).strftime('%Y-%m-%d')
+                previous_start_date = (latest_available_date - relativedelta(months=6) + timedelta(days=1)).strftime('%Y-%m-%d')
+                previous_end_date = (latest_available_date - relativedelta(months=3)).strftime('%Y-%m-%d')
             period_label = "last-3-months"
 
         elif args.last_6_months:
-            current_start_date = (today - relativedelta(months=6)).strftime('%Y-%m-%d')
-            current_end_date = today.strftime('%Y-%m-%d')
+            current_start_date = (latest_available_date - relativedelta(months=6) + timedelta(days=1)).strftime('%Y-%m-%d')
+            current_end_date = latest_available_date.strftime('%Y-%m-%d')
             if args.compare_to_previous_year:
-                previous_start_date = (today - relativedelta(months=6) - relativedelta(years=1)).strftime('%Y-%m-%d')
-                previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_start_date = (latest_available_date - relativedelta(months=6) + timedelta(days=1) - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_end_date = (latest_available_date - relativedelta(years=1)).strftime('%Y-%m-%d')
             else:
-                previous_start_date = (today - relativedelta(months=12)).strftime('%Y-%m-%d')
-                previous_end_date = (today - relativedelta(months=6) - timedelta(days=1)).strftime('%Y-%m-%d')
+                previous_start_date = (latest_available_date - relativedelta(months=12) + timedelta(days=1)).strftime('%Y-%m-%d')
+                previous_end_date = (latest_available_date - relativedelta(months=6)).strftime('%Y-%m-%d')
             period_label = "last-6-months"
 
         elif args.last_12_months:
-            current_start_date = (today - relativedelta(months=12)).strftime('%Y-%m-%d')
-            current_end_date = today.strftime('%Y-%m-%d')
+            current_start_date = (latest_available_date - relativedelta(months=12) + timedelta(days=1)).strftime('%Y-%m-%d')
+            current_end_date = latest_available_date.strftime('%Y-%m-%d')
             if args.compare_to_previous_year:
-                previous_start_date = (today - relativedelta(months=12) - relativedelta(years=1)).strftime('%Y-%m-%d')
-                previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_start_date = (latest_available_date - relativedelta(months=12) + timedelta(days=1) - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_end_date = (latest_available_date - relativedelta(years=1)).strftime('%Y-%m-%d')
             else:
-                previous_start_date = (today - relativedelta(months=24)).strftime('%Y-%m-%d')
-                previous_end_date = (today - relativedelta(months=12) - timedelta(days=1)).strftime('%Y-%m-%d')
+                previous_start_date = (latest_available_date - relativedelta(months=24) + timedelta(days=1)).strftime('%Y-%m-%d')
+                previous_end_date = (latest_available_date - relativedelta(months=12)).strftime('%Y-%m-%d')
             period_label = "last-12-months"
 
         elif args.last_16_months:
-            current_start_date = (today - relativedelta(months=16)).strftime('%Y-%m-%d')
-            current_end_date = today.strftime('%Y-%m-%d')
+            current_start_date = (latest_available_date - relativedelta(months=16) + timedelta(days=1)).strftime('%Y-%m-%d')
+            current_end_date = latest_available_date.strftime('%Y-%m-%d')
             if args.compare_to_previous_year:
-                previous_start_date = (today - relativedelta(months=16) - relativedelta(years=1)).strftime('%Y-%m-%d')
-                previous_end_date = (today - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_start_date = (latest_available_date - relativedelta(months=16) + timedelta(days=1) - relativedelta(years=1)).strftime('%Y-%m-%d')
+                previous_end_date = (latest_available_date - relativedelta(years=1)).strftime('%Y-%m-%d')
             else:
-                previous_start_date = (today - relativedelta(months=32)).strftime('%Y-%m-%d')
-                previous_end_date = (today - relativedelta(months=16) - timedelta(days=1)).strftime('%Y-%m-%d')
+                previous_start_date = (latest_available_date - relativedelta(months=32) + timedelta(days=1)).strftime('%Y-%m-%d')
+                previous_end_date = (latest_available_date - relativedelta(months=16)).strftime('%Y-%m-%d')
             period_label = "last-16-months"
 
         if args.compare_to_previous_year:
@@ -380,9 +425,7 @@ def main():
             if args.query_not_contains:
                 filters_list.append({'dimension': 'query', 'operator': 'notContains', 'expression': args.query_not_contains})
 
-            service = get_gsc_service()
-            if not service:
-                return
+
 
             # Fetch data for both periods
             df_current = get_performance_data(service, args.site_url, current_start_date, current_end_date, filters=filters_list)

@@ -71,6 +71,48 @@ def get_gsc_service():
 
     return build('webmasters', 'v3', credentials=creds)
 
+def get_latest_available_gsc_date(service, site_url, max_retries=5):
+    """
+    Determines the latest date for which GSC data is available by querying
+    backwards from today.
+    """
+    current_date = date.today()
+    for i in range(max_retries):
+        check_date = current_date - timedelta(days=i)
+        check_date_str = check_date.strftime('%Y-%m-%d')
+        
+        print(f"Checking for GSC data availability on: {check_date_str}...")
+        try:
+            request = {
+                'startDate': check_date_str,
+                'endDate': check_date_str,
+                'dimensions': ['date'], # Only need to check for any data
+                'rowLimit': 1,
+                'startRow': 0
+            }
+            response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
+            
+            if 'rows' in response and response['rows']:
+                print(f"Latest available GSC data found for: {check_date_str}")
+                return check_date
+            else:
+                print(f"No data for {check_date_str}, checking previous day.")
+        except HttpError as e:
+            # GSC returns 400 if date range is too recent (no data yet)
+            if e.resp.status == 400:
+                print(f"No data for {check_date_str}, checking previous day (HTTP 400).")
+            else:
+                print(f"An HTTP error occurred while checking date {check_date_str}: {e}")
+                print("Continuing to check previous days.")
+        except Exception as e:
+            print(f"An unexpected error occurred while checking date {check_date_str}: {e}")
+            print("Continuing to check previous days.")
+            
+    print(f"Could not determine latest available GSC date within {max_retries} days. Using today's date as a fallback.")
+    return current_date # Fallback to today if no data found after retries
+
+
+
 def get_pages_queries_data(service, site_url, start_date, end_date):
     """Fetches pages and queries data from GSC for a given date range."""
     all_data = []
@@ -477,7 +519,12 @@ def main():
         if 'wwww.' in args.site_url:
             args.site_url = args.site_url.replace('wwww.', 'www.')
         
-        today = date.today()
+        # Authenticate GSC service once
+        service = get_gsc_service()
+        if not service:
+            return
+
+        latest_available_date = get_latest_available_gsc_date(service, args.site_url)
 
         if not any([
             args.start_date, args.last_24_hours, args.last_7_days, args.last_28_days,
@@ -491,34 +538,37 @@ def main():
             start_date = args.start_date
             end_date = args.end_date
         elif args.last_24_hours:
-            start_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
-            end_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
+            start_date = (latest_available_date - timedelta(days=1)).strftime('%Y-%m-%d')
+            end_date = (latest_available_date - timedelta(days=1)).strftime('%Y-%m-%d')
         elif args.last_7_days:
-            start_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
-            end_date = today.strftime('%Y-%m-%d')
+            start_date = (latest_available_date - timedelta(days=6)).strftime('%Y-%m-%d')
+            end_date = latest_available_date.strftime('%Y-%m-%d')
         elif args.last_28_days:
-            start_date = (today - timedelta(days=28)).strftime('%Y-%m-%d')
-            end_date = today.strftime('%Y-%m-%d')
+            start_date = (latest_available_date - timedelta(days=27)).strftime('%Y-%m-%d')
+            end_date = latest_available_date.strftime('%Y-%m-%d')
         elif args.last_month:
-            first_day_of_current_month = today.replace(day=1)
+            first_day_of_current_month = latest_available_date.replace(day=1)
             last_day_of_previous_month = first_day_of_current_month - timedelta(days=1)
             start_date = last_day_of_previous_month.replace(day=1).strftime('%Y-%m-%d')
             end_date = last_day_of_previous_month.strftime('%Y-%m-%d')
         elif args.last_quarter:
-            start_date = (today - relativedelta(months=3)).strftime('%Y-%m-%d')
-            end_date = today.strftime('%Y-%m-%d')
+            current_quarter = (latest_available_date.month - 1) // 3
+            end_date_dt = datetime(latest_available_date.year, 3 * current_quarter + 1, 1).date() - timedelta(days=1)
+            start_date_dt = end_date_dt.replace(day=1) - relativedelta(months=2)
+            start_date = start_date_dt.strftime('%Y-%m-%d')
+            end_date = end_date_dt.strftime('%Y-%m-%d')
         elif args.last_3_months:
-            start_date = (today - relativedelta(months=3)).strftime('%Y-%m-%d')
-            end_date = today.strftime('%Y-%m-%d')
+            start_date = (latest_available_date - relativedelta(months=3) + timedelta(days=1)).strftime('%Y-%m-%d')
+            end_date = latest_available_date.strftime('%Y-%m-%d')
         elif args.last_6_months:
-            start_date = (today - relativedelta(months=6)).strftime('%Y-%m-%d')
-            end_date = today.strftime('%Y-%m-%d')
+            start_date = (latest_available_date - relativedelta(months=6) + timedelta(days=1)).strftime('%Y-%m-%d')
+            end_date = latest_available_date.strftime('%Y-%m-%d')
         elif args.last_12_months:
-            start_date = (today - relativedelta(months=12)).strftime('%Y-%m-%d')
-            end_date = today.strftime('%Y-%m-%d')
+            start_date = (latest_available_date - relativedelta(months=12) + timedelta(days=1)).strftime('%Y-%m-%d')
+            end_date = latest_available_date.strftime('%Y-%m-%d')
         elif args.last_16_months:
-            start_date = (today - relativedelta(months=16)).strftime('%Y-%m-%d')
-            end_date = today.strftime('%Y-%m-%d')
+            start_date = (latest_available_date - relativedelta(months=16) + timedelta(days=1)).strftime('%Y-%m-%d')
+            end_date = latest_available_date.strftime('%Y-%m-%d')
         else: # Custom date range
             start_date = args.start_date
             end_date = args.end_date
@@ -545,9 +595,9 @@ def main():
             print(f"Found cached data at {csv_output_path}. Using it to generate report.")
             df = pd.read_csv(csv_output_path)
         else:
-            service = get_gsc_service()
-            if not service:
-                return
+            # service is already authenticated above
+            # if not service:
+            #     return
             
             raw_data = get_pages_queries_data(service, site_url, start_date, end_date)
             if not raw_data:

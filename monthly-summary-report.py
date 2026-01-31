@@ -70,6 +70,47 @@ def get_gsc_service():
 
     return build('webmasters', 'v3', credentials=creds)
 
+def get_latest_available_gsc_date(service, site_url, max_retries=5):
+    """
+    Determines the latest date for which GSC data is available by querying
+    backwards from today.
+    """
+    current_date = date.today()
+    for i in range(max_retries):
+        check_date = current_date - timedelta(days=i)
+        check_date_str = check_date.strftime('%Y-%m-%d')
+        
+        print(f"Checking for GSC data availability on: {check_date_str}...")
+        try:
+            request = {
+                'startDate': check_date_str,
+                'endDate': check_date_str,
+                'dimensions': ['date'], # Only need to check for any data
+                'rowLimit': 1,
+                'startRow': 0
+            }
+            response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
+            
+            if 'rows' in response and response['rows']:
+                print(f"Latest available GSC data found for: {check_date_str}")
+                return check_date
+            else:
+                print(f"No data for {check_date_str}, checking previous day.")
+        except HttpError as e:
+            # GSC returns 400 if date range is too recent (no data yet)
+            if e.resp.status == 400:
+                print(f"No data for {check_date_str}, checking previous day (HTTP 400).")
+            else:
+                print(f"An HTTP error occurred while checking date {check_date_str}: {e}")
+                print("Continuing to check previous days.")
+        except Exception as e:
+            print(f"An unexpected error occurred while checking date {check_date_str}: {e}")
+            print("Continuing to check previous days.")
+            
+    print(f"Could not determine latest available GSC date within {max_retries} days. Using today's date as a fallback.")
+    return current_date # Fallback to today if no data found after retries
+
+
 def get_all_sites(service):
     """Fetches a list of all sites in the user's GSC account."""
     sites = []
@@ -359,33 +400,37 @@ def main():
     sites_to_process = []
     if args.site_url:
         sites_to_process = [args.site_url]
+        latest_available_date = get_latest_available_gsc_date(service, args.site_url)
     else:
         sites_to_process = get_all_sites(service)
         if not sites_to_process:
             print("No sites found in your account.")
             return
         sites_to_process.sort(key=get_sort_key)
+        # For all-months/all-sites report, we use today's date as a general reference
+        # as querying for each site's latest available date would be inefficient here.
+        latest_available_date = date.today() 
     
-    today = date.today()
     date_ranges_to_process = []
 
     if args.all_months:
+        # Loop through the last 16 complete months relative to the latest available date
         for i in range(1, 17):
-            end_of_month = today.replace(day=1) - relativedelta(months=i - 1) - timedelta(days=1)
+            end_of_month = latest_available_date.replace(day=1) - relativedelta(months=i - 1) - timedelta(days=1)
             start_of_month = end_of_month.replace(day=1)
             date_ranges_to_process.append((start_of_month.strftime('%Y-%m-%d'), end_of_month.strftime('%Y-%m-%d')))
     elif args.start_date and args.end_date:
         date_ranges_to_process.append((args.start_date, args.end_date))
     elif args.last_7_days:
-        start_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
-        end_date = today.strftime('%Y-%m-%d')
+        start_date = (latest_available_date - timedelta(days=6)).strftime('%Y-%m-%d')
+        end_date = latest_available_date.strftime('%Y-%m-%d')
         date_ranges_to_process.append((start_date, end_date))
     elif args.last_28_days:
-        start_date = (today - timedelta(days=28)).strftime('%Y-%m-%d')
-        end_date = today.strftime('%Y-%m-%d')
+        start_date = (latest_available_date - timedelta(days=27)).strftime('%Y-%m-%d')
+        end_date = latest_available_date.strftime('%Y-%m-%d')
         date_ranges_to_process.append((start_date, end_date))
     else:  # Default to last complete month
-        end_of_month = today.replace(day=1) - timedelta(days=1)
+        end_of_month = latest_available_date.replace(day=1) - timedelta(days=1)
         start_of_month = end_of_month.replace(day=1)
         date_ranges_to_process.append((start_of_month.strftime('%Y-%m-%d'), end_of_month.strftime('%Y-%m-%d')))
 
