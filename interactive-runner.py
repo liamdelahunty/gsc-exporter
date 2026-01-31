@@ -1,9 +1,7 @@
-"""
-An interactive command-line tool to run Google Search Console reports.
+"An interactive command-line tool to run Google Search Console reports.
 
 This script guides the user through selecting a GSC property, choosing a report,
-and providing flags, before executing the chosen report script.
-"""
+and providing flags, before executing the chosen report script."
 import os
 import subprocess
 import sys
@@ -143,6 +141,7 @@ def main():
     """Main function to run the interactive report generator."""
     service = get_gsc_service()
     if not service:
+        print("Failed to get GSC service. Exiting.")
         sys.exit(1)
         
     sites = get_all_sites(service)
@@ -164,16 +163,6 @@ def main():
         # Split the flags string into a list of arguments
         command.extend(additional_flags.split())
         
-    print("\\n" + "-"*50)
+    print("\n" + "-"*50)
     print(f"Running command: {' '.join(command)}")
-    print("-" * 50 + "\\n")
-    
-    try:
-        # Using subprocess.run to execute the command and stream output
-        process = subprocess.run(command)
-    except FileNotFoundError:
-        print(f"Error: The script '{selected_report['file']}' was not found.")
-    except subprocess.CalledProcessError as e:
-        print(f"An error occurred while running the report: {e}")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+    print("-
