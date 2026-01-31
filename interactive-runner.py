@@ -165,4 +165,4 @@ def main():
         
     print("\n" + "-"*50)
     print(f"Running command: {' '.join(command)}")
-    print("-
+    print("-" * 50 + "\n")
