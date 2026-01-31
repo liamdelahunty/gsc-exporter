@@ -21,6 +21,11 @@ This repository contains a collection of Python scripts designed to connect to t
 | `run_all_reports_for_site.py` | A composite script to run all primary, monthly useful analysis reports for a single domain. |
 | `run_wrapped_for_all_properties.py` | A utility script to automate running the `generate_gsc_wrapped.py` script for every site you have access to. |
 
+### A Note on Date-Related Flags
+
+All date-related flags like `--last-7-days`, `--last-28-days`, and `--last-month` are dynamic. They calculate date ranges based on the **latest date for which data is available** in Google Search Console, not based on today's calendar date. This accounts for GSC's typical data processing delay.
+
+
 ## Typical Workflow
 
 Here is a recommended workflow for analyzing your GSC data, moving from a high-level overview to a detailed investigation.
