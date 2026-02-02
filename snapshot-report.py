@@ -369,7 +369,7 @@ def create_snapshot_html_report(page_title, period_str, summary_df, df_top_click
     summary_df['Impressions'] = summary_df['Impressions'].apply(lambda x: f"{int(x):,}")
     summary_df['CTR'] = summary_df['CTR'].apply(lambda x: f"{x:.2%}")
     summary_df['Position'] = summary_df['Position'].apply(lambda x: f"{x:.2f}")
-    summary_table_html = summary_df.to_html(classes="table table-striped table-hover", index=False, border=0)
+    summary_table_html = summary_df.to_html(classes="table table-striped table-hover", index=False, border=0, table_id="summary-table")
 
 
     # Helper to convert dataframe to HTML table with Bootstrap classes
@@ -405,6 +405,7 @@ def create_snapshot_html_report(page_title, period_str, summary_df, df_top_click
         h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: 0.5rem; margin-top: 2rem; }}
         footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
         .table thead th {{ text-align: center; }}
+        #summary-table th, #summary-table td {{ text-align: left; }}
     </style>
 </head>
 <body>
