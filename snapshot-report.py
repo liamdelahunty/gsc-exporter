@@ -319,12 +319,12 @@ def main():
     weighted_position_sum = (df_pages['position'] * df_pages['impressions']).sum()
     average_position = weighted_position_sum / total_impressions if total_impressions > 0 else 0
     
-    summary_data = {
-        "Total Clicks": f"{total_clicks:,.0f}",
-        "Total Impressions": f"{total_impressions:,.0f}",
-        "Average CTR": f"{average_ctr:.2%}",
-        "Average Position": f"{average_position:.2f}"
-    }
+    summary_df = pd.DataFrame([{
+        'Clicks': total_clicks,
+        'Impressions': total_impressions,
+        'CTR': average_ctr,
+        'Position': average_position
+    }])
 
     # Top pages by clicks
     df_top_clicks = df_pages.sort_values(by='clicks', ascending=False).head(20)
@@ -345,7 +345,7 @@ def main():
         html_output = create_snapshot_html_report(
             page_title=f"Performance Snapshot for {host_dir}",
             period_str=f"{start_date} to {end_date}",
-            summary_data=summary_data,
+            summary_df=summary_df,
             df_top_clicks=df_top_clicks,
             df_top_impressions=df_top_impressions,
             df_low_ctr=df_low_ctr,
@@ -361,25 +361,16 @@ def main():
         print(f"Also, check if the file is already open in another program: {html_output_path}")
 
 
-def create_snapshot_html_report(page_title, period_str, summary_data, df_top_clicks, df_top_impressions, df_low_ctr, df_devices, df_countries):
+def create_snapshot_html_report(page_title, period_str, summary_df, df_top_clicks, df_top_impressions, df_low_ctr, df_devices, df_countries):
     """Generates an HTML report from the snapshot analysis dataframes."""
     
-    # Build summary table HTML
-    summary_table_html = """
-    <h2>Overall Performance Summary</h2>
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped" style="max-width: 500px;">
-            <thead class="thead-dark">
-                <tr>
-                    <th>Metric</th>
-                    <th>Value</th>
-                </tr>
-            </thead>
-            <tbody>
-    """
-    for key, value in summary_data.items():
-        summary_table_html += f"<tr><td>{key}</td><td>{value}</td></tr>"
-    summary_table_html += "</tbody></table></div>"
+    # Format and convert summary DataFrame to HTML
+    summary_df['Clicks'] = summary_df['Clicks'].apply(lambda x: f"{int(x):,}")
+    summary_df['Impressions'] = summary_df['Impressions'].apply(lambda x: f"{int(x):,}")
+    summary_df['CTR'] = summary_df['CTR'].apply(lambda x: f"{x:.2%}")
+    summary_df['Position'] = summary_df['Position'].apply(lambda x: f"{x:.2f}")
+    summary_table_html = summary_df.to_html(classes="table table-striped table-hover", index=False, border=0)
+
 
     # Helper to convert dataframe to HTML table with Bootstrap classes
     def df_to_html(df, table_id, float_format="%.2f"):
@@ -421,7 +412,10 @@ def create_snapshot_html_report(page_title, period_str, summary_data, df_top_cli
         <h1 class="mb-3">{page_title}</h1>
         <p class="text-muted">Analysis for the period: {period_str}</p>
 
-        {summary_table_html}
+        <h2>Overall Performance Summary</h2>
+        <div class="table-responsive">
+            {summary_table_html}
+        </div>
 
         <h2>Top Pages by Clicks</h2>
         <p class="text-muted">The pages driving the most organic clicks during this period.</p>
