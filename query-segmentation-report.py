@@ -326,8 +326,9 @@ def main():
 
     date_group = parser.add_mutually_exclusive_group()
     date_group.add_argument('--start-date', help='Start date in YYYY-MM-DD format.')
-    date_group.add_argument('--end-date', help='End date in YYYY-MM-DD format. Used only with --start-date.')
     date_group.add_argument('--last-month', action='store_true', help='Use the last calendar month for the report. (Default)')
+    
+    parser.add_argument('--end-date', help='End date in YYYY-MM-DD format. Used only with --start-date.')
     
     args = parser.parse_args()
     site_url = args.site_url
