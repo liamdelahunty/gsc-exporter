@@ -130,7 +130,7 @@ def process_query_data_into_position_distribution(query_data):
                 distribution['impressions_pos_21_plus'] += impressions
     return distribution
 
-def create_multi_site_html_report(df, sorted_sites):
+def create_multi_site_html_report(df, sorted_sites, period_str):
     """Generates an HTML report for multiple sites with an index."""
     index_html = '<ul>'
     current_root_domain = None
@@ -154,10 +154,12 @@ def create_multi_site_html_report(df, sorted_sites):
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Google Organic Query Position Distribution Report</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>body{{padding:2rem;}}.table-responsive{{max-height:800px;}}h1,h2{{border-bottom:2px solid #dee2e6;padding-bottom:.5rem;margin-top:2rem;}}footer{{margin-top:3rem;text-align:center;color:#6c757d;}}</style></head>
-<body><div class="container-fluid"><h1 id="top">Google Organic Query Position Distribution Report</h1><h2>Index</h2>{index_html}{site_sections_html}</div>
+<body><div class="container-fluid"><h1 id="top">Google Organic Query Position Distribution Report</h1>
+<p class="text-muted">Analysis for the period: {period_str}</p>
+<h2>Index</h2>{index_html}{site_sections_html}</div>
 <footer><p><a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p></footer></body></html>"""
 
-def create_single_site_html_report(df, report_title):
+def create_single_site_html_report(df, report_title, period_str):
     """Generates a simplified HTML report for a single site with charts."""
     # Prepare data for the table
     df_table = df.drop(columns=['site_url']).copy()
@@ -175,6 +177,7 @@ def create_single_site_html_report(df, report_title):
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>body{{padding:2rem;}}h1,h2{{border-bottom:2px solid #dee2e6;padding-bottom:.5rem;margin-top:2rem;}}.table thead th {{background-color: #434343;color: #ffffff;text-align: left;}}footer{{margin-top:3rem;text-align:center;color:#6c757d;}}</style></head>
 <body><div class="container-fluid"><h1>Google Organic Query Position Report for {report_title}</h1>
+<p class="text-muted">Analysis for the period: {period_str}</p>
 <div class="row my-4">
     <div class="col-lg-6"><div class="card"><div class="card-header"><h3>Clicks by Position</h3></div><div class="card-body"><canvas id="clicksChart"></canvas></div></div></div>
     <div class="col-lg-6"><div class="card"><div class="card-header"><h3>Impressions by Position</h3></div><div class="card-body"><canvas id="impressionsChart"></canvas></div></div></div>
@@ -460,11 +463,15 @@ def main():
             
     # Proceed with report generation
     try:
+        start_month = pd.to_datetime(df['month']).min().strftime('%Y-%m')
+        end_month = pd.to_datetime(df['month']).max().strftime('%Y-%m')
+        period_str = f"{start_month} to {end_month}"
+
         if args.site_url:
             df_single = df[df['site_url'] == args.site_url]
-            html_output = create_single_site_html_report(df_single, args.site_url)
+            html_output = create_single_site_html_report(df_single, args.site_url, period_str)
         else:
-            html_output = create_multi_site_html_report(df, sites)
+            html_output = create_multi_site_html_report(df, sites, period_str)
         
         with open(html_output_path, 'w', encoding='utf-8') as f:
             f.write(html_output)
