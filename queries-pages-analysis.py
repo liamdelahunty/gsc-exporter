@@ -123,7 +123,7 @@ def get_monthly_performance_data(service, site_url, start_date, end_date):
             print(f"An HTTP error occurred for {site_url}: {e}")
     return None
 
-def create_multi_site_html_report(df, sorted_sites):
+def create_multi_site_html_report(df, sorted_sites, period_str):
     """Generates an HTML report for multiple sites with an index."""
     index_html = '<ul>'
     current_root_domain = None
@@ -149,19 +149,148 @@ def create_multi_site_html_report(df, sorted_sites):
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Account-Wide Google Organic Performance Report</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>body{{padding:2rem;}}.table-responsive{{max-height:800px;}}h1,h2{{border-bottom:2px solid #dee2e6;padding-bottom:.5rem;margin-top:2rem;}}footer{{margin-top:3rem;text-align:center;color:#6c757d;}}</style></head>
-<body><div class="container-fluid"><h1 id="top">Account-Wide Google Organic Performance Report</h1><h2>Index</h2>{index_html}{site_sections_html}</div>
+<body><div class="container-fluid"><h1 id="top">Account-Wide Google Organic Performance Report</h1>
+<p class="text-muted">Analysis for the period: {period_str}</p>
+<h2>Index</h2>{index_html}{site_sections_html}</div>
 <footer><p><a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p></footer></body></html>"""
 
-def create_single_site_html_report(df, report_title):
-    """Generates a simplified HTML report for a single site."""
-    df_no_site = df.drop(columns=['site_url'])
-    report_body = df_no_site.to_html(classes="table table-striped table-hover", index=False, border=0)
+def create_single_site_html_report(df, report_title, period_str):
+    """Generates a simplified HTML report for a single site with charts."""
+    # Prepare data for the table by formatting numbers
+    df_table = df.drop(columns=['site_url']).copy()
+    df_table['clicks'] = df_table['clicks'].apply(lambda x: f"{x:,.0f}")
+    df_table['impressions'] = df_table['impressions'].apply(lambda x: f"{x:,.0f}")
+    df_table['queries'] = df_table['queries'].apply(lambda x: f"{x:,.0f}")
+    df_table['pages'] = df_table['pages'].apply(lambda x: f"{x:,.0f}")
+    df_table['ctr'] = df_table['ctr'].apply(lambda x: f"{x:.2%}")
+    df_table['position'] = df_table['position'].apply(lambda x: f"{x:.2f}")
+    report_body = df_table.to_html(classes="table table-striped table-hover", index=False, border=0)
+
+    # Prepare data for the chart (use the original unformatted dataframe)
+    chart_data = df.sort_values(by='month').to_json(orient='records')
+
     return f"""
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Google Organic Queries/Pages Report for {report_title}</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<style>body{{padding:2rem;}}h1{{border-bottom:2px solid #dee2e6;padding-bottom:.5rem;margin-top:2rem;}}.table thead th {{background-color: #434343;color: #ffffff;text-align: left;}}footer{{margin-top:3rem;text-align:center;color:#6c757d;}}</style></head>
-<body><div class="container-fluid"><h1>Google Organic Queries/Pages Report for {report_title}</h1><div class="table-responsive">{report_body}</div></div>
-<footer><p><a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p></footer></body></html>"""
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>body{{padding:2rem;}}h1,h2{{border-bottom:2px solid #dee2e6;padding-bottom:.5rem;margin-top:2rem;}}.table thead th {{background-color: #434343;color: #ffffff;text-align: left;}}footer{{margin-top:3rem;text-align:center;color:#6c757d;}}</style></head>
+<body><div class="container-fluid"><h1>Google Organic Queries/Pages Report for {report_title}</h1>
+<p class="text-muted">Analysis for the period: {period_str}</p>
+    <div class="row my-4">
+        <div class="col-lg-12"><div class="card"><div class="card-header"><h3>Clicks vs. Impressions</h3></div><div class="card-body"><canvas id="clicksImpressionsChart"></canvas></div></div></div>
+    </div>
+    <div class="row my-4">
+        <div class="col-lg-6"><div class="card"><div class="card-header"><h3>Average CTR</h3></div><div class="card-body"><canvas id="ctrChart"></canvas></div></div></div>
+        <div class="col-lg-6"><div class="card"><div class="card-header"><h3>Average Position</h3></div><div class="card-body"><canvas id="positionChart"></canvas></div></div></div>
+    </div>
+<h2>Data Table</h2>
+<div class="table-responsive">{report_body}</div></div>
+<footer><p><a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p></footer>
+<script>
+    const data = {chart_data};
+    const labels = data.map(row => row.month);
+
+    // Clicks vs Impressions Chart
+    new Chart(document.getElementById('clicksImpressionsChart'), {{
+        type: 'line',
+        data: {{
+            labels: labels,
+            datasets: [
+                {{
+                    label: 'Clicks',
+                    data: data.map(row => row.clicks),
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    yAxisID: 'yClicks',
+                    fill: false,
+                    tension: 0.1
+                }},
+                {{
+                    label: 'Impressions',
+                    data: data.map(row => row.impressions),
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    yAxisID: 'yImpressions',
+                    fill: false,
+                    tension: 0.1
+                }}
+            ]
+        }},
+        options: {{
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {{ mode: 'index', intersect: false }},
+            scales: {{
+                yClicks: {{
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {{ display: true, text: 'Clicks' }}
+                }},
+                yImpressions: {{
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {{ display: true, text: 'Impressions' }},
+                    grid: {{ drawOnChartArea: false }}
+                }}
+            }}
+        }}
+    }});
+
+    // CTR Chart
+    new Chart(document.getElementById('ctrChart'), {{
+        type: 'line',
+        data: {{
+            labels: labels,
+            datasets: [{{
+                label: 'CTR',
+                data: data.map(row => row.ctr * 100),
+                borderColor: 'rgba(75, 192, 192, 1)',
+                fill: false,
+                tension: 0.1
+            }}]
+        }},
+        options: {{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {{ legend: {{ display: false }} }},
+            scales: {{
+                y: {{
+                    beginAtZero: true,
+                    ticks: {{ callback: value => value + '%' }}
+                }}
+            }}
+        }}
+    }});
+
+    // Position Chart
+    new Chart(document.getElementById('positionChart'), {{
+        type: 'line',
+        data: {{
+            labels: labels,
+            datasets: [{{
+                label: 'Position',
+                data: data.map(row => row.position),
+                borderColor: 'rgba(255, 159, 64, 1)',
+                fill: false,
+                tension: 0.1
+            }}]
+        }},
+        options: {{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {{ legend: {{ display: false }} }},
+            scales: {{
+                y: {{
+                    reverse: true, // Invert y-axis for position
+                    beginAtZero: false
+                }}
+            }}
+        }}
+    }});
+</script>
+</body></html>"""
 
 def generate_site_sections(df, sorted_sites):
     """Generates HTML sections for each site."""
@@ -287,18 +416,23 @@ def main():
 
     # Proceed with report generation
     try:
-        html_df = df.copy()
-        html_df['clicks'] = html_df['clicks'].apply(lambda x: f"{x:,.0f}")
-        html_df['impressions'] = html_df['impressions'].apply(lambda x: f"{x:,.0f}")
-        html_df['queries'] = html_df['queries'].apply(lambda x: f"{x:,.0f}")
-        html_df['pages'] = html_df['pages'].apply(lambda x: f"{x:,.0f}")
-        html_df['ctr'] = html_df['ctr'].apply(lambda x: f"{x:.2%}")
-        html_df['position'] = html_df['position'].apply(lambda x: f"{x:.2f}")
+        start_month = pd.to_datetime(df['month']).min().strftime('%Y-%m')
+        end_month = pd.to_datetime(df['month']).max().strftime('%Y-%m')
+        period_str = f"{start_month} to {end_month}"
 
         if args.site_url:
-            html_output = create_single_site_html_report(html_df, args.site_url)
+            df_single = df[df['site_url'] == args.site_url]
+            html_output = create_single_site_html_report(df_single, args.site_url, period_str)
         else:
-            html_output = create_multi_site_html_report(html_df, sites)
+            # For multi-site, format the dataframe before passing
+            html_df = df.copy()
+            html_df['clicks'] = html_df['clicks'].apply(lambda x: f"{x:,.0f}")
+            html_df['impressions'] = html_df['impressions'].apply(lambda x: f"{x:,.0f}")
+            html_df['queries'] = html_df['queries'].apply(lambda x: f"{x:,.0f}")
+            html_df['pages'] = html_df['pages'].apply(lambda x: f"{x:,.0f}")
+            html_df['ctr'] = html_df['ctr'].apply(lambda x: f"{x:.2%}")
+            html_df['position'] = html_df['position'].apply(lambda x: f"{x:.2f}")
+            html_output = create_multi_site_html_report(html_df, sites, period_str)
         
         with open(html_output_path, 'w', encoding='utf-8') as f:
             f.write(html_output)
