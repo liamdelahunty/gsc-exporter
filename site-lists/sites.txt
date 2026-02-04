@@ -1,21 +1,19 @@
 # Add your site URLs here, one per line.
 # Example:
 # https://www.example.com
-# https://www.anothersite.co.uk
 # sc-domain:example.org
 
 https://app.croneri.co.uk/
-https://cipd.hr-inform.co.uk/
+https://croner.co.uk/
 https://learning.croneri.co.uk/
 https://library.croneri.co.uk/
-https://pages.croneri.co.uk/
-https://www.accountancydaily.co/
-https://www.accountantadvice.co.uk/
 https://www.croneri.co.uk/
 https://www.hr-inform.co.uk/
 https://www.hr-inform.ie/
+sc-domain:accountancydaily.co
 sc-domain:croneri.co.uk
 sc-domain:cronertaxwise.com
+sc-domain:employeradvice.org
 sc-domain:hr-inform.co.uk
 sc-domain:hr-inform.ie
 sc-domain:myviptaxteam.com
