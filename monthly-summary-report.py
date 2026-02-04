@@ -233,8 +233,17 @@ def create_summary_report(df, report_title, month, template_path='resources/repo
     report_df['position'] = report_df['position'].apply(lambda x: f"{x:,.2f}")
 
     # Rename and select final columns for the report table
-    report_df = report_df.rename(columns={'site_url': 'property'})
-    final_columns = ['property', 'clicks', 'impressions', 'ctr', 'position', '# queries', '# pages']
+    report_df = report_df.rename(columns={
+        'site_url': 'Property',
+        'clicks': 'Total Clicks',
+        'impressions': 'Impressions',
+        'ctr': 'CTR',
+        'position': 'Avg. Position',
+        '# queries': '# Queries',
+        '# pages': '# Pages'
+    })
+
+    final_columns = ['Property', 'Total Clicks', 'Impressions', 'CTR', 'Avg. Position', '# Queries', '# Pages']
     report_df = report_df[final_columns]
     
     # --- HTML Generation ---
@@ -379,6 +388,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument('site_url', nargs='?', default=None, help='Optional: The URL of the site to analyse. If not provided, runs for all sites.')
+    parser.add_argument('--sites-file', help='Path to a text file containing a list of site URLs to analyse.')
     parser.add_argument('--use-cache', action='store_true', help='Use a cached CSV file from a previous run if it exists.')
     
     date_group = parser.add_mutually_exclusive_group()
@@ -398,7 +408,23 @@ def main():
 
     # Determine the sites to process
     sites_to_process = []
-    if args.site_url:
+    if args.site_url and args.sites_file:
+        parser.error("argument --sites-file: not allowed with positional argument site_url")
+
+    if args.sites_file:
+        try:
+            with open(args.sites_file, 'r') as f:
+                sites_to_process = [line.strip() for line in f if line.strip()]
+            if not sites_to_process:
+                print(f"Warning: The specified sites file '{args.sites_file}' is empty.")
+                return
+            print(f"Loaded {len(sites_to_process)} sites from {args.sites_file}.")
+            sites_to_process.sort(key=get_sort_key)
+            latest_available_date = date.today()
+        except FileNotFoundError:
+            print(f"Error: The specified sites file was not found: {args.sites_file}")
+            return
+    elif args.site_url:
         sites_to_process = [args.site_url]
         latest_available_date = get_latest_available_gsc_date(service, args.site_url)
     else:
@@ -409,7 +435,7 @@ def main():
         sites_to_process.sort(key=get_sort_key)
         # For all-months/all-sites report, we use today's date as a general reference
         # as querying for each site's latest available date would be inefficient here.
-        latest_available_date = date.today() 
+        latest_available_date = date.today()
     
     date_ranges_to_process = []
 
@@ -438,7 +464,12 @@ def main():
         print(f"\n----- Processing date range: {start_date} to {end_date} -----")
         
         # --- Define output paths for the current date range ---
-        if args.site_url:
+        if args.sites_file:
+            output_dir = os.path.join('output', 'account')
+            sites_file_base_name = os.path.splitext(os.path.basename(args.sites_file))[0]
+            file_prefix = f"monthly-summary-report-{sites_file_base_name}-file--{start_date}-to-{end_date}"
+            report_title = f"Google Organic Monthly Summary for Sites from {args.sites_file}"
+        elif args.site_url:
             site_output_name = sites_to_process[0] # Use the single site's name for output dir
             if site_output_name.startswith('sc-domain:'):
                 host_plain = site_output_name.replace('sc-domain:', '')
