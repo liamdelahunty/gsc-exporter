@@ -306,15 +306,17 @@ def main():
             period_label = "last-28-days"
 
         elif args.last_month:
-            current_start_date_dt = latest_available_date.replace(day=1)
-            current_end_date_dt = (current_start_date_dt + relativedelta(months=1)) - timedelta(days=1)
+            # Current period is the last full calendar month
+            current_end_date_dt = latest_available_date.replace(day=1) - timedelta(days=1)
+            current_start_date_dt = current_end_date_dt.replace(day=1)
 
             if args.compare_to_previous_year:
                 previous_start_date_dt = current_start_date_dt - relativedelta(years=1)
                 previous_end_date_dt = current_end_date_dt - relativedelta(years=1)
             else:
-                previous_start_date_dt = current_start_date_dt - relativedelta(months=1)
+                # Previous period is the month before the current period
                 previous_end_date_dt = current_start_date_dt - timedelta(days=1)
+                previous_start_date_dt = previous_end_date_dt.replace(day=1)
 
             current_start_date = current_start_date_dt.strftime('%Y-%m-%d')
             current_end_date = current_end_date_dt.strftime('%Y-%m-%d')
