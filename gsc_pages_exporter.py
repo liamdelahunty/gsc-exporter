@@ -147,7 +147,7 @@ def create_html_page(urls, page_title, num_columns, start_date, end_date, num_li
         '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">',
         f'<style>body{{padding:20px;}}.list-group-item a{{text-decoration:none;word-break:break-all;}}.list-group-item:hover{{background-color:#f8f9fa;}}{footer_style}</style>',
         f'</head>\n<body>\n<div class="container-fluid">\n<h1 class="mb-4">{page_title}</h1>\n'
-        f'<h2 class="mb-4">Date Range: {start_date} to {end_date}</h2>\n'
+        f'<p class="text-muted">Analysis for the period: {start_date} to {end_date}</p>\n'
         f'<h3 class="mb-4">Total Links: {num_links}</h3>\n'
         f'<div class="row">\n'
     ]
