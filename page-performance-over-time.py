@@ -159,24 +159,61 @@ def get_gsc_data(service, site_url, start_date, end_date, dimensions, filters=No
         
     return df
 
-def create_html_report(site_url, start_date, end_date, df_clicks, df_impressions):
+def create_html_report(site_url, start_date, end_date, df_combined):
     """Generates an HTML report from the pivoted dataframes."""
 
     report_title = "Page Performance Over Time Report"
 
-    def format_df(df):
-        """Formats a dataframe for HTML output."""
+    # Slice df_combined to get clicks and impressions parts
+    df_clicks = df_combined['clicks'].copy()
+    df_impressions = df_combined['impressions'].copy()
+
+    def format_df_for_html(df, metric_name):
+        """Formats a dataframe for HTML output with custom header."""
         df_html = df.copy()
+        
+        # Format numeric columns with thousands separator
         for col in df_html.columns:
-            df_html[col] = df_html[col].apply(lambda x: f"{int(x):,}" if pd.notna(x) else "0")
-        return df_html
+            if pd.api.types.is_numeric_dtype(df_html[col]):
+                df_html[col] = df_html[col].apply(lambda x: f"{int(x):,}" if pd.notna(x) else "0")
+        
+        # Get column names (months)
+        month_columns = df_html.columns.tolist()
+        
+        # Build header row
+        header_cells = f'<th style="text-align:left; font-size:1.4em;">{metric_name}</th>' + \
+                       ''.join([f'<th>{month}</th>' for month in month_columns])
+        
+        # Build table body
+        body_rows = ''
+        # Reset index to make 'page' a regular column for easier iteration
+        df_html_reset = df_html.reset_index()
+        for _, row in df_html_reset.iterrows():
+            body_rows += '<tr>'
+            # Make page URL clickable, assuming the index is the page URL
+            body_rows += f'<td style="text-align: left;"><a href="{row["page"]}" target="_blank">{row["page"]}</a></td>'
+            for col in month_columns: # Iterate over original month columns
+                body_rows += f'<td style="text-align: center;">{row[col]}</td>'
+            body_rows += '</tr>'
+            
+        return f"""
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>{header_cells}</tr>
+    </thead>
+    <tbody>
+        {body_rows}
+    </tbody>
+</table>
+"""
 
-    df_clicks_html = format_df(df_clicks)
-    df_impressions_html = format_df(df_impressions)
+
+    # Generate custom HTML for Clicks table
+    clicks_table_html = format_df_for_html(df_clicks, "Clicks Over Time")
+
+    # Generate custom HTML for Impressions table
+    impressions_table_html = format_df_for_html(df_impressions, "Impressions Over Time")
     
-    clicks_table = df_clicks_html.to_html(classes="table table-striped table-hover", border=0)
-    impressions_table = df_impressions_html.to_html(classes="table table-striped table-hover", border=0)
-
     return f"""
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{report_title}</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -184,6 +221,9 @@ def create_html_report(site_url, start_date, end_date, df_clicks, df_impressions
 body {{ padding-top: 56px; }}
 h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem; }}
 .table-responsive {{ max-height: 600px; }}
+.table thead th {{ text-align: center; }} /* Center align all header cells */
+.table thead th:first-child {{ text-align: left; }} /* Left align the first header cell (Page) */
+.table tbody td:first-child {{ text-align: left; }} /* Left align the first data cell (Page URL) */
 </style></head>
 <body>
     <header class="navbar navbar-expand-lg navbar-light bg-light border-bottom mb-4 fixed-top">
@@ -210,10 +250,8 @@ h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem;
     </header>
     <main class="container-fluid py-4 flex-grow-1">
         <p>This report tracks the top 250 pages based on clicks from the initial month's data.</p>
-        <h2>Clicks Over Time</h2>
-        <div class="table-responsive">{clicks_table}</div>
-        <h2>Impressions Over Time</h2>
-        <div class="table-responsive">{impressions_table}</div>
+        <div class="table-responsive">{clicks_table_html}</div>
+        <div class="table-responsive mt-5">{impressions_table_html}</div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body></html>
@@ -339,8 +377,7 @@ def main():
         site_url=site_url,
         start_date=overall_start_date,
         end_date=overall_end_date,
-        df_clicks=df_pivot_clicks,
-        df_impressions=df_pivot_impressions
+        df_combined=df_combined
     )
     with open(html_output_path, 'w', encoding='utf-8') as f:
         f.write(html_output)
