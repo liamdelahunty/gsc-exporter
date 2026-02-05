@@ -164,18 +164,25 @@ def create_html_report(site_url, start_date, end_date, df_combined):
 
     report_title = "Page Performance Over Time Report"
 
-    # Slice df_combined to get clicks and impressions parts
+    # Slice df_combined to get clicks, impressions, ctr, and position parts
     df_clicks = df_combined['clicks'].copy()
     df_impressions = df_combined['impressions'].copy()
+    df_ctr = df_combined['ctr'].copy()
+    df_position = df_combined['position'].copy()
 
     def format_df_for_html(df, metric_name):
-        """Formats a dataframe for HTML output with custom header."""
+        """Formats a dataframe for HTML output with custom header and metric-specific formatting."""
         df_html = df.copy()
         
-        # Format numeric columns with thousands separator
+        # Format numeric columns based on metric_name
         for col in df_html.columns:
             if pd.api.types.is_numeric_dtype(df_html[col]):
-                df_html[col] = df_html[col].apply(lambda x: f"{int(x):,}" if pd.notna(x) else "0")
+                if metric_name == "CTR Over Time":
+                    df_html[col] = df_html[col].apply(lambda x: f"{x:.2%}" if pd.notna(x) else "0.00%")
+                elif metric_name == "Average Position Over Time":
+                    df_html[col] = df_html[col].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "0.00")
+                else: # Clicks and Impressions
+                    df_html[col] = df_html[col].apply(lambda x: f"{int(x):,}" if pd.notna(x) else "0")
         
         # Get column names (months)
         month_columns = df_html.columns.tolist()
@@ -214,6 +221,12 @@ def create_html_report(site_url, start_date, end_date, df_combined):
     # Generate custom HTML for Impressions table
     impressions_table_html = format_df_for_html(df_impressions, "Impressions Over Time")
     
+    # Generate custom HTML for CTR table
+    ctr_table_html = format_df_for_html(df_ctr, "CTR Over Time")
+
+    # Generate custom HTML for Average Position table
+    position_table_html = format_df_for_html(df_position, "Average Position Over Time")
+    
     return f"""
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{report_title}</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -249,10 +262,17 @@ h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem;
         </div>
     </header>
     <main class="container-fluid py-4 flex-grow-1">
-        <p>This report tracks the top 250 pages based on clicks from the initial month's data.</p>
+        <p>This report tracks the top 100 pages based on clicks from the initial month's data.</p>
         <div class="table-responsive">{clicks_table_html}</div>
         <div class="table-responsive mt-5">{impressions_table_html}</div>
+        <div class="table-responsive mt-5">{ctr_table_html}</div>
+        <div class="table-responsive mt-5">{position_table_html}</div>
     </main>
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Report generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</span>
+        </div>
+    </footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body></html>
 """
@@ -284,15 +304,23 @@ def main():
     
     print(f"Identifying top pages from {last_month_start_str} to {last_month_end_str}...")
 
-    # 2. Fetch data for the last full month to identify top 250 pages
-    df_last_month = get_gsc_data(service, site_url, last_month_start_str, last_month_end_str, ['page'])
+    # 2. Fetch data for the last full month to identify top 100 pages
+    df_last_month = get_gsc_data(service, site_url, last_month_start_str, last_month_end_str, ['page', 'query', 'device', 'country', 'date'])
     
     if df_last_month.empty:
         print("No data found for the last full month. Cannot proceed.")
         return
 
-    top_250_pages = df_last_month.sort_values(by='clicks', ascending=False).head(250)['page'].tolist()
-    print(f"Identified {len(top_250_pages)} top pages.")
+    # Aggregate by page to get overall clicks for sorting
+    df_last_month_aggregated = df_last_month.groupby('page').agg(
+        clicks=('clicks', 'sum'),
+        impressions=('impressions', 'sum'),
+        ctr=('ctr', 'mean'),  # Average CTR across all queries for that page
+        position=('position', 'mean') # Average position across all queries for that page
+    ).reset_index()
+
+    top_100_pages = df_last_month_aggregated.sort_values(by='clicks', ascending=False).head(100)['page'].tolist()
+    print(f"Identified {len(top_100_pages)} top pages.")
 
     # 3. Fetch data for the last 16 full months for these top pages
     all_monthly_data = []
@@ -310,8 +338,8 @@ def main():
         print(f"Fetching data for month: {month_start_str} to {month_end_str}...")
         
         monthly_data_for_batches = []
-        for j in range(0, len(top_250_pages), PAGE_BATCH_SIZE):
-            page_batch = top_250_pages[j:j + PAGE_BATCH_SIZE]
+        for j in range(0, len(top_100_pages), PAGE_BATCH_SIZE):
+            page_batch = top_100_pages[j:j + PAGE_BATCH_SIZE]
             
             # Construct a regex for filtering pages in the current batch
             escaped_pages = [re.escape(page) for page in page_batch]
@@ -323,7 +351,7 @@ def main():
                 'expression': regex_expression
             }
             
-            df_batch = get_gsc_data(service, site_url, month_start_str, month_end_str, ['page'], filters=[page_filter])
+            df_batch = get_gsc_data(service, site_url, month_start_str, month_end_str, ['page', 'query', 'device', 'country', 'date'], filters=[page_filter])
             
             if df_batch is not None and not df_batch.empty:
                 monthly_data_for_batches.append(df_batch)
@@ -342,13 +370,17 @@ def main():
     # 4. Pivot the data to have pages as rows and monthly metrics as columns
     df_pivot_clicks = df_historical.pivot_table(index='page', columns='month', values='clicks', aggfunc='sum').fillna(0)
     df_pivot_impressions = df_historical.pivot_table(index='page', columns='month', values='impressions', aggfunc='sum').fillna(0)
+    df_pivot_ctr = df_historical.pivot_table(index='page', columns='month', values='ctr', aggfunc='mean').fillna(0)
+    df_pivot_position = df_historical.pivot_table(index='page', columns='month', values='position', aggfunc='mean').fillna(0)
 
     # Sort columns by month
     df_pivot_clicks = df_pivot_clicks.reindex(sorted(df_pivot_clicks.columns, reverse=True), axis=1)
     df_pivot_impressions = df_pivot_impressions.reindex(sorted(df_pivot_impressions.columns, reverse=True), axis=1)
+    df_pivot_ctr = df_pivot_ctr.reindex(sorted(df_pivot_ctr.columns, reverse=True), axis=1)
+    df_pivot_position = df_pivot_position.reindex(sorted(df_pivot_position.columns, reverse=True), axis=1)
 
     # Combine into a single dataframe for export
-    df_combined = pd.concat([df_pivot_clicks, df_pivot_impressions], keys=['clicks', 'impressions'], axis=1)
+    df_combined = pd.concat([df_pivot_clicks, df_pivot_impressions, df_pivot_ctr, df_pivot_position], keys=['clicks', 'impressions', 'ctr', 'position'], axis=1)
 
     # 6. Generate and save HTML report
     # The overall date range for the report is from the earliest month to the latest month fetched
@@ -369,6 +401,11 @@ def main():
     file_prefix = f"page-performance-over-time-{host_for_filename}-{overall_start_date}-to-{overall_end_date}"
     csv_output_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_output_path = os.path.join(output_dir, f"{file_prefix}.html")
+
+    # Save to CSV
+    df_combined.to_csv(csv_output_path, index=True)
+    print(f"Successfully created CSV report at {csv_output_path}")
+
     html_output = create_html_report(
         site_url=site_url,
         start_date=overall_start_date,
