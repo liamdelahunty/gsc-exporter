@@ -208,15 +208,12 @@ def find_covering_site(page_url, all_sites):
     return None
 
 def create_html_report(page_url, site_url, start_date, end_date, df_combined):
-    """Generates an HTML report from the pivoted dataframes."""
+    """Generates an HTML report from the pivoted dataframes with combined table and page link."""
 
     report_title = f"Page Performance Over Time Report for {page_url}"
 
     # Prepare data for the chart (use the original unformatted dataframe for numerical values)
-    # The first row of df_combined (page) contains the data needed for charting
-    # Extract data for the single page
     if not df_combined.empty:
-        # Assuming df_combined index contains the page_url
         page_data_clicks = df_combined['clicks'].loc[page_url].to_dict()
         page_data_impressions = df_combined['impressions'].loc[page_url].to_dict()
         page_data_ctr = df_combined['ctr'].loc[page_url].to_dict()
@@ -235,70 +232,20 @@ def create_html_report(page_url, site_url, start_date, end_date, df_combined):
     else:
         chart_data_json = "[]"
 
-    # Slice df_combined to get clicks, impressions, ctr, and position parts
-    df_clicks = df_combined['clicks'].copy()
-    df_impressions = df_combined['impressions'].copy()
-    df_ctr = df_combined['ctr'].copy()
-    df_position = df_combined['position'].copy()
+    # Create a single combined DataFrame for the HTML table
+    # Select data for the specific page_url and unstack to get months as index and metrics as columns
+    df_table_data = df_combined.loc[page_url].unstack(level=0)
+    df_table_data = df_table_data[['clicks', 'impressions', 'ctr', 'position']] # Ensure order
+    df_table_data.index.name = 'Month'
+    df_table_data = df_table_data.reset_index()
 
-    def format_df_for_html(df, metric_name):
-        """Formats a dataframe for HTML output with custom header and metric-specific formatting."""
-        df_html = df.copy()
-        
-        # Format numeric columns based on metric_name
-        for col in df_html.columns:
-            if pd.api.types.is_numeric_dtype(df_html[col]):
-                if metric_name == "CTR Over Time":
-                    df_html[col] = df_html[col].apply(lambda x: f"{x:.2%}" if pd.notna(x) else "0.00%")
-                elif metric_name == "Average Position Over Time":
-                    df_html[col] = df_html[col].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "0.00")
-                else: # Clicks and Impressions
-                    df_html[col] = df_html[col].apply(lambda x: f"{int(x):,}" if pd.notna(x) else "0")
-        
-        # Get column names (months)
-        month_columns = df_html.columns.tolist()
-        
-        # Build header row
-        header_cells = f'<th style="text-align:left; font-size:1.4em;">{metric_name}</th>' + \
-                       ''.join([f'<th>{month}</th>' for month in month_columns])
-        
-        # Build table body
-        body_rows = ''
-        # Reset index to make 'page' a regular column for easier iteration
-        df_html_reset = df_html.reset_index()
-        for _, row in df_html_reset.iterrows():
-            body_rows += '<tr>'
-            # Make page URL clickable, assuming the index is the page URL
-            body_rows += f'<td style="text-align: left;"><a href="{row["page"]}" target="_blank">{row["page"]}</a></td>'
-            for col in month_columns: # Iterate over original month columns
-                body_rows += f'<td style="text-align: center;">{row[col]}</td>'
-            body_rows += '</tr>'
-            
-        return f"""
-<div class="table-container">
-    <table class="table table-striped table-hover">
-        <thead>
-            <tr>{header_cells}</tr>
-        </thead>
-        <tbody>
-            {body_rows}
-        </tbody>
-    </table>
-</div>
-"""
+    # Format numeric columns for display
+    df_table_data['clicks'] = df_table_data['clicks'].apply(lambda x: f"{int(x):,}")
+    df_table_data['impressions'] = df_table_data['impressions'].apply(lambda x: f"{int(x):,}")
+    df_table_data['ctr'] = df_table_data['ctr'].apply(lambda x: f"{x:.2%}")
+    df_table_data['position'] = df_table_data['position'].apply(lambda x: f"{x:.2f}")
 
-
-    # Generate custom HTML for Clicks table
-    clicks_table_html = format_df_for_html(df_clicks, "Clicks Over Time")
-
-    # Generate custom HTML for Impressions table
-    impressions_table_html = format_df_for_html(df_impressions, "Impressions Over Time")
-    
-    # Generate custom HTML for CTR table
-    ctr_table_html = format_df_for_html(df_ctr, "CTR Over Time")
-
-    # Generate custom HTML for Average Position table
-    position_table_html = format_df_for_html(df_position, "Average Position Over Time")
+    combined_table_html = df_table_data.to_html(classes="table table-striped table-hover", index=False, border=0)
     
     return f"""
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -362,7 +309,7 @@ h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem;
         </div>
     </header>
     <main class="container-fluid py-4 flex-grow-1">
-        <p>This report tracks the performance of a single page over time.</p>
+        <p class="mb-3"><a href="{page_url}" target="_blank" class="h5">{page_url}</a></p>
         <div class="row my-4">
             <div class="col-lg-12">
                 <div class="card">
@@ -386,10 +333,10 @@ h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem;
             </div>
         </div>
 
-        <div class="mb-5">{clicks_table_html}</div>
-        <div class="mb-5">{impressions_table_html}</div>
-        <div class="mb-5">{ctr_table_html}</div>
-        <div class="mb-5">{position_table_html}</div>
+        <h2 class="mt-5">Performance Data</h2>
+        <div class="table-responsive">
+            {combined_table_html}
+        </div>
     </main>
     <footer class="footer mt-auto py-3 bg-light">
         <div class="container text-center">
