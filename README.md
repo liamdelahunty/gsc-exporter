@@ -13,7 +13,7 @@ This repository contains a collection of Python scripts designed to connect to t
 | `queries-pages-analysis.py` | Extends `key-performance-metrics` by adding unique query and page counts to the 16-month view. |
 | `query-position-analysis.py` | Tracks the distribution of query ranking positions over 16 months, with charts to visualize the trends. |
 | `query-segmentation-report.py` | Groups top 50 queries into position buckets (1-3, 4-10, etc.) to identify high-performance keywords at different ranking levels. Includes summary charts for clicks, impressions, CTR, and query count distribution. |
-| `page-performance-over-time.py` | Tracks the performance of top pages over the last 16 months, based on the top 250 pages from the last complete month. |
+| `page-performance-over-time.py` | Tracks the performance of top pages over the last 16 months, based on the top 250 pages from the last complete month. Supports `--use-cache`. |
 | `gsc-pages-queries.py` | Generates a detailed, interactive report to explore the relationship between specific queries and the pages they lead to. |
 | `page-level-report.py` | Generates a page-level report including clicks, impressions, CTR, position, and unique query counts for each URL. |
 | `gsc_pages_exporter.py` | Exports a simple, bulk list of all pages discovered within a given date range. |
@@ -385,9 +385,24 @@ Tracks the performance of the top 250 pages over the last 16 months. The script 
 
 ### Usage
 ```bash
-python page-performance-over-time.py <site_url>
+python page-performance-over-time.py <site_url> [--use-cache]
 ```
 *   `<site_url>`: (Required) The full URL of the site property (e.g., `https://www.example.com`) or a domain property (e.g., `sc-domain:example.com`).
+*   `--use-cache`: (Optional) If a cached CSV file from a previous run exists for the same site, it will be used instead of re-downloading data from GSC.
+
+### Example Workflow
+
+1.  **Initial Download:**
+    ```bash
+    python page-performance-over-time.py https://www.example.com
+    ```
+    This creates a CSV file and a detailed HTML report.
+
+2.  **Generate Report from Cache:** Now, quickly generate the HTML report from the data you just saved without hitting the API again.
+    ```bash
+    python page-performance-over-time.py https://www.example.com --use-cache
+    ```
+    The `--use-cache` flag finds and uses the CSV from the previous step.
 
 ### Output
 Generates a CSV file and an HTML report in `output/<hostname>/`. The report contains two tables, one for Clicks and one for Impressions, showing the monthly trend for each of the top pages.

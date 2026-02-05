@@ -305,111 +305,16 @@ def main():
         description='Generate a report on page performance over time.',
         epilog='Example usage:\n'
                '  python page-performance-over-time.py https://www.example.com\n'
+               '  python page-performance-over-time.py https://www.example.com --use-cache\n\n'
+               'The --use-cache flag will use a previously downloaded CSV if available, '
+               'avoiding re-downloading data from Google Search Console.'
     )
     parser.add_argument('site_url', help='The URL of the site to analyse. Use sc-domain: for a domain property.')
+    parser.add_argument('--use-cache', action='store_true', help='Use a cached CSV file from a previous run if it exists.')
     
     args = parser.parse_args()
     site_url = args.site_url
 
-    service = get_gsc_service()
-    if not service:
-        return
-
-    latest_available_date = get_latest_available_gsc_date(service, site_url)
-    
-    # 1. Determine the date range for the last full calendar month
-    end_of_last_month = latest_available_date.replace(day=1) - timedelta(days=1)
-    start_of_last_month = end_of_last_month.replace(day=1)
-    
-    last_month_start_str = start_of_last_month.strftime('%Y-%m-%d')
-    last_month_end_str = end_of_last_month.strftime('%Y-%m-%d')
-    
-    print(f"Identifying top pages from {last_month_start_str} to {last_month_end_str}...")
-
-    # 2. Fetch data for the last full month to identify top 100 pages
-    df_last_month = get_gsc_data(service, site_url, last_month_start_str, last_month_end_str, ['page', 'query', 'device', 'country', 'date'])
-    
-    if df_last_month.empty:
-        print("No data found for the last full month. Cannot proceed.")
-        return
-
-    # Aggregate by page to get overall clicks for sorting
-    df_last_month_aggregated = df_last_month.groupby('page').agg(
-        clicks=('clicks', 'sum'),
-        impressions=('impressions', 'sum'),
-        ctr=('ctr', 'mean'),  # Average CTR across all queries for that page
-        position=('position', 'mean') # Average position across all queries for that page
-    ).reset_index()
-
-    top_100_pages = df_last_month_aggregated.sort_values(by='clicks', ascending=False).head(100)['page'].tolist()
-    print(f"Identified {len(top_100_pages)} top pages.")
-
-    # 3. Fetch data for the last 16 full months for these top pages
-    all_monthly_data = []
-    
-    PAGE_BATCH_SIZE = 50 # Define batch size for pages
-
-    for i in range(16):
-        # Calculate start and end of each of the past 16 full months
-        month_to_fetch_end = (latest_available_date.replace(day=1) - relativedelta(months=i)) - timedelta(days=1)
-        month_to_fetch_start = month_to_fetch_end.replace(day=1)
-
-        month_start_str = month_to_fetch_start.strftime('%Y-%m-%d')
-        month_end_str = month_to_fetch_end.strftime('%Y-%m-%d')
-        
-        print(f"Fetching data for month: {month_start_str} to {month_end_str}...")
-        
-        monthly_data_for_batches = []
-        for j in range(0, len(top_100_pages), PAGE_BATCH_SIZE):
-            page_batch = top_100_pages[j:j + PAGE_BATCH_SIZE]
-            
-            # Construct a regex for filtering pages in the current batch
-            escaped_pages = [re.escape(page) for page in page_batch]
-            regex_expression = "^(" + "|".join(escaped_pages) + ")$"
-            
-            page_filter = {
-                'dimension': 'page',
-                'operator': 'includingRegex',
-                'expression': regex_expression
-            }
-            
-            df_batch = get_gsc_data(service, site_url, month_start_str, month_end_str, ['page', 'query', 'device', 'country', 'date'], filters=[page_filter])
-            
-            if df_batch is not None and not df_batch.empty:
-                monthly_data_for_batches.append(df_batch)
-        
-        if monthly_data_for_batches:
-            df_month = pd.concat(monthly_data_for_batches, ignore_index=True)
-            df_month['month'] = month_to_fetch_start.strftime('%Y-%m')
-            all_monthly_data.append(df_month)
-
-    if not all_monthly_data:
-        print("No historical data found for the top pages.")
-        return
-
-    df_historical = pd.concat(all_monthly_data, ignore_index=True)
-
-    # 4. Pivot the data to have pages as rows and monthly metrics as columns
-    df_pivot_clicks = df_historical.pivot_table(index='page', columns='month', values='clicks', aggfunc='sum').fillna(0)
-    df_pivot_impressions = df_historical.pivot_table(index='page', columns='month', values='impressions', aggfunc='sum').fillna(0)
-    df_pivot_ctr = df_historical.pivot_table(index='page', columns='month', values='ctr', aggfunc='mean').fillna(0)
-    df_pivot_position = df_historical.pivot_table(index='page', columns='month', values='position', aggfunc='mean').fillna(0)
-
-    # Sort columns by month
-    df_pivot_clicks = df_pivot_clicks.reindex(sorted(df_pivot_clicks.columns, reverse=True), axis=1)
-    df_pivot_impressions = df_pivot_impressions.reindex(sorted(df_pivot_impressions.columns, reverse=True), axis=1)
-    df_pivot_ctr = df_pivot_ctr.reindex(sorted(df_pivot_ctr.columns, reverse=True), axis=1)
-    df_pivot_position = df_pivot_position.reindex(sorted(df_pivot_position.columns, reverse=True), axis=1)
-
-    # Combine into a single dataframe for export
-    df_combined = pd.concat([df_pivot_clicks, df_pivot_impressions, df_pivot_ctr, df_pivot_position], keys=['clicks', 'impressions', 'ctr', 'position'], axis=1)
-
-    # 6. Generate and save HTML report
-    # The overall date range for the report is from the earliest month to the latest month fetched
-    overall_start_date = (latest_available_date.replace(day=1) - relativedelta(months=15)).strftime('%Y-%m-%d')
-    overall_end_date = (latest_available_date.replace(day=1) - timedelta(days=1)).strftime('%Y-%m-%d')
-    
-    # 5. Save the data to CSV
     if site_url.startswith('sc-domain:'):
         host_plain = site_url.replace('sc-domain:', '')
     else:
@@ -420,11 +325,154 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     host_for_filename = host_dir.replace('.', '-')
 
-    file_prefix = f"page-performance-over-time-{host_for_filename}-{overall_start_date}-to-{overall_end_date}"
-    csv_output_path = os.path.join(output_dir, f"{file_prefix}.csv")
-    html_output_path = os.path.join(output_dir, f"{file_prefix}.html")
+    # Define a consistent file prefix for cached data
+    cache_file_prefix = f"page-performance-over-time-{host_for_filename}"
+    csv_cache_path = os.path.join(output_dir, f"{cache_file_prefix}-cached.csv")
 
-    # Save to CSV
+    df_combined = None
+    if args.use_cache and os.path.exists(csv_cache_path):
+        print(f"Found cached data at {csv_cache_path}. Using it to generate report.")
+        # Load the combined dataframe from cache
+        df_combined = pd.read_csv(csv_cache_path, header=[0,1], index_col=0) # Load with multi-index columns and index
+        # Reconstruct the separate dataframes from the combined one
+        df_pivot_clicks = df_combined['clicks']
+        df_pivot_impressions = df_combined['impressions']
+        df_pivot_ctr = df_combined['ctr']
+        df_pivot_position = df_combined['position']
+
+        # Determine the overall_start_date and overall_end_date from the loaded data for report generation
+        # Assuming the columns are dates in YYYY-MM format
+        if not df_pivot_clicks.empty:
+            sorted_months = sorted(df_pivot_clicks.columns)
+            overall_start_date = datetime.strptime(sorted_months[0], '%Y-%m').strftime('%Y-%m-%d')
+            # The end date will be the last day of the last month in the sorted columns
+            last_month_dt = datetime.strptime(sorted_months[-1], '%Y-%m')
+            overall_end_date = (last_month_dt + relativedelta(months=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+        else:
+            overall_start_date = "N/A"
+            overall_end_date = "N/A"
+
+    if df_combined is None: # Only fetch if not loaded from cache
+        service = get_gsc_service()
+        if not service:
+            return
+
+        latest_available_date = get_latest_available_gsc_date(service, site_url)
+        
+        # 1. Determine the date range for the last full calendar month
+        end_of_last_month = latest_available_date.replace(day=1) - timedelta(days=1)
+        start_of_last_month = end_of_last_month.replace(day=1)
+        
+        last_month_start_str = start_of_last_month.strftime('%Y-%m-%d')
+        last_month_end_str = end_of_last_month.strftime('%Y-%m-%d')
+        
+        print(f"Identifying top pages from {last_month_start_str} to {last_month_end_str}...")
+
+        # 2. Fetch data for the last full month to identify top 100 pages
+        df_last_month = get_gsc_data(service, site_url, last_month_start_str, last_month_end_str, ['page', 'query', 'device', 'country', 'date'])
+        
+        if df_last_month.empty:
+            print("No data found for the last full month. Cannot proceed.")
+            return
+
+        # Aggregate by page to get overall clicks for sorting
+        df_last_month_aggregated = df_last_month.groupby('page').agg(
+            clicks=('clicks', 'sum'),
+            impressions=('impressions', 'sum'),
+            ctr=('ctr', 'mean'),  # Average CTR across all queries for that page
+            position=('position', 'mean') # Average position across all queries for that page
+        ).reset_index()
+
+        top_100_pages = df_last_month_aggregated.sort_values(by='clicks', ascending=False).head(100)['page'].tolist()
+        print(f"Identified {len(top_100_pages)} top pages.")
+
+        # 3. Fetch data for the last 16 full months for these top pages
+        all_monthly_data = []
+        
+        PAGE_BATCH_SIZE = 50 # Define batch size for pages
+
+        for i in range(16):
+            # Calculate start and end of each of the past 16 full months
+            month_to_fetch_end = (latest_available_date.replace(day=1) - relativedelta(months=i)) - timedelta(days=1)
+            month_to_fetch_start = month_to_fetch_end.replace(day=1)
+
+            month_start_str = month_to_fetch_start.strftime('%Y-%m-%d')
+            month_end_str = month_to_fetch_end.strftime('%Y-%m-%d')
+            
+            print(f"Fetching data for month: {month_start_str} to {month_end_str}...")
+            
+            monthly_data_for_batches = []
+            for j in range(0, len(top_100_pages), PAGE_BATCH_SIZE):
+                page_batch = top_100_pages[j:j + PAGE_BATCH_SIZE]
+                
+                # Construct a regex for filtering pages in the current batch
+                escaped_pages = [re.escape(page) for page in page_batch]
+                regex_expression = "^(" + "|".join(escaped_pages) + ")$"
+                
+                page_filter = {
+                    'dimension': 'page',
+                    'operator': 'includingRegex',
+                    'expression': regex_expression
+                }
+                
+                df_batch = get_gsc_data(service, site_url, month_start_str, month_end_str, ['page', 'query', 'device', 'country', 'date'], filters=[page_filter])
+                
+                if df_batch is not None and not df_batch.empty:
+                    monthly_data_for_batches.append(df_batch)
+            
+            if monthly_data_for_batches:
+                df_month = pd.concat(monthly_data_for_batches, ignore_index=True)
+                df_month['month'] = month_to_fetch_start.strftime('%Y-%m')
+                all_monthly_data.append(df_month)
+
+        if not all_monthly_data:
+            print("No historical data found for the top pages.")
+            return
+
+        df_historical = pd.concat(all_monthly_data, ignore_index=True)
+
+        # 4. Pivot the data to have pages as rows and monthly metrics as columns
+        df_pivot_clicks = df_historical.pivot_table(index='page', columns='month', values='clicks', aggfunc='sum').fillna(0)
+        df_pivot_impressions = df_historical.pivot_table(index='page', columns='month', values='impressions', aggfunc='sum').fillna(0)
+        df_pivot_ctr = df_historical.pivot_table(index='page', columns='month', values='ctr', aggfunc='mean').fillna(0)
+        df_pivot_position = df_historical.pivot_table(index='page', columns='month', values='position', aggfunc='mean').fillna(0)
+
+        # Sort columns by month
+        df_pivot_clicks = df_pivot_clicks.reindex(sorted(df_pivot_clicks.columns), axis=1) # Sort ascending for correct date range
+        df_pivot_impressions = df_pivot_impressions.reindex(sorted(df_pivot_impressions.columns), axis=1)
+        df_pivot_ctr = df_pivot_ctr.reindex(sorted(df_pivot_ctr.columns), axis=1)
+        df_pivot_position = df_pivot_position.reindex(sorted(df_pivot_position.columns), axis=1)
+        
+        # Combine into a single dataframe for export and caching
+        df_combined = pd.concat([df_pivot_clicks, df_pivot_impressions, df_pivot_ctr, df_pivot_position], keys=['clicks', 'impressions', 'ctr', 'position'], axis=1)
+        
+        # Determine the overall date range for the report from the fetched data
+        if not df_pivot_clicks.empty:
+            sorted_months = sorted(df_pivot_clicks.columns)
+            overall_start_date = datetime.strptime(sorted_months[0], '%Y-%m').strftime('%Y-%m-%d')
+            last_month_dt = datetime.strptime(sorted_months[-1], '%Y-%m')
+            overall_end_date = (last_month_dt + relativedelta(months=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+        else:
+            overall_start_date = "N/A"
+            overall_end_date = "N/A"
+            
+        # Save the combined dataframe to cache
+        try:
+            df_combined.to_csv(csv_cache_path) # Save with multi-index header
+            print(f"Successfully cached data to {csv_cache_path}")
+            print(f"Hint: To recreate this report from the saved data, use the --use-cache flag.")
+        except PermissionError:
+            print(f"\nError: Permission denied when writing to the cache file.")
+            
+    if df_combined is None:
+        print("No data available to generate report (either no data fetched or cache empty).")
+        return
+
+    # 5. Save the data to CSV (original output path, not the cache path)
+    csv_output_path = os.path.join(output_dir, f"{cache_file_prefix}-{overall_start_date}-to-{overall_end_date}.csv")
+    html_output_path = os.path.join(output_dir, f"{cache_file_prefix}-{overall_start_date}-to-{overall_end_date}.html")
+
+    # Ensure the combined dataframe is used for both CSV and HTML generation
     df_combined.to_csv(csv_output_path, index=True)
     print(f"Successfully created CSV report at {csv_output_path}")
 
