@@ -40,6 +40,7 @@ def main():
         "gsc_pages_exporter.py",
         "key-performance-metrics.py",
         "page-level-report.py", 
+        "page-performance-over-time.py",
         "performance-analysis.py",
         "queries-pages-analysis.py",
         "query-position-analysis.py",

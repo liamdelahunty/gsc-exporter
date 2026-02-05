@@ -14,6 +14,7 @@ This repository contains a collection of Python scripts designed to connect to t
 | `query-position-analysis.py` | Tracks the distribution of query ranking positions over 16 months, with charts to visualize the trends. |
 | `query-segmentation-report.py` | Groups top 50 queries into position buckets (1-3, 4-10, etc.) to identify high-performance keywords at different ranking levels. Includes summary charts for clicks, impressions, CTR, and query count distribution. |
 | `page-performance-over-time.py` | Tracks the performance of top pages over the last 16 months, based on the top 250 pages from the last complete month. Supports `--use-cache`. |
+| `page-performance-single-page.py` | Tracks the performance of a single page over the last 16 months. Supports `--use-cache`. |
 | `gsc-pages-queries.py` | Generates a detailed, interactive report to explore the relationship between specific queries and the pages they lead to. |
 | `page-level-report.py` | Generates a page-level report including clicks, impressions, CTR, position, and unique query counts for each URL. |
 | `gsc_pages_exporter.py` | Exports a simple, bulk list of all pages discovered within a given date range. |
@@ -94,6 +95,7 @@ This suite includes several scripts for different types of analysis:
 *   [queries-pages-analysis.py](#queries-pages-analysis)
 *   [query-segmentation-report.py](#query-segmentation-reportpy)
 *   [page-performance-over-time.py](#page-performance-over-timepy)
+*   [page-performance-single-page.py](#page-performance-single-page.py)
 *   [query-position-analysis.py](#query-position-distribution-analysis)
 *   [snapshot-report.py](#snapshot-report.py)
 *   [generate_gsc_wrapped.py](#google-organic-wrapped-report)
@@ -406,6 +408,36 @@ python page-performance-over-time.py <site_url> [--use-cache]
 
 ### Output
 Generates a CSV file and an HTML report in `output/<hostname>/`. The report contains two tables, one for Clicks and one for Impressions, showing the monthly trend for each of the top pages.
+
+---
+
+## page-performance-single-page.py
+
+Tracks the performance of a single specified page over the last 16 months. The script automatically identifies the correct GSC property for the given page URL.
+
+### Usage
+```bash
+python page-performance-single-page.py <page_url> [--use-cache]
+```
+*   `<page_url>`: (Required) The full URL of the page to analyse (e.g., `https://www.example.com/some-page`).
+*   `--use-cache`: (Optional) If a cached CSV file from a previous run exists for the same page, it will be used instead of re-downloading data from GSC.
+
+### Example Workflow
+
+1.  **Initial Download:**
+    ```bash
+    python page-performance-single-page.py https://www.example.com/blog/article-a
+    ```
+    This creates a CSV file and a detailed HTML report for the specific page.
+
+2.  **Generate Report from Cache:** Now, quickly generate the HTML report from the data you just saved without hitting the API again.
+    ```bash
+    python page-performance-single-page.py https://www.example.com/blog/article-a --use-cache
+    ```
+    The `--use-cache` flag finds and uses the CSV from the previous step.
+
+### Output
+Generates a CSV file and an HTML report in `output/<hostname>/`. The report contains tables for Clicks, Impressions, CTR, and Position, showing the monthly trend for the specified page.
 
 ---
 
