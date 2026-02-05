@@ -13,6 +13,7 @@ This repository contains a collection of Python scripts designed to connect to t
 | `queries-pages-analysis.py` | Extends `key-performance-metrics` by adding unique query and page counts to the 16-month view. |
 | `query-position-analysis.py` | Tracks the distribution of query ranking positions over 16 months, with charts to visualize the trends. |
 | `query-segmentation-report.py` | Groups top 50 queries into position buckets (1-3, 4-10, etc.) to identify high-performance keywords at different ranking levels. Includes summary charts for clicks, impressions, CTR, and query count distribution. |
+| `page-performance-over-time.py` | Tracks the performance of top pages over the last 16 months, based on the top 250 pages from the last complete month. |
 | `gsc-pages-queries.py` | Generates a detailed, interactive report to explore the relationship between specific queries and the pages they lead to. |
 | `page-level-report.py` | Generates a page-level report including clicks, impressions, CTR, position, and unique query counts for each URL. |
 | `gsc_pages_exporter.py` | Exports a simple, bulk list of all pages discovered within a given date range. |
@@ -92,6 +93,7 @@ This suite includes several scripts for different types of analysis:
 *   [performance-analysis.py](#performance-analysis)
 *   [queries-pages-analysis.py](#queries-pages-analysis)
 *   [query-segmentation-report.py](#query-segmentation-reportpy)
+*   [page-performance-over-time.py](#page-performance-over-timepy)
 *   [query-position-analysis.py](#query-position-distribution-analysis)
 *   [snapshot-report.py](#snapshot-report.py)
 *   [generate_gsc_wrapped.py](#google-organic-wrapped-report)
@@ -374,6 +376,21 @@ python query-segmentation-report.py <site_url> [date_range_option]
 
 ### Output
 Generates a CSV and an HTML file in `output/<hostname>/`. The report contains four tables, each showing the top 50 queries (by clicks) for one of the position segments, preceded by the new summary charts.
+
+---
+
+## page-performance-over-time.py
+
+Tracks the performance of the top 250 pages over the last 16 months. The script identifies the top pages from the most recently completed calendar month and fetches their performance data for each of the last 16 complete months.
+
+### Usage
+```bash
+python page-performance-over-time.py <site_url>
+```
+*   `<site_url>`: (Required) The full URL of the site property (e.g., `https://www.example.com`) or a domain property (e.g., `sc-domain:example.com`).
+
+### Output
+Generates a CSV file and an HTML report in `output/<hostname>/`. The report contains two tables, one for Clicks and one for Impressions, showing the monthly trend for each of the top pages.
 
 ---
 
