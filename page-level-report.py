@@ -418,7 +418,7 @@ def main():
     filename_suffix = "-no-query" if args.strip_query_strings else ""
     # Generate a more descriptive filename suffix if search_type is not 'web'
     search_type_suffix = f"-{args.search_type}" if args.search_type != 'web' else ""
-    file_prefix = f"page-level-report-{host_for_filename}{search_type_suffix}-{period_label}-{start_date}-to-{end_date}{filename_suffix}"
+    file_prefix = f"page-level-report-{host_for_filename}{search_type_suffix}-{start_date}-to-{end_date}{filename_suffix}"
     csv_output_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_output_path = os.path.join(output_dir, f"{file_prefix}.html")
 
@@ -530,7 +530,7 @@ def main():
         # Generate and save HTML report
         html_output = create_html_report(
             df=html_df,
-            report_title=f"Page-Level Report for {host_dir}",
+            report_title=f"{args.search_type.capitalize()} Page-Level Report for {host_dir}",
             period_str=f"{start_date} to {end_date}",
             summary_data=summary_data,
             limit=args.limit,
