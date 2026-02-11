@@ -15,6 +15,7 @@ This repository contains a collection of Python scripts designed to connect to t
 | `query-segmentation-report.py` | Groups top 50 queries into position buckets (1-3, 4-10, etc.) to identify high-performance keywords at different ranking levels. Includes summary charts for clicks, impressions, CTR, and query count distribution. |
 | `page-performance-over-time.py` | Tracks the performance of top pages over the last 16 months, based on the top 250 pages from the last complete month. Supports `--use-cache`. |
 | `page-performance-single-page.py` | Tracks the performance of a single page over the last 16 months. Supports `--use-cache`. |
+| `url-inspection-report.py` | Fetches detailed URL inspection data from Google Search Console for a single URL or a list of URLs. |
 | `gsc-pages-queries.py` | Generates a detailed, interactive report to explore the relationship between specific queries and the pages they lead to. |
 | `page-level-report.py` | Generates a page-level report including clicks, impressions, CTR, position, and unique query counts for each URL. |
 | `gsc_pages_exporter.py` | Exports a simple, bulk list of all pages discovered within a given date range. |
@@ -438,6 +439,31 @@ python page-performance-single-page.py <page_url> [--use-cache]
 
 ### Output
 Generates a CSV file and an HTML report in `output/<hostname>/`. The report contains tables for Clicks, Impressions, CTR, and Position, showing the monthly trend for the specified page.
+
+---
+
+## url-inspection-report.py
+
+Generates a detailed report by fetching data from the Google Search Console URL Inspection API for a single URL or a list of URLs.
+
+### Usage
+
+**To inspect a single URL:**
+```bash
+python url-inspection-report.py --url https://www.example.com/blog/article-a.html
+```
+
+**To inspect a list of URLs from a file:**
+```bash
+python url-inspection-report.py --sites-file path/to/your/urls.txt
+```
+The `--sites-file` should contain one URL per line.
+
+### Output
+
+*   **Single URL:** Generates an HTML report in `output/<hostname>/` named `inspection-<path-filename>-YYYY-MM-DD.html`. This report provides all available inspection data from the API in a detailed table.
+*   **List of URLs:** Generates a single HTML summary report in `output/account/` named `inspection-<site-list-filename>-YYYY-MM-DD.html`. This report includes a table summarizing key inspection data for each URL in the list.
+    Error handling for "URL not found in property" is integrated into the reports.
 
 ---
 
