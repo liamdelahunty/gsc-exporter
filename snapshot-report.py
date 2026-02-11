@@ -272,7 +272,7 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     host_for_filename = host_dir.replace('.', '-')
 
-    base_file_prefix = f"snapshot-{host_for_filename}-{period_label}-{start_date}-to-{end_date}"
+    base_file_prefix = f"snapshot-{host_for_filename}-{start_date}-to-{end_date}"
     
     pages_csv_path = os.path.join(output_dir, f"{base_file_prefix}-pages.csv")
     devices_csv_path = os.path.join(output_dir, f"{base_file_prefix}-devices.csv")

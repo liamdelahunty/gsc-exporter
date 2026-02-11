@@ -406,7 +406,7 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     host_for_filename = host_dir.replace('.', '-')
 
-    file_prefix = f"query-segmentation-report-{host_for_filename}-{period_label}-{start_date}-to-{end_date}"
+    file_prefix = f"query-segmentation-report-{host_for_filename}-{start_date}-to-{end_date}"
     csv_output_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_output_path = os.path.join(output_dir, f"{file_prefix}.html")
 
