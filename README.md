@@ -7,6 +7,7 @@ This repository contains a collection of Python scripts designed to connect to t
 | Script | Description |
 | --- | --- |
 | `key-performance-metrics.py` | Fetches a high-level, 16-month overview of Clicks, Impressions, CTR, and Position. Ideal for a quick health check. |
+| `discover-key-performance-metrics.py` | Fetches a high-level, 16-month overview of Clicks, Impressions, and CTR for Discover data. Ideal for a quick health check of your Discover performance. |
 | `monthly-summary-report.py` | Provides a detailed summary for the last complete month, including unique query and page counts. |
 | `snapshot-report.py` | Gives a detailed snapshot for a single period, breaking data down by device and country. |
 | `performance-analysis.py` | Compares two time periods (e.g., month-over-month) to find performance changes, rising stars, and content decay. |
@@ -91,6 +92,7 @@ This suite includes several scripts for different types of analysis:
 *   [gsc-pages-queries.py](#gsc-pages-queriespy)
 *   [page-level-report.py](#page-level-reportpy)
 *   [key-performance-metrics.py](#key-performance-metricspy)
+*   [discover-key-performance-metrics.py](#discover-key-performance-metricspy)
 *   [monthly-summary-report.py](#monthly-summary-report)
 *   [performance-analysis.py](#performance-analysis)
 *   [queries-pages-analysis.py](#queries-pages-analysis)
@@ -316,6 +318,30 @@ python key-performance-metrics.py
 
 *   **Single Site**: Generates a CSV and an HTML file in `output/<hostname>/` showing monthly performance over the last 16 months. The HTML report includes numbers formatted for readability (e.g., 1,234).
 *   **All Sites**: Generates `output/account/` with a CSV and a comprehensive HTML report. The report includes an interactive index and intelligently sorts sites by root domain and subdomain type for easy navigation.
+
+---
+
+## discover-key-performance-metrics.py
+
+Provides a monthly overview of key performance metrics (clicks, impressions, CTR) specifically for Google Discover data. This script can run for a single specified site or for all properties in your GSC account.
+
+### Usage
+
+**For a single site:**
+```bash
+python discover-key-performance-metrics.py <site_url>
+```
+*   `<site_url>`: The full URL of the site property or a domain property.
+
+**For all sites in your account:**
+```bash
+python discover-key-performance-metrics.py
+```
+
+### Output
+
+*   **Single Site**: Generates a CSV and an HTML file in `output/<hostname>/` showing monthly Discover performance over the last 16 months. The HTML report includes numbers formatted for readability (e.g., 1,234) and a chart visualizing clicks vs. impressions over time.
+*   **All Sites**: Generates `output/account/` with a CSV and a comprehensive HTML report for all sites. The report includes an interactive index and intelligently sorts sites by root domain and subdomain type for easy navigation. Note that Discover data does not include 'position'.
 
 ---
 
