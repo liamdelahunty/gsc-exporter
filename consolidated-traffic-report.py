@@ -201,6 +201,82 @@ def create_single_site_html_report(df, report_title, full_period_str):
     # Prepare data for the chart (use the original unformatted dataframe for numerical values)
     chart_data = df.sort_values(by='month').to_json(orient='records')
 
+    # Calculate overall totals for the new tables
+    total_discover_clicks = df['discover_clicks'].sum()
+    total_web_clicks = df['web_clicks'].sum()
+    total_clicks_overall = total_discover_clicks + total_web_clicks
+
+    total_discover_impressions = df['discover_impressions'].sum()
+    total_web_impressions = df['web_impressions'].sum()
+    total_impressions_overall = total_discover_impressions + total_web_impressions
+
+    # Calculate percentages
+    discover_clicks_percent = (total_discover_clicks / total_clicks_overall) if total_clicks_overall > 0 else 0
+    web_clicks_percent = (total_web_clicks / total_clicks_overall) if total_clicks_overall > 0 else 0
+
+    discover_impressions_percent = (total_discover_impressions / total_impressions_overall) if total_impressions_overall > 0 else 0
+    web_impressions_percent = (total_web_impressions / total_impressions_overall) if total_impressions_overall > 0 else 0
+
+    # HTML for Discover Clicks vs Web Clicks table
+    clicks_summary_table = f"""
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Metric</th>
+                    <th class="text-end">Discover Clicks</th>
+                    <th class="text-end">Web Clicks</th>
+                    <th class="text-end">Total Clicks</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Total</td>
+                    <td class="text-end">{total_discover_clicks:,.0f}</td>
+                    <td class="text-end">{total_web_clicks:,.0f}</td>
+                    <td class="text-end">{total_clicks_overall:,.0f}</td>
+                </tr>
+                <tr>
+                    <td>Percentage</td>
+                    <td class="text-end">{discover_clicks_percent:.2%}</td>
+                    <td class="text-end">{web_clicks_percent:.2%}</td>
+                    <td class="text-end">{(discover_clicks_percent + web_clicks_percent):.2%}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    """
+
+    # HTML for Discover Impressions vs Web Impressions table
+    impressions_summary_table = f"""
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Metric</th>
+                    <th class="text-end">Discover Impressions</th>
+                    <th class="text-end">Web Impressions</th>
+                    <th class="text-end">Total Impressions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Total</td>
+                    <td class="text-end">{total_discover_impressions:,.0f}</td>
+                    <td class="text-end">{total_web_impressions:,.0f}</td>
+                    <td class="text-end">{total_impressions_overall:,.0f}</td>
+                </tr>
+                <tr>
+                    <td>Percentage</td>
+                    <td class="text-end">{discover_impressions_percent:.2%}</td>
+                    <td class="text-end">{web_impressions_percent:.2%}</td>
+                    <td class="text-end">{(discover_impressions_percent + web_impressions_percent):.2%}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    """
+
     return f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -238,6 +314,27 @@ def create_single_site_html_report(df, report_title, full_period_str):
             <div class="card-header"><h3>Discover Impressions vs. Web Impressions</h3></div>
             <div class="card-body"><canvas id="impressionsChart"></canvas></div>
         </div>
+        
+        <h2 class="mt-5">Summary Tables</h2>
+        <div class="row">
+            <div class="col-xl-6">
+                <div class="card mb-4">
+                    <div class="card-header"><h3>Discover Clicks vs. Web Clicks</h3></div>
+                    <div class="card-body">
+                        {clicks_summary_table}
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-6">
+                <div class="card mb-4">
+                    <div class="card-header"><h3>Discover Impressions vs. Web Impressions</h3></div>
+                    <div class="card-body">
+                        {impressions_summary_table}
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <h2>Data Table</h2>
         <div class="table-responsive">{report_body}</div>
     </main>
