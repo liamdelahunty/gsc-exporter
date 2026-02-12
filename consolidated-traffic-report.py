@@ -227,6 +227,14 @@ def create_single_site_html_report(df, report_title, full_period_str):
             <div class="card-header"><h3>Total Clicks vs. Total Impressions</h3></div>
             <div class="card-body"><canvas id="performanceChart"></canvas></div>
         </div>
+        <div class="card my-4">
+            <div class="card-header"><h3>Discover Clicks vs. Web Clicks</h3></div>
+            <div class="card-body"><canvas id="clicksChart"></canvas></div>
+        </div>
+        <div class="card my-4">
+            <div class="card-header"><h3>Discover Impressions vs. Web Impressions</h3></div>
+            <div class="card-body"><canvas id="impressionsChart"></canvas></div>
+        </div>
         <h2>Data Table</h2>
         <div class="table-responsive">{report_body}</div>
     </main>
@@ -291,6 +299,90 @@ def create_single_site_html_report(df, report_title, full_period_str):
                         }},
                         grid: {{
                             drawOnChartArea: false, // only draw grid for the first Y axis
+                        }}
+                    }}
+                }}
+            }}
+        }});
+
+        new Chart(document.getElementById('clicksChart'), {{
+            type: 'line',
+            data: {{
+                labels: labels,
+                datasets: [
+                    {{
+                        label: 'Discover Clicks',
+                        data: data.map(row => row.discover_clicks),
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        fill: false,
+                        tension: 0.1
+                    }},
+                    {{
+                        label: 'Web Clicks',
+                        data: data.map(row => row.web_clicks),
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                        fill: false,
+                        tension: 0.1
+                    }}
+                ]
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {{
+                    mode: 'index',
+                    intersect: false,
+                }},
+                scales: {{
+                    y: {{
+                        beginAtZero: true,
+                        title: {{
+                            display: true,
+                            text: 'Clicks'
+                        }}
+                    }}
+                }}
+            }}
+        }});
+
+        new Chart(document.getElementById('impressionsChart'), {{
+            type: 'line',
+            data: {{
+                labels: labels,
+                datasets: [
+                    {{
+                        label: 'Discover Impressions',
+                        data: data.map(row => row.discover_impressions),
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                        fill: false,
+                        tension: 0.1
+                    }},
+                    {{
+                        label: 'Web Impressions',
+                        data: data.map(row => row.web_impressions),
+                        borderColor: 'rgba(201, 203, 207, 1)',
+                        backgroundColor: 'rgba(201, 203, 207, 0.2)',
+                        fill: false,
+                        tension: 0.1
+                    }}
+                ]
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {{
+                    mode: 'index',
+                    intersect: false,
+                }},
+                scales: {{
+                    y: {{
+                        beginAtZero: true,
+                        title: {{
+                            display: true,
+                            text: 'Impressions'
                         }}
                     }}
                 }}
