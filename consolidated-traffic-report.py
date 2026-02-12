@@ -182,7 +182,10 @@ def create_multi_site_html_report(df, sorted_sites):
 def create_single_site_html_report(df, report_title, full_period_str):
     """Generates a simplified HTML report for a single site, including a chart."""
     # Prepare data for the table by formatting numbers
-    df_table = df.copy() 
+    df_table = df.copy()
+    # Remove site_url column as it's redundant in a single-site report table
+    if 'site_url' in df_table.columns:
+        df_table = df_table.drop(columns=['site_url'])
     df_table['discover_clicks'] = df_table['discover_clicks'].apply(lambda x: f"{x:,.0f}")
     df_table['discover_impressions'] = df_table['discover_impressions'].apply(lambda x: f"{x:,.0f}")
     df_table['discover_ctr'] = df_table['discover_ctr'].apply(lambda x: f"{x:.2%}")
