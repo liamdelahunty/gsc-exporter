@@ -286,7 +286,7 @@ def create_html_report(df, report_title, period_str, summary_data, limit=None, t
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {{ padding-top: 56px; }} /* Offset for fixed header */
-        h1 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; }}
+        h1 {{ padding-bottom: .5rem; }}
         h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem; }} /* Added h2 style */
         .table-responsive {{ margin-top: 20px; }} /* Added from url-inspection-report.py */
         footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }} /* Retained from page-level-report.py */

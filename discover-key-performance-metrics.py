@@ -147,7 +147,7 @@ def create_multi_site_html_report(df, sorted_sites):
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {{ padding-top: 56px; }} /* Offset for fixed header */
-        h1 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; }}
+        h1 {{ padding-bottom: .5rem; }}
         h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem; }}
         .table-responsive {{ max-height: 800px; }}
         footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
@@ -198,7 +198,7 @@ def create_single_site_html_report(df, report_title, full_period_str):
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {{ padding-top: 56px; }} /* Offset for fixed header */
-        h1 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; }}
+        h1 {{ padding-bottom: .5rem; }}
         h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem; }}
         .table thead th {{ background-color: #434343; color: #ffffff; text-align: left; }}
         footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}

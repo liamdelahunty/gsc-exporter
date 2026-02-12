@@ -240,7 +240,7 @@ def create_single_url_html_report(inspect_url, inspection_data, output_path):
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {{ padding-top: 56px; }}
-        h1 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; }}
+        h1 {{ padding-bottom: .5rem; }}
         .table-responsive {{ margin-top: 20px; }}
     </style>
 </head>
@@ -364,7 +364,7 @@ def create_list_url_html_report(site_list_name, all_inspection_results, output_p
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {{ padding-top: 56px; }}
-        h1 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; }}
+        h1 {{ padding-bottom: .5rem; }}
         .table-responsive {{ margin-top: 20px; }}
     </style>
 </head>
