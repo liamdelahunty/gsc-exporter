@@ -229,7 +229,8 @@ def create_html_report(df, report_title, period_str, summary_data, limit=None, t
         bg_class = "bg-light" if i % 2 == 0 else ""
         row_cols_html = []
         
-        row_cols_html.append(f'<div class="col-6" style="word-wrap: break-word; overflow-wrap: break-word;">{row["page"]}</div>')
+        page_url = row["page"]
+        row_cols_html.append(f'<div class="col-6" style="word-wrap: break-word; overflow-wrap: break-word;"><a href="{page_url}" target="_blank">{page_url}</a></div>')
 
         if search_type == 'discover':
             row_cols_html.append(f'<div class="col-2 text-end">{row["clicks"]}</div>')
