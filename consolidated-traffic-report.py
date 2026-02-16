@@ -199,7 +199,9 @@ def create_single_site_html_report(df, report_title, full_period_str):
     df_table['total_impressions'] = df_table['total_impressions'].apply(lambda x: f"{x:,.0f}")
     df_table['total_ctr'] = df_table['total_ctr'].apply(lambda x: f"{x:.2%}")
 
-    report_body = df_table.sort_values(by='month', ascending=True).to_html(classes="table table-striped table-hover", index=False, border=0)
+    column_order = ['month', 'web_clicks', 'web_impressions', 'web_ctr', 'discover_clicks', 'discover_impressions', 'discover_ctr', 'news_clicks', 'news_impressions', 'news_ctr', 'total_clicks', 'total_impressions', 'total_ctr']
+    df_table_reordered = df_table[column_order]
+    report_body = df_table_reordered.sort_values(by='month', ascending=True).to_html(classes="table table-striped table-hover", index=False, border=0)
 
     # Prepare data for the chart (use the original unformatted dataframe for numerical values)
     chart_data = df.sort_values(by='month').to_json(orient='records')
@@ -648,6 +650,8 @@ def generate_site_sections(df, sorted_sites):
         site_df['total_ctr'] = site_df['total_ctr'].apply(lambda x: f"{x:.2%}")
 
         if not site_df.empty:
+            column_order = ['month', 'web_clicks', 'web_impressions', 'web_ctr', 'discover_clicks', 'discover_impressions', 'discover_ctr', 'news_clicks', 'news_impressions', 'news_ctr', 'total_clicks', 'total_impressions', 'total_ctr']
+            site_df = site_df[column_order]
             sections_html += '<div class="table-responsive">'
             sections_html += site_df.to_html(classes="table table-striped table-hover", index=False, border=0)
             sections_html += '</div><p><a href="#top">Back to Top</a></p>'
