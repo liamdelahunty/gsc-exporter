@@ -110,38 +110,31 @@ def get_latest_available_gsc_date(service, site_url, max_retries=5):
 def get_gsc_data(service, site_url, start_date, end_date, dimensions, search_type='web'):
     """Fetches performance data from GSC for a given date range and dimensions."""
     all_data = []
-    start_row = 0
     row_limit = 25000 
     
     print(f"Fetching {search_type} data for dimensions: {', '.join(dimensions)}...")
 
-    while True:
-        try:
-            request = {
-                'startDate': start_date,
-                'endDate': end_date,
-                'dimensions': dimensions,
-                'searchType': search_type,
-                'rowLimit': row_limit,
-                'startRow': start_row
-            }
-            response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
+    try:
+        request = {
+            'startDate': start_date,
+            'endDate': end_date,
+            'dimensions': dimensions,
+            'searchType': search_type,
+            'rowLimit': row_limit,
+            'startRow': 0
+        }
+        response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
 
-            if 'rows' in response:
-                rows = response['rows']
-                all_data.extend(rows)
-                print(f"Retrieved {len(rows)} rows... (Total: {len(all_data)})")
-                if len(rows) < row_limit:
-                    break 
-                start_row += row_limit
-            else:
-                break
-        except HttpError as e:
-            print(f"An HTTP error occurred: {e}")
-            return None
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
-            return None
+        if 'rows' in response:
+            rows = response['rows']
+            all_data.extend(rows)
+            print(f"Retrieved {len(rows)} rows... (Total: {len(all_data)})")
+    except HttpError as e:
+        print(f"An HTTP error occurred: {e}")
+        return None
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return None
             
     if not all_data:
         return pd.DataFrame()
@@ -464,7 +457,7 @@ def main():
         if args.strip_query_strings:
             print("Stripping query strings from page URLs...")
             df_pages['page'] = df_pages['page'].str.split('?').str[0]
-            if not df_page_query.empty:
+            if df_page_query is not None and not df_page_query.empty:
                 df_page_query['page'] = df_page_query['page'].str.split('?').str[0]
             
             df_pages = df_pages.groupby('page').agg(
@@ -477,12 +470,13 @@ def main():
             df_pages.drop(columns=['impression_weighted_position'], inplace=True)
 
         # Calculate query counts from the page-query data
-        if not df_page_query.empty:
+        if df_page_query is not None and not df_page_query.empty:
             query_counts = df_page_query.groupby('page')['query'].nunique().reset_index()
             query_counts.rename(columns={'query': 'query_count'}, inplace=True)
             df_pages = pd.merge(df_pages, query_counts, on='page', how='left')
             df_pages['query_count'] = df_pages['query_count'].fillna(0)
         else:
+            print("Warning: Could not retrieve page-query data due to a timeout or other error. 'Query #' column will be 0.")
             df_pages['query_count'] = 0
 
         # Finalize the report dataframe
@@ -509,7 +503,7 @@ def main():
         else:
             total_unique_queries_str = "N/A (from cache)"
     else:
-        total_unique_queries = df_page_query['query'].nunique() if not df_page_query.empty else 0
+        total_unique_queries = df_page_query['query'].nunique() if df_page_query is not None and not df_page_query.empty else 0
         total_unique_queries_str = f"{total_unique_queries:,}"
 
     summary_data = {

@@ -21,6 +21,7 @@ from dateutil.relativedelta import relativedelta
 from urllib.parse import urlparse
 import argparse
 import re
+import time
 
 # --- Configuration ---
 SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
@@ -120,6 +121,10 @@ def get_gsc_data(service, site_url, start_date, end_date, dimensions, filters=No
     if filters:
         request_body['dimensionFilterGroups'] = [{'filters': filters}]
 
+    # Initialize retry mechanism variables
+    retries = 0
+    max_retries = 5
+    
     while True:
         try:
             request_body['startRow'] = start_row
@@ -134,9 +139,18 @@ def get_gsc_data(service, site_url, start_date, end_date, dimensions, filters=No
                 start_row += row_limit
             else:
                 break
+            # Reset retries on successful response
+            retries = 0
         except HttpError as e:
-            print(f"An HTTP error occurred: {e}")
-            return None
+            if e.resp.status == 500 and retries < max_retries:
+                retries += 1
+                sleep_time = 2 ** retries  # Exponential backoff
+                print(f"An HTTP 500 error occurred. Retrying in {sleep_time} seconds (Attempt {retries}/{max_retries})...")
+                time.sleep(sleep_time)
+                continue  # Continue the while loop to retry the request
+            else:
+                print(f"An HTTP error occurred: {e}")
+                return None
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
             return None
@@ -373,7 +387,8 @@ def main():
         print(f"Identifying top pages from {last_month_start_str} to {last_month_end_str}...")
 
         # 2. Fetch data for the last full month to identify top 100 pages
-        df_last_month = get_gsc_data(service, site_url, last_month_start_str, last_month_end_str, ['page', 'query', 'device', 'country', 'date'])
+        # Fetch data for the last full month to identify top 100 pages, only requesting 'page' dimension for efficiency.
+        df_last_month = get_gsc_data(service, site_url, last_month_start_str, last_month_end_str, ['page'])
         
         if df_last_month.empty:
             print("No data found for the last full month. Cannot proceed.")
@@ -419,7 +434,7 @@ def main():
                     'expression': regex_expression
                 }
                 
-                df_batch = get_gsc_data(service, site_url, month_start_str, month_end_str, ['page', 'query', 'device', 'country', 'date'], filters=[page_filter])
+                df_batch = get_gsc_data(service, site_url, month_start_str, month_end_str, ['page'], filters=[page_filter])
                 
                 if df_batch is not None and not df_batch.empty:
                     monthly_data_for_batches.append(df_batch)
