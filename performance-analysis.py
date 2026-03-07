@@ -448,13 +448,15 @@ def main():
             }, inplace=True)
 
             if not df_previous.empty:
-                df_merged = pd.merge(df_current, df_previous, on='page', how='outer')
+                df_merged = pd.merge(df_current, df_previous, on=['page', 'query'], how='outer')
             else:
                 df_merged = df_current
                 for col in ['clicks_previous', 'impressions_previous', 'ctr_previous', 'position_previous']:
                     df_merged[col] = 0
 
-            df_merged.fillna(0, inplace=True)
+            # Fill NaN values with 0 for numeric columns to avoid TypeError on string columns
+            numeric_cols = df_merged.select_dtypes(include=['number']).columns
+            df_merged[numeric_cols] = df_merged[numeric_cols].fillna(0)
             
             # --- Save Merged CSV ---
             try:
