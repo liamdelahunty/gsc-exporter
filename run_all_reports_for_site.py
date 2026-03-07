@@ -58,7 +58,7 @@ def main():
         print(f"\n{'='*10} Executing {script} for {site_url} {'='*10}")
         
         # Construct the command for the subprocess
-        command = ['py', script, site_url] + other_args
+        command = ['python', script, site_url] + other_args
         
         print(f"Command: {' '.join(command)}")
         
