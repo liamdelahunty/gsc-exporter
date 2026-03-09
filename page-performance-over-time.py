@@ -406,6 +406,7 @@ def main():
         print(f"Identified {len(top_100_pages)} top pages.")
 
         # 3. Fetch data for the last 16 full months for these top pages
+        all_monthly_data = []
         
         # Define batch size for pages. A smaller batch size is used to avoid
         # creating a regex string that is too long for the GSC API, which can
