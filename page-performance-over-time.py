@@ -406,10 +406,12 @@ def main():
         print(f"Identified {len(top_100_pages)} top pages.")
 
         # 3. Fetch data for the last 16 full months for these top pages
-        all_monthly_data = []
         
-        PAGE_BATCH_SIZE = 50 # Define batch size for pages
-
+        # Define batch size for pages. A smaller batch size is used to avoid
+        # creating a regex string that is too long for the GSC API, which can
+        # result in 500 errors.
+        PAGE_BATCH_SIZE = 20
+        
         for i in range(16):
             # Calculate start and end of each of the past 16 full months
             month_to_fetch_end = (latest_available_date.replace(day=1) - relativedelta(months=i)) - timedelta(days=1)
