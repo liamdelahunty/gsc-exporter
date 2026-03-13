@@ -261,10 +261,9 @@ def main():
     """Main function to run the script."""
     parser = argparse.ArgumentParser(
         description='Generates a report highlighting keyword cannibalisation issues.',
-        epilog='Example Usage:
-'
-               '  python keyword-cannibalisation-report.py https://www.example.com --last-28-days
-',
+        epilog="""Example Usage:
+  python keyword-cannibalisation-report.py https://www.example.com --last-28-days
+""",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument('site_url', help='The URL of the site to analyse.')
@@ -350,8 +349,7 @@ def main():
     df[['query', 'page']] = pd.DataFrame(df['keys'].tolist(), index=df.index)
     df.drop(columns=['keys'], inplace=True)
     
-    print(f"
-Successfully downloaded {len(df)} rows of data.")
+    print(f"\nSuccessfully downloaded {len(df)} rows of data.")
     print("Processing for cannibalisation issues...")
 
     # --- Cannibalisation Logic ---
@@ -401,8 +399,7 @@ Successfully downloaded {len(df)} rows of data.")
     try:
         with open(html_output_path, 'w', encoding='utf-8') as f:
             f.write(html_report)
-        print(f"
-Successfully created HTML report at: {html_output_path}")
+        print(f"\nSuccessfully created HTML report at: {html_output_path}")
     except IOError as e:
         print(f"Error writing HTML to file: {e}")
 
