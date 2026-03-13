@@ -106,6 +106,21 @@ def get_latest_available_gsc_date(service, site_url, max_retries=5):
     print(f"Could not determine latest available GSC date within {max_retries} days. Using today's date as a fallback.")
     return current_date
 
+def is_data_available(service, site_url, date_to_check):
+    """Checks if data is available for a specific date."""
+    date_str = date_to_check.strftime('%Y-%m-%d')
+    try:
+        request = {
+            'startDate': date_str,
+            'endDate': date_str,
+            'dimensions': ['date'],
+            'rowLimit': 1
+        }
+        response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
+        return 'rows' in response and response['rows']
+    except HttpError:
+        return False
+
 def get_performance_data(service, site_url, start_date, end_date):
     """Fetches pages and queries data from GSC for a given date range."""
     all_data = []
@@ -172,6 +187,7 @@ def generate_accordion_html(report_df, top_100_cannibalised):
 
         # Format the numbers in the sub-table for better readability
         sub_group_html_df = pages_for_query_df.copy()
+        sub_group_html_df['page'] = sub_group_html_df['page'].apply(lambda x: f'<a href="{x}" target="_blank">{x}</a>')
         sub_group_html_df['ctr'] = sub_group_html_df['ctr'].apply(lambda x: f"{x:.2%}")
         sub_group_html_df['position'] = sub_group_html_df['position'].apply(lambda x: f"{x:.2f}")
         sub_group_html_df['clicks'] = sub_group_html_df['clicks'].apply(lambda x: f"{x:,.0f}")
@@ -180,7 +196,8 @@ def generate_accordion_html(report_df, top_100_cannibalised):
         sub_table_html = sub_group_html_df[['page', 'clicks', 'impressions', 'ctr', 'position']].to_html(
             classes="table table-sm table-striped",
             index=False,
-            border=0
+            border=0,
+            escape=False
         )
 
         accordion_item = f"""
@@ -267,7 +284,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='Generates a report highlighting keyword cannibalisation issues.',
         epilog="""Example Usage:
-  python keyword-cannibalisation-report.py https://www.example.com --last-28-days
+  python keyword-cannibalisation-report.py https://www.example.com --last-month
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -300,7 +317,7 @@ def main():
         args.last_month, args.last_quarter, args.last_3_months,
         args.last_6_months, args.last_12_months, args.last_16_months
     ]):
-        args.last_28_days = True
+        args.last_month = True
 
     if args.start_date and args.end_date:
         start_date = args.start_date
@@ -315,10 +332,18 @@ def main():
         start_date = (latest_available_date - timedelta(days=27)).strftime('%Y-%m-%d')
         end_date = latest_available_date.strftime('%Y-%m-%d')
     elif args.last_month:
-        first_day_of_current_month = latest_available_date.replace(day=1)
-        last_day_of_previous_month = first_day_of_current_month - timedelta(days=1)
-        start_date = last_day_of_previous_month.replace(day=1).strftime('%Y-%m-%d')
-        end_date = last_day_of_previous_month.strftime('%Y-%m-%d')
+        today = date.today()
+        first_day_of_this_month = today.replace(day=1)
+        last_day_of_previous_month = first_day_of_this_month - timedelta(days=1)
+        
+        if is_data_available(service, args.site_url, last_day_of_previous_month):
+            start_date = last_day_of_previous_month.replace(day=1).strftime('%Y-%m-%d')
+            end_date = last_day_of_previous_month.strftime('%Y-%m-%d')
+        else:
+            first_day_of_previous_month = last_day_of_previous_month.replace(day=1)
+            last_day_of_two_months_ago = first_day_of_previous_month - timedelta(days=1)
+            start_date = last_day_of_two_months_ago.replace(day=1).strftime('%Y-%m-%d')
+            end_date = last_day_of_two_months_ago.strftime('%Y-%m-%d')
     elif args.last_quarter:
         current_quarter = (latest_available_date.month - 1) // 3
         end_date_dt = datetime(latest_available_date.year, 3 * current_quarter + 1, 1).date() - timedelta(days=1)
