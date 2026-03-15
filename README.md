@@ -20,6 +20,7 @@ This repository contains a collection of Python scripts designed to connect to t
 | `gsc-pages-queries.py` | Generates a detailed, interactive report to explore the relationship between specific queries and the pages they lead to. |
 | `page-level-report.py` | Generates a page-level report including clicks, impressions, CTR, position, and unique query counts for each URL. |
 | `gsc_pages_exporter.py` | Exports a simple, bulk list of all pages discovered within a given date range. |
+| `keyword-cannibalisation-report.py` | Identifies keywords where multiple pages are ranking, highlighting potential SEO cannibalisation issues. |
 | `generate_gsc_wrapped.py` | Creates a fun, "Spotify Wrapped"-style annual summary of your site's GSC performance. |
 | `run_for_sites.py` | A utility script to run any of the above analysis scripts for a custom list of sites. |
 | `run_all_reports_for_site.py` | A composite script to run all primary, monthly useful analysis reports for a single domain. |
@@ -32,7 +33,16 @@ All date-related flags like `--last-7-days`, `--last-28-days`, and `--last-month
 
 ## Typical Workflow
 
-Here is a recommended workflow for analyzing your GSC data, moving from a high-level overview to a detailed investigation.
+You can run these scripts individually as described below, or use the interactive runner for a guided experience.
+
+### Interactive Runner
+For a more user-friendly experience, you can use the interactive runner which guides you through selecting a property and a report.
+```bash
+python interactive-runner.py
+```
+
+### Manual Workflow
+Here is a recommended manual workflow for analyzing your GSC data, moving from a high-level overview to a detailed investigation.
 
 ### 1. Get a High-Level Overview
 Start with a broad look at all your properties to spot trends or anomalies.
@@ -90,6 +100,7 @@ This suite includes several scripts for different types of analysis:
 
 *   [gsc_pages_exporter.py](#gsc_pages_exporter.py)
 *   [gsc-pages-queries.py](#gsc-pages-queriespy)
+*   [keyword-cannibalisation-report.py](#keyword-cannibalisation-reportpy)
 *   [page-level-report.py](#page-level-reportpy)
 *   [key-performance-metrics.py](#key-performance-metricspy)
 *   [discover-key-performance-metrics.py](#discover-key-performance-metricspy)
@@ -121,6 +132,26 @@ python gsc_pages_exporter.py <site_url> [date_range_option]
 ### Output
 
 Generates a CSV and an HTML file containing a list of all URLs found in the specified period, saved to the `output/<hostname>/` directory.
+
+---
+
+## keyword-cannibalisation-report.py
+
+Identifies keywords where multiple pages are ranking for a given site. This script highlights potential SEO cannibalisation issues, helping you identify where content might be competing with itself in search results.
+
+### Usage
+
+```bash
+python keyword-cannibalisation-report.py <site_url> [date_range_option]
+```
+
+*   `<site_url>`: (Required) The full URL of the site property (e.g., `https://www.example.com`) or a domain property (e.g., `sc-domain:example.com`).
+
+*   **Date Range Options**: Options like `--last-7-days`, `--last-month`, etc., are available. If omitted, it defaults to the last calendar month.
+
+### Output
+
+Generates a CSV and an HTML file in `output/<hostname>/`. The HTML report features a Bootstrap accordion, showing the top 100 cannibalised keywords by total impressions. Expanding a keyword shows the specific pages ranking for it, their clicks, impressions, CTR, and average position.
 
 ---
 ## gsc-pages-queries.py
@@ -698,6 +729,19 @@ Install the necessary Python libraries using pip:
 ```bash
 pip install -r requirements.txt
 ```
+
+### 3. Utility Scripts for Setup
+
+Once you have your credentials, you can use these scripts to help you get started:
+
+*   **List Available Properties**: To see all the properties you have access to and find the correct site URL to use in reports:
+    ```bash
+    python show_available_domains.py
+    ```
+*   **Generate Initial Brand Files**: To automatically create default brand-term files in the `config/` directory for all your sites:
+    ```bash
+    python generate_brand_files.py
+    ```
 
 ### First-Time Authorization
 The first time you run any of these scripts, a new tab will open in your web browser, asking for your consent to access your GSC data. After you approve, the script will create a `token.json` file to store your authorization, so you won't have to re-authorize on subsequent runs.

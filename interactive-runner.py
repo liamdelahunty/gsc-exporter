@@ -34,6 +34,7 @@ def get_gsc_service():
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             try:
+                print("Credentials have expired. Attempting to refresh...")
                 creds.refresh(Request())
             except exceptions.RefreshError as e:
                 print(f"Error refreshing token: {e}")
@@ -111,20 +112,27 @@ def select_report():
     """Displays a list of available reports and prompts the user to select one."""
     reports = {
         '1': {'name': 'Snapshot Report', 'file': 'snapshot-report.py'},
-        '2': {'name': 'Performance Analysis', 'file': 'performance-analysis.py'},
+        '2': {'name': 'Performance Analysis (Period Comparison)', 'file': 'performance-analysis.py'},
         '3': {'name': 'Page-Level Report', 'file': 'page-level-report.py'},
-        '4': {'name': 'Queries & Pages Analysis', 'file': 'gsc-pages-queries.py'},
+        '4': {'name': 'Queries & Pages Detailed (gsc-pages-queries)', 'file': 'gsc-pages-queries.py'},
         '5': {'name': 'Key Performance Metrics (16 months)', 'file': 'key-performance-metrics.py'},
-        '6': {'name': 'Query Position Analysis', 'file': 'query-position-analysis.py'},
-        '7': {'name': 'Query Segmentation Report', 'file': 'query-segmentation-report.py'},
-        '8': {'name': 'Monthly Summary Report', 'file': 'monthly-summary-report.py'},
-        '9': {'name': 'Export All Pages', 'file': 'gsc_pages_exporter.py'},
-        '10': {'name': 'Generate GSC Wrapped', 'file': 'generate_gsc_wrapped.py'},
+        '6': {'name': 'Discover Performance Metrics (16 months)', 'file': 'discover-key-performance-metrics.py'},
+        '7': {'name': 'Queries & Pages Summary (16 months)', 'file': 'queries-pages-analysis.py'},
+        '8': {'name': 'Query Position Analysis (16 months)', 'file': 'query-position-analysis.py'},
+        '9': {'name': 'Query Segmentation Report', 'file': 'query-segmentation-report.py'},
+        '10': {'name': 'Keyword Cannibalisation Report', 'file': 'keyword-cannibalisation-report.py'},
+        '11': {'name': 'Page Performance Over Time (Top 250)', 'file': 'page-performance-over-time.py'},
+        '12': {'name': 'Monthly Summary Report (All/Single Site)', 'file': 'monthly-summary-report.py'},
+        '13': {'name': 'Export All Pages', 'file': 'gsc_pages_exporter.py'},
+        '14': {'name': 'URL Inspection Report', 'file': 'url-inspection-report.py'},
+        '15': {'name': 'Generate GSC Wrapped', 'file': 'generate_gsc_wrapped.py'},
     }
 
     print("\nAvailable Reports:")
-    for key, report in reports.items():
-        print(f"  {key}: {report['name']} ({report['file']})")
+    # Sort keys as integers to ensure numerical order
+    for key in sorted(reports.keys(), key=int):
+        report = reports[key]
+        print(f"  {key:2}: {report['name']} ({report['file']})")
 
     while True:
         choice = input(f"\nSelect a report to run (1-{len(reports)}): ")
@@ -153,6 +161,10 @@ def main():
         sys.exit(1)
         
     selected_report = select_report()
+    
+    # Special handling for single-page report (it takes a page URL, not a site URL)
+    # But for now I'll just keep the ones that take site_url as the main argument.
+    
     additional_flags = get_report_flags()
     
     command = [

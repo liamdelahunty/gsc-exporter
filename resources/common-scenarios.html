@@ -149,6 +149,24 @@
             </div>
         </div>
 
+        <!-- Scenario 6 -->
+        <div class="scenario">
+            <h3>Goal: Identify keyword cannibalisation issues.</h3>
+            <p><strong>Script:</strong> <code>keyword-cannibalisation-report.py</code></p>
+            <p>This script highlights keywords where multiple pages are ranking, which can dilute your SEO efforts.</p>
+            <h6>Command:</h6>
+            <pre><code>py keyword-cannibalisation-report.py https://www.example.com --last-month</code></pre>
+            <div class="action">
+                <strong>Action:</strong>
+                <ol>
+                    <li>Run the command for the last month or a longer period like <code>--last-3-months</code>.</li>
+                    <li>Open the generated HTML report (e.g., <code>keyword-cannibalisation-report-example-com-...html</code>).</li>
+                    <li>The report lists keywords with multiple ranking pages, sorted by total impressions.</li>
+                    <li>Expand a keyword to see which pages are competing. If two pages have similar content and are both ranking for the same term, consider consolidating them or differentiating their focus.</li>
+                </ol>
+            </div>
+        </div>
+
     </div>
     <footer>
         <p><a href="index.html">Back to Resources</a> | <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p>

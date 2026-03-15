@@ -42,55 +42,8 @@ def create_single_site_html_report(df, report_title):
 
 *   We are targeting `th` elements (table headers) inside a `thead` (table head) within an element that has the class `.table`. This is specific enough to only affect the headers of your data tables.
 *   You can replace the `background-color` and `color` values with any standard CSS colour codes.
-*   This change needs to be applied to the `create_multi_site_html_report` function as well if you want the styling to be consistent when running the script for all sites.
-
 This change has also been applied to the HTML template strings in:
 *   `queries-pages-analysis.py`
 *   `query-position-analysis.py`
 
-## Consolidated Traffic Report (`consolidated-traffic-report.py`)
-
-This script generates a report that combines Google Search Console Discover and Web traffic data. It focuses on clicks, impressions, and CTR for each complete calendar month over the last 16 months. The report can be generated for a single site or for all sites in your GSC account.
-
-### Usage
-
-To run the consolidated traffic report:
-
-```bash
-python consolidated-traffic-report.py [site_url] [--use-cache]
-```
-
-*   **`site_url` (optional)**: The URL of the site to analyse (e.g., `https://www.example.com/` or `sc-domain:example.com`). If not provided, the script will run for all sites in your GSC account.
-*   **`--use-cache` (optional)**: If this flag is present, the script will attempt to load data from a previously generated CSV file in the `output/` directory. If the file exists, it will use the cached data to generate the HTML report, skipping the API call.
-
-### Examples
-
-**Run for a single site:**
-
-```bash
-python consolidated-traffic-report.py https://www.example.com/
-```
-
-**Run for a domain property:**
-
-```bash
-python consolidated-traffic-report.py sc-domain:example.com
-```
-
-**Run for all sites in your GSC account:**
-
-```bash
-python consolidated-traffic-report.py
-```
-
-**Run using cached data for all sites:**
-
-```bash
-python consolidated-traffic-report.py --use-cache
-```
-
-**Run for a single site using cached data:**
-
-```bash
-python consolidated-traffic-report.py https://www.example.com/ --use-cache
-```
+## Setup
