@@ -25,6 +25,7 @@ This repository contains a collection of Python scripts designed to connect to t
 | `run_for_sites.py` | A utility script to run any of the above analysis scripts for a custom list of sites. |
 | `run_all_reports_for_site.py` | A composite script to run all primary, monthly useful analysis reports for a single domain. |
 | `run_wrapped_for_all_properties.py` | A utility script to automate running the `generate_gsc_wrapped.py` script for every site you have access to. |
+| `consolidated-traffic-report.py` | Generates a consolidated report of Web, Discover, and News performance over 16 months. |
 
 ### A Note on Date-Related Flags
 
@@ -681,6 +682,31 @@ To run all reports for `https://www.example.com` for the last complete month:
 ```bash
 python run_all_reports_for_site.py https://www.example.com --last-month
 ```
+
+
+---
+
+## consolidated-traffic-report.py
+
+Generates a consolidated Google Search Console performance report.
+
+This script fetches performance data (clicks, impressions, CTR) for web, discover,
+and Google News search types for a given site over a specified number of months.
+It then generates a CSV file and a comprehensive HTML report with charts and
+summary tables.
+
+### Usage
+
+```bash
+python consolidated-traffic-report.py <site_url> [--months <num_months>]
+```
+
+*   `<site_url>`: (Required) The full URL of the site property (e.g., `https://www.example.com`) or a domain property (e.g., `sc-domain:example.com`).
+*   `--months <num_months>`: (Optional) The number of past months to include in the report. Defaults to 16.
+
+### Output
+
+Generates a CSV and an HTML file in `output/<hostname>/`. The HTML report provides a comprehensive overview of the consolidated performance, including charts for clicks and impressions, summary tables, and monthly breakdowns.
 
 ---
 
