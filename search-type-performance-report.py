@@ -76,19 +76,35 @@ HTML_TEMPLATE = """
         </div>
 
         <div class="card my-4">
-            <div class="card-header"><h3>Clicks Over Time</h3></div>
+            <div class="card-header"><h3>Total Clicks Over Time (Stacked)</h3></div>
+            <div class="card-body"><canvas id="clicksStackedChart"></canvas></div>
+        </div>
+        <div class="card my-4">
+            <div class="card-header"><h3>Total Impressions Over Time (Stacked)</h3></div>
+            <div class="card-body"><canvas id="impressionsStackedChart"></canvas></div>
+        </div>
+        <div class="card my-4">
+            <div class="card-header"><h3>Clicks by Search Type Over Time</h3></div>
             <div class="card-body"><canvas id="clicksLineChart"></canvas></div>
         </div>
         <div class="card my-4">
-            <div class="card-header"><h3>Impressions Over Time</h3></div>
+            <div class="card-header"><h3>Impressions by Search Type Over Time</h3></div>
             <div class="card-body"><canvas id="impressionsLineChart"></canvas></div>
         </div>
         
         <h2 class="mt-5">Overall Summary Tables</h2>
         <div class="row">
+            <div class="col-xl-12">
+                <div class="card mb-4 mx-auto col-lg-6">
+                    <div class="card-header"><h3>Performance Overview</h3></div>
+                    <div class="card-body">
+                        {{ ctr_summary_table|safe }}
+                    </div>
+                </div>
+            </div>
             <div class="col-xl-6">
                 <div class="card mb-4">
-                    <div class="card-header"><h3>Clicks</h3></div>
+                    <div class="card-header"><h3>Clicks Breakdown</h3></div>
                     <div class="card-body">
                         {{ clicks_summary_table|safe }}
                     </div>
@@ -96,7 +112,7 @@ HTML_TEMPLATE = """
             </div>
             <div class="col-xl-6">
                 <div class="card mb-4">
-                    <div class="card-header"><h3>Impressions</h3></div>
+                    <div class="card-header"><h3>Impressions Breakdown</h3></div>
                     <div class="card-body">
                         {{ impressions_summary_table|safe }}
                     </div>
@@ -149,10 +165,61 @@ HTML_TEMPLATE = """
             options: { responsive: true, maintainAspectRatio: false }
         });
 
-        // Line charts for time series
-        const clicksDatasets = searchTypes.map((st, index) => ({
+        // Stacked area charts for time series
+        const stackedClicksDatasets = searchTypes.map((st, index) => ({
             label: st + ' Clicks',
-            data: chartData.map(row => row[st + '_clicks']),
+            data: chartData.map(row => row[st + '_clicks'] || 0),
+            borderColor: colors[index % colors.length],
+            backgroundColor: colors[index % colors.length],
+            fill: true,
+            tension: 0.1
+        }));
+
+        new Chart(document.getElementById('clicksStackedChart'), {
+            type: 'line',
+            data: { labels: labels, datasets: stackedClicksDatasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: {
+                        stacked: true,
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        const stackedImpressionsDatasets = searchTypes.map((st, index) => ({
+            label: st + ' Impressions',
+            data: chartData.map(row => row[st + '_impressions'] || 0),
+            borderColor: colors[index % colors.length],
+            backgroundColor: colors[index % colors.length],
+            fill: true,
+            tension: 0.1
+        }));
+
+        new Chart(document.getElementById('impressionsStackedChart'), {
+            type: 'line',
+            data: { labels: labels, datasets: stackedImpressionsDatasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: {
+                        stacked: true,
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Non-stacked line charts for time series
+        const lineClicksDatasets = searchTypes.map((st, index) => ({
+            label: st + ' Clicks',
+            data: chartData.map(row => row[st + '_clicks'] || 0),
             borderColor: colors[index % colors.length],
             fill: false,
             tension: 0.1
@@ -160,13 +227,13 @@ HTML_TEMPLATE = """
 
         new Chart(document.getElementById('clicksLineChart'), {
             type: 'line',
-            data: { labels: labels, datasets: clicksDatasets },
+            data: { labels: labels, datasets: lineClicksDatasets },
             options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false } }
         });
 
-        const impressionsDatasets = searchTypes.map((st, index) => ({
+        const lineImpressionsDatasets = searchTypes.map((st, index) => ({
             label: st + ' Impressions',
-            data: chartData.map(row => row[st + '_impressions']),
+            data: chartData.map(row => row[st + '_impressions'] || 0),
             borderColor: colors[index % colors.length],
             fill: false,
             tension: 0.1
@@ -174,7 +241,7 @@ HTML_TEMPLATE = """
 
         new Chart(document.getElementById('impressionsLineChart'), {
             type: 'line',
-            data: { labels: labels, datasets: impressionsDatasets },
+            data: { labels: labels, datasets: lineImpressionsDatasets },
             options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false } }
         });
     </script>
@@ -283,18 +350,61 @@ def generate_html_report(df, site_url, start_date, end_date, html_output_path):
         summary_data[clicks_col] = df[clicks_col].sum() if clicks_col in df.columns else 0
         summary_data[impressions_col] = df[impressions_col].sum() if impressions_col in df.columns else 0
 
-    total_clicks = sum(summary_data[k] for k in summary_data if 'clicks' in k)
-    total_impressions = sum(summary_data[k] for k in summary_data if 'impressions' in k)
+    # Clicks Summary Table
+    total_clicks_by_type = {st: summary_data.get(f'{st}_clicks', 0) for st in SEARCH_TYPES}
+    grand_total_clicks = sum(total_clicks_by_type.values())
+    
+    clicks_total_row_data = {st: f"{total:,.0f}" for st, total in total_clicks_by_type.items()}
+    clicks_total_row_data['Total'] = f"{grand_total_clicks:,.0f}"
+    clicks_total_row_data['Metric'] = 'Total'
 
-    clicks_summary_rows = [{'Metric': 'Total', **{st: f"{summary_data.get(f'{st}_clicks', 0):,.0f}" for st in SEARCH_TYPES}}]
-    clicks_summary_rows.append({'Metric': 'Percentage', **{st: f"{(summary_data.get(f'{st}_clicks', 0) / total_clicks * 100):.2f}%" if total_clicks else '0.00%' for st in SEARCH_TYPES}})
-    clicks_summary_df = pd.DataFrame(clicks_summary_rows)
+    clicks_percentage_row_data = {st: f"{(total / grand_total_clicks * 100):.2f}%" if grand_total_clicks else '0.00%' for st, total in total_clicks_by_type.items()}
+    clicks_percentage_row_data['Total'] = '100.00%'
+    clicks_percentage_row_data['Metric'] = 'Percentage'
+
+    clicks_summary_df = pd.DataFrame([clicks_total_row_data, clicks_percentage_row_data])
+    clicks_summary_df = clicks_summary_df[['Metric'] + SEARCH_TYPES + ['Total']] # Enforce column order
     clicks_summary_table = clicks_summary_df.style.set_table_attributes('class="table table-bordered table-sm"').set_table_styles(styles).hide(axis='index').to_html()
 
-    impressions_summary_rows = [{'Metric': 'Total', **{st: f"{summary_data.get(f'{st}_impressions', 0):,.0f}" for st in SEARCH_TYPES}}]
-    impressions_summary_rows.append({'Metric': 'Percentage', **{st: f"{(summary_data.get(f'{st}_impressions', 0) / total_impressions * 100):.2f}%" if total_impressions else '0.00%' for st in SEARCH_TYPES}})
-    impressions_summary_df = pd.DataFrame(impressions_summary_rows)
+    # Impressions Summary Table
+    total_impressions_by_type = {st: summary_data.get(f'{st}_impressions', 0) for st in SEARCH_TYPES}
+    grand_total_impressions = sum(total_impressions_by_type.values())
+    
+    impressions_total_row_data = {st: f"{total:,.0f}" for st, total in total_impressions_by_type.items()}
+    impressions_total_row_data['Total'] = f"{grand_total_impressions:,.0f}"
+    impressions_total_row_data['Metric'] = 'Total'
+
+    impressions_percentage_row_data = {st: f"{(total / grand_total_impressions * 100):.2f}%" if grand_total_impressions else '0.00%' for st, total in total_impressions_by_type.items()}
+    impressions_percentage_row_data['Total'] = '100.00%'
+    impressions_percentage_row_data['Metric'] = 'Percentage'
+
+    impressions_summary_df = pd.DataFrame([impressions_total_row_data, impressions_percentage_row_data])
+    impressions_summary_df = impressions_summary_df[['Metric'] + SEARCH_TYPES + ['Total']] # Enforce column order
     impressions_summary_table = impressions_summary_df.style.set_table_attributes('class="table table-bordered table-sm"').set_table_styles(styles).hide(axis='index').to_html()
+
+    # CTR Summary Table
+    ctr_summary_data = []
+    for st in SEARCH_TYPES:
+        clicks = summary_data.get(f'{st}_clicks', 0)
+        impressions = summary_data.get(f'{st}_impressions', 0)
+        ctr = (clicks / impressions * 100) if impressions else 0
+        ctr_summary_data.append({
+            'Metric': st,
+            'Clicks': f"{clicks:,.0f}",
+            'Impressions': f"{impressions:,.0f}",
+            'CTR': f"{ctr:.2f}%"
+        })
+    
+    total_ctr = (grand_total_clicks / grand_total_impressions * 100) if grand_total_impressions else 0
+    ctr_summary_data.append({
+        'Metric': 'Total',
+        'Clicks': f"{grand_total_clicks:,.0f}",
+        'Impressions': f"{grand_total_impressions:,.0f}",
+        'CTR': f"{total_ctr:.2f}%"
+    })
+    
+    ctr_summary_df = pd.DataFrame(ctr_summary_data)
+    ctr_summary_table = ctr_summary_df.style.set_table_attributes('class="table table-bordered table-sm"').set_table_styles(styles).hide(axis='index').to_html()
 
     # Main data table
     data_table_df = df.copy()
@@ -327,6 +437,7 @@ def generate_html_report(df, site_url, start_date, end_date, html_output_path):
         end_date=end_date,
         clicks_summary_table=clicks_summary_table,
         impressions_summary_table=impressions_summary_table,
+        ctr_summary_table=ctr_summary_table,
         data_table=data_table,
         chart_data=chart_data,
         summary_data=json.dumps(summary_data_for_json),
