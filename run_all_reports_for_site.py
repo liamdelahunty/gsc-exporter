@@ -46,6 +46,7 @@ def main():
         "query-position-analysis.py",
         "query-segmentation-report.py",
         "snapshot-report.py",
+        "monthly-search-type-performance-report.py",
     ]
 
     print(f"\n--- Running all reports for site: {site_url} ---")

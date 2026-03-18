@@ -126,6 +126,7 @@ def select_report():
         '13': {'name': 'Export All Pages', 'file': 'gsc_pages_exporter.py'},
         '14': {'name': 'URL Inspection Report', 'file': 'url-inspection-report.py'},
         '15': {'name': 'Generate GSC Wrapped', 'file': 'generate_gsc_wrapped.py'},
+        '16': {'name': 'Monthly Search Type Performance Report', 'file': 'monthly-search-type-performance-report.py'},
     }
 
     print("\nAvailable Reports:")
