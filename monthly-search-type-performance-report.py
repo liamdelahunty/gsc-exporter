@@ -25,12 +25,172 @@ from dateutil.relativedelta import relativedelta
 from urllib.parse import urlparse
 import argparse
 from functools import reduce
+import json
+from jinja2 import Environment
 
 # --- Configuration ---
 SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
 CLIENT_SECRET_FILE = 'client_secret.json'
 TOKEN_FILE = 'token.json'
 SEARCH_TYPES = ['web', 'image', 'video', 'news', 'discover', 'googleNews']
+
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report_title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { padding-top: 56px; }
+        h1, h2, h3 { padding-bottom: .5rem; }
+        h2 { border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem; }
+        .table thead th { background-color: #434343; color: #ffffff; text-align: left; }
+        footer { margin-top: 3rem; text-align: center; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-light border-bottom mb-4 fixed-top">
+        <div class="container-fluid">
+            <h1 class="h3 mb-0">{{ report_title }}</h1>
+        </div>
+    </header>
+    <main class="container-fluid py-4 flex-grow-1">
+        <p class="text-muted">Analysis for the period: {{ date_range }}</p>
+
+        <div class="card my-4">
+            <div class="card-header"><h3>Total Clicks vs. Total Impressions</h3></div>
+            <div class="card-body"><canvas id="performanceChart"></canvas></div>
+        </div>
+
+        <div class="card my-4">
+            <div class="card-header"><h3>Clicks by Search Type Over Time (Stacked)</h3></div>
+            <div class="card-body"><canvas id="clicksStackedChart"></canvas></div>
+        </div>
+        <div class="card my-4">
+            <div class="card-header"><h3>Impressions by Search Type Over Time (Stacked)</h3></div>
+            <div class="card-body"><canvas id="impressionsStackedChart"></canvas></div>
+        </div>
+        
+        <h2 class="mt-5">Overall Summary</h2>
+        <div class="card mb-4">
+            <div class="card-header"><h3>Performance Overview</h3></div>
+            <div class="card-body">
+                {{ summary_table|safe }}
+            </div>
+        </div>
+
+        <h2>Monthly Data Table</h2>
+        <div class="table-responsive">{{ data_table|safe }}</div>
+    </main>
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Report generated on {{ generation_date }}. <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></span>
+        </div>
+    </footer>
+    <script>
+        const chartData = {{ chart_data|safe }};
+        const labels = chartData.map(row => row.month);
+        const searchTypes = {{ search_types|tojson }};
+        const colors = [
+            'rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)', 'rgba(75, 192, 192, 1)',
+            'rgba(153, 102, 255, 1)', 'rgba(255, 159, 64, 1)', 'rgba(255, 205, 86, 1)'
+        ];
+
+        // Clicks vs Impressions Chart
+        new Chart(document.getElementById('performanceChart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Total Clicks',
+                        data: chartData.map(row => row.total_clicks),
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        yAxisID: 'yClicks',
+                        fill: false,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Total Impressions',
+                        data: chartData.map(row => row.total_impressions),
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        yAxisID: 'yImpressions',
+                        fill: false,
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    yClicks: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: { display: true, text: 'Total Clicks' }
+                    },
+                    yImpressions: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: { display: true, text: 'Total Impressions' },
+                        grid: { drawOnChartArea: false }
+                    }
+                }
+            }
+        });
+
+        // Stacked Area Charts
+        const stackedClicksDatasets = searchTypes.map((st, index) => ({
+            label: st + ' Clicks',
+            data: chartData.map(row => row[st + '_clicks'] || 0),
+            borderColor: colors[index % colors.length],
+            backgroundColor: colors[index % colors.length],
+            fill: true,
+            tension: 0.1
+        }));
+
+        new Chart(document.getElementById('clicksStackedChart'), {
+            type: 'line',
+            data: { labels: labels, datasets: stackedClicksDatasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: { y: { stacked: true, beginAtZero: true } }
+            }
+        });
+
+        const stackedImpressionsDatasets = searchTypes.map((st, index) => ({
+            label: st + ' Impressions',
+            data: chartData.map(row => row[st + '_impressions'] || 0),
+            borderColor: colors[index % colors.length],
+            backgroundColor: colors[index % colors.length],
+            fill: true,
+            tension: 0.1
+        }));
+
+        new Chart(document.getElementById('impressionsStackedChart'), {
+            type: 'line',
+            data: { labels: labels, datasets: stackedImpressionsDatasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: { y: { stacked: true, beginAtZero: true } }
+            }
+        });
+    </script>
+</body>
+</html>
+"""
 
 def get_gsc_service():
     """Authenticates and returns a Google Search Console service object."""
@@ -141,23 +301,57 @@ def get_latest_available_gsc_date(service, site_url, max_retries=5):
     print(f"Could not determine latest available GSC date. Using two days ago as fallback.")
     return current_date - timedelta(days=2)
 
-def create_search_type_report_html(df, report_title, date_range, site_url, template_path='resources/report-blank.html'):
+def create_search_type_report_html(df, report_title, date_range, site_url):
     """Generates a search type performance HTML report from a DataFrame."""
-    if not os.path.exists(template_path):
-        print(f"Error: Template file not found at {template_path}")
-        return None
+    df.fillna(0, inplace=True)
+    
+    # Prepare data for the template
+    styles = [dict(selector="td", props=[("text-align", "right")])]
 
-    with open(template_path, 'r', encoding='utf-8') as f:
-        template_html = f.read()
+    # Overall Summary Table
+    summary_data = []
+    grand_total_clicks = 0
+    grand_total_impressions = 0
 
-    report_df = df.copy()
+    available_search_types = [st for st in SEARCH_TYPES if f'{st}_clicks' in df.columns]
 
-    # Format numeric columns
-    for col in report_df.columns:
+    for st in available_search_types:
+        clicks = df[f'{st}_clicks'].sum()
+        impressions = df[f'{st}_impressions'].sum()
+        ctr = (clicks / impressions) if impressions else 0
+        summary_data.append({
+            'Metric': st,
+            'Clicks': f"{clicks:,.0f}",
+            'Impressions': f"{impressions:,.0f}",
+            'CTR': f"{ctr:.2%}"
+        })
+        grand_total_clicks += clicks
+        grand_total_impressions += impressions
+    
+    total_ctr = (grand_total_clicks / grand_total_impressions) if grand_total_impressions else 0
+    summary_data.append({
+        'Metric': 'Total',
+        'Clicks': f"{grand_total_clicks:,.0f}",
+        'Impressions': f"{grand_total_impressions:,.0f}",
+        'CTR': f"{total_ctr:.2%}"
+    })
+    
+    summary_df = pd.DataFrame(summary_data)
+    summary_table = summary_df.style.set_table_attributes('class="table table-bordered table-sm"').set_table_styles(styles).hide(axis='index').to_html()
+
+    # Main data table
+    data_table_df = df.copy()
+    
+    # Format numeric columns for display
+    for col in data_table_df.columns:
         if 'clicks' in col or 'impressions' in col:
-            report_df[col] = report_df[col].apply(lambda x: f"{int(x):,}")
+            # Ensure the column exists before trying to format it
+            if col in data_table_df:
+                data_table_df[col] = data_table_df[col].apply(lambda x: f"{int(x):,}")
         elif 'ctr' in col:
-            report_df[col] = report_df[col].apply(lambda x: f"{x:.2%}" if pd.notnull(x) and x != 0 else '0.00%')
+            # Ensure the column exists
+            if col in data_table_df:
+                data_table_df[col] = data_table_df[col].apply(lambda x: f"{x:.2%}" if pd.notnull(x) and x != 0 else '0.00%')
 
     # Rename columns for presentation
     column_rename_map = {
@@ -172,107 +366,29 @@ def create_search_type_report_html(df, report_title, date_range, site_url, templ
     }
     
     # Only rename columns that actually exist in the DataFrame
-    existing_columns_to_rename = {k: v for k, v in column_rename_map.items() if k in report_df.columns}
-    report_df = report_df.rename(columns=existing_columns_to_rename)
-    
-    # Define the order of columns, keeping only those present in the report
-    ordered_columns = [
-        'Month', 'Total Clicks', 'Total Impressions', 'Total CTR',
-        'Web Clicks', 'Web Impressions', 'Web CTR',
-        'Image Clicks', 'Image Impressions', 'Image CTR',
-        'Video Clicks', 'Video Impressions', 'Video CTR',
-        'News Clicks', 'News Impressions', 'News CTR',
-        'Discover Clicks', 'Discover Impressions', 'Discover CTR',
-        'Google News Clicks', 'Google News Impressions', 'Google News CTR'
-    ]
-    
-    final_columns = [col for col in ordered_columns if col in report_df.columns]
-    report_df = report_df[final_columns]
+    existing_columns_to_rename = {k: v for k, v in column_rename_map.items() if k in data_table_df.columns}
+    data_table_df = data_table_df.rename(columns=existing_columns_to_rename)
 
-    table_html = report_df.to_html(classes="table table-striped table-hover", index=False, border=0)
+    data_table = data_table_df.to_html(classes="dataframe table table-striped table-hover", index=False, border=0)
 
-    html_output = template_html.replace('This Report Name', report_title)
-    html_output = html_output.replace(
-        '<span class="text-muted me-4">Domain name</span>',
-        f'<span class="text-muted me-4">{site_url}</span>'
-    )
-    html_output = html_output.replace(
-        '<span class="text-muted me-4">Date-range</span>',
-        f'<span class="text-muted me-4">{date_range}</span>'
-    )
-    html_output = html_output.replace(
-        '<a href="index.html">Resources</a>',
-        '<a href="../../resources/index.html">Resources</a>'
+    # Chart data
+    chart_df = df.sort_values('month').copy()
+    chart_data = chart_df.to_json(orient='records')
+    
+    # Render template
+    template = Environment().from_string(HTML_TEMPLATE)
+    html_content = template.render(
+        report_title=report_title,
+        site_url=site_url,
+        date_range=date_range,
+        summary_table=summary_table,
+        data_table=data_table,
+        chart_data=chart_data,
+        search_types=available_search_types,
+        generation_date=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     )
     
-    custom_css = """<style>
-        html {
-            height: 100%;
-        }
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        .table th, .table td {
-            text-align: right;
-            vertical-align: middle;
-        }
-        .table th:first-child, .table td:first-child {
-            text-align: left;
-        }
-    </style>"""
-    html_output = html_output.replace(
-        """<style>
-        html {
-            height: 100%;
-        }
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-    </style>""",
-        custom_css
-    )
-
-    main_content_placeholder = """    <main class="container py-4 flex-grow-1">
-        <h1>Hello</h1>
-        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-            tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
-            quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-            consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
-            cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
-        proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-        <div class="row">
-            <div class="col">
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-                    tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
-                    quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-                    consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
-                    cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
-                proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-            </div>
-            <div class="col">
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-                    tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
-                    quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-                    consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
-                    cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
-                proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-            </div>
-        </div>
-    </main>"""
-
-    final_main_content = f"""    <main class="container py-4 flex-grow-1">
-        <div class="table-responsive">
-            {table_html}
-        </div>
-    </main>"""
-    
-    html_output = html_output.replace(main_content_placeholder, final_main_content)
-
-    return html_output
+    return html_content
 
 
 def main():
