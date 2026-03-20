@@ -26,6 +26,7 @@ This repository contains a collection of Python scripts designed to connect to t
 | `run_all_reports_for_site.py` | A composite script to run all primary, monthly useful analysis reports for a single domain. |
 | `run_wrapped_for_all_properties.py` | A utility script to automate running the `generate_gsc_wrapped.py` script for every site you have access to. |
 | `consolidated-traffic-report.py` | Generates a consolidated report of Web, Discover, and News performance over 16 months. |
+| `monthly-search-type-performance-report.py` | Generates a monthly Google Search Console performance report by search type (web, discover, Google News, image, video, news) for a given site. |
 
 ### A Note on Date-Related Flags
 
@@ -707,6 +708,31 @@ python consolidated-traffic-report.py <site_url> [--months <num_months>]
 ### Output
 
 Generates a CSV and an HTML file in `output/<hostname>/`. The HTML report provides a comprehensive overview of the consolidated performance, including charts for clicks and impressions, summary tables, and monthly breakdowns.
+
+---
+
+---
+
+## monthly-search-type-performance-report.py
+
+Generates a monthly Google Search Console performance report by search type.
+
+This script fetches performance data (clicks, impressions, CTR) for all available
+search types (web, discover, Google News, image, video, news) for a given site.
+It fetches data for the last 16 months, providing a monthly breakdown.
+The output is a CSV file and an HTML file containing the aggregated monthly data.
+
+### Usage
+
+```bash
+python monthly-search-type-performance-report.py <site_url>
+```
+
+*   `<site_url>`: (Required) The full URL of the site property (e.g., `https://www.example.com`) or a domain property (e.g., `sc-domain:example.com`).
+
+### Output
+
+Generates a CSV and an HTML file in `output/<hostname>/`. The report lists the monthly performance for each search type, including clicks, impressions, and CTR.
 
 ---
 
