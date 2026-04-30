@@ -13,12 +13,18 @@
         pre { background-color: #e9ecef; padding: 1rem; border-radius: 4px; position: relative; }
         .code-comment { color: #6c757d; font-style: italic; }
         .badge-step { margin-right: 0.5rem; }
+        .best-practice { border-left: 4px solid #198754; padding-left: 1rem; margin-top: 1rem; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Git Workflow Guide</h1>
-        <p class="lead">How to contribute changes from your fork back to the parent (upstream) repository.</p>
+        <p class="lead">How to contribute changes from your fork back to the parent (upstream) repository efficiently.</p>
+
+        <h2>Step 0: Setup Upstream Remote</h2>
+        <p>Before you can sync, you must tell Git where the original repository is. You only need to do this once.</p>
+        <pre><code><span class="code-comment"># Add the parent repo as 'upstream'</span>
+git remote add upstream https://github.com/liamdelahunty/gsc-exporter.git</code></pre>
 
         <h2>Step 1: Push to your Fork</h2>
         <p>First, send your local commits to your own GitHub repository (the "origin").</p>
@@ -28,27 +34,35 @@
         <p>The "Parent" repository (the original repo you forked from) is called the <strong>Upstream</strong>. To send your changes there:</p>
         <ol>
             <li>Go to your fork's page on GitHub: <a href="https://github.com/liamvictor/gsc-exporter" target="_blank">github.com/liamvictor/gsc-exporter</a>.</li>
-            <li>You should see a yellow bar saying <em>"This branch is 1 commit ahead of liamdelahunty:main"</em>.</li>
+            <li>You should see a yellow bar saying <em>"This branch is ahead of liamdelahunty:main"</em>.</li>
             <li>Click <strong>Contribute</strong> &gt; <strong>Open Pull Request</strong>.</li>
             <li>Review your changes and click <strong>Create Pull Request</strong>.</li>
         </ol>
 
-        <h2>Step 3: Syncing after the PR is Merged</h2>
-        <p>Once the owner of the parent repo accepts and merges your PR, your fork will technically be "behind" the parent because the parent now has a new merge commit. To fix this and stay perfectly in sync:</p>
+        <h2>Step 3: Keep your Fork in Sync (Rebase)</h2>
+        <p>To avoid messy "Merge branch..." commits and keep your history clean, use <strong>rebase</strong> instead of merge when updating from the parent repo.</p>
         
         <pre><code><span class="code-comment"># 1. Fetch the latest changes from the parent repo</span>
 git fetch upstream
 
-<span class="code-comment"># 2. Merge the parent's changes into your local main branch</span>
-<span class="code-comment"># This brings your local environment up to date with the parent</span>
-git merge upstream/main
+<span class="code-comment"># 2. Rebase your local changes on top of the parent's latest code</span>
+<span class="code-comment"># This moves your commits to the 'end' of the history</span>
+git rebase upstream/main
 
-<span class="code-comment"># 3. Push the now-synced local main back to your fork</span>
-<span class="code-comment"># This makes your GitHub fork match the parent exactly</span>
-git push origin main</code></pre>
+<span class="code-comment"># 3. Force push to your fork (since history has been rewritten)</span>
+git push origin main --force</code></pre>
 
-        <div class="alert alert-info mt-4">
-            <strong>Pro Tip:</strong> By following the "Sync" steps above, your fork will never show as being "behind" or "ahead" in a messy way. You'll always have a clean, straight line of history matching the original project.
+        <div class="best-practice">
+            <h3>Best Practices for Upstream PRs</h3>
+            <ul>
+                <li><strong>Squash and Merge:</strong> We recommend the maintainer uses "Squash and Merge" for Pull Requests. This condenses multiple incremental commits into a single clean feature commit on the main branch.</li>
+                <li><strong>Avoid "Merge" Commits:</strong> Do not use the GitHub "Sync fork" button if it creates a merge commit. Use the <code>rebase</code> commands above instead to maintain a linear history.</li>
+                <li><strong>Clean Commits:</strong> Group related changes into a single commit with a descriptive message. Use <code>git commit --amend</code> if you need to fix a small mistake in your last commit before pushing.</li>
+            </ul>
+        </div>
+
+        <div class="alert alert-success mt-4">
+            <strong>Pro Tip:</strong> Using <code>rebase</code> ensures that your Pull Request always looks like it was written against the <em>very latest</em> version of the project, making it much easier for maintainers to review and merge.
         </div>
     </div>
 </body>
