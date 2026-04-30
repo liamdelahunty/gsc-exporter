@@ -3,59 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Merging Forked Repository Changes</title>
+    <title>Git Workflow: Pushing and Syncing with Upstream</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; line-height: 1.6; margin: 20px; background: #f4f4f4; color: #333; }
-        .container { max-width: 900px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        h1, h2 { color: #0056b3; }
-        pre { background: #eee; padding: 10px; border-radius: 5px; overflow-x: auto; }
-        code { font-family: monospace; }
-        strong { color: #0056b3; }
+        body { padding: 2rem; background-color: #f8f9fa; }
+        .container { max-width: 800px; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-bottom: 1.5rem; }
+        h2 { margin-top: 2rem; color: #0d6efd; }
+        pre { background-color: #e9ecef; padding: 1rem; border-radius: 4px; position: relative; }
+        .code-comment { color: #6c757d; font-style: italic; }
+        .badge-step { margin-right: 0.5rem; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Merging Forked Repository Changes</h1>
-        <p>This document outlines the process for incorporating changes from a forked (or copied) repository into your "parent" repository using a Pull Request (PR).</p>
+        <h1>Git Workflow Guide</h1>
+        <p class="lead">How to contribute changes from your fork back to the parent (upstream) repository.</p>
 
-        <h2>Step 1: You Push Your Changes First</h2>
-        <p>Since your local repository is ahead of your <code>main</code> branch on GitHub, you should push your changes first. This ensures the other user can base their work on the absolute latest version of your code.</p>
+        <h2>Step 1: Push to your Fork</h2>
+        <p>First, send your local commits to your own GitHub repository (the "origin").</p>
+        <pre><code>git push origin main</code></pre>
+
+        <h2>Step 2: Create a Pull Request (PR)</h2>
+        <p>The "Parent" repository (the original repo you forked from) is called the <strong>Upstream</strong>. To send your changes there:</p>
         <ol>
-            <li>From your local repository, run:
-                <pre><code>git push origin main</code></pre>
-            </li>
+            <li>Go to your fork's page on GitHub: <a href="https://github.com/liamvictor/gsc-exporter" target="_blank">github.com/liamvictor/gsc-exporter</a>.</li>
+            <li>You should see a yellow bar saying <em>"This branch is 1 commit ahead of liamdelahunty:main"</em>.</li>
+            <li>Click <strong>Contribute</strong> &gt; <strong>Open Pull Request</strong>.</li>
+            <li>Review your changes and click <strong>Create Pull Request</strong>.</li>
         </ol>
 
-        <h2>Step 2: Instructions for the Other User</h2>
-        <p>The other user needs to update their branch with your latest changes and then open the Pull Request. Please provide them with the following instructions.</p>
-        <ol>
-            <li><strong>Add your repository as a remote.</strong> This is a one-time setup that creates a reference to your "parent" repository. They can name it <code>upstream</code>. They must replace <code>&lt;your_repo_url&gt;</code> with the actual URL of your GitHub repository.
-                <pre><code>git remote add upstream &lt;your_repo_url&gt;</code></pre>
-            </li>
-            <li><strong>Fetch the latest changes from your repository.</strong> This will download the latest commits from your <code>main</code> branch without merging them yet.
-                <pre><code>git fetch upstream</code></pre>
-            </li>
-            <li><strong>Rebase their branch.</strong> This is the most important step. It will take their local commits and re-apply them on top of the latest version of your <code>main</code> branch. This creates a clean, linear history and makes the final merge much simpler.
-                <pre><code>git rebase upstream/main</code></pre>
-                <p><em>Note: If they encounter any merge conflicts during the rebase, Git will pause and ask them to resolve the conflicts before continuing.</em></p>
-            </li>
-            <li><strong>Push the rebased branch to their fork.</strong> Because the history of their <code>main</code> branch was rewritten by the rebase, they will need to perform a "force push". Using <code>--force-with-lease</code> is a safer alternative to <code>--force</code>.
-                <pre><code>git push origin main --force-with-lease</code></pre>
-            </li>
-            <li><strong>Create the Pull Request.</strong> They should now go to your repository's page on GitHub. GitHub will automatically detect that they pushed a new branch and will show a prominent "Compare & pull request" button. They should click it, review the changes, and submit the PR, ensuring the target is your <code>main</code> branch.</li>
-        </ol>
+        <h2>Step 3: Syncing after the PR is Merged</h2>
+        <p>Once the owner of the parent repo accepts and merges your PR, your fork will technically be "behind" the parent because the parent now has a new merge commit. To fix this and stay perfectly in sync:</p>
+        
+        <pre><code><span class="code-comment"># 1. Fetch the latest changes from the parent repo</span>
+git fetch upstream
 
-        <h2>Step 3: You Review and Merge the Pull Request</h2>
-        <p>Once the other user has created the Pull Request, you will get a notification.</p>
-        <ol>
-            <li>Go to the <strong>"Pull requests"</strong> tab in your GitHub repository.</li>
-            <li>Click on the new PR to review the proposed changes, read their comments, and see a diff of all the code they want to merge.</li>
-            <li>If everything looks good, click the <strong>"Merge pull request"</strong> button.</li>
-            <li>Finally, pull the newly merged changes down to your local machine so it's fully up-to-date.
-                <pre><code>git pull origin main</code></pre>
-            </li>
-        </ol>
-        <p>This workflow is the standard for collaboration on GitHub and ensures that you have full control over what gets added to your repository.</p>
+<span class="code-comment"># 2. Merge the parent's changes into your local main branch</span>
+<span class="code-comment"># This brings your local environment up to date with the parent</span>
+git merge upstream/main
+
+<span class="code-comment"># 3. Push the now-synced local main back to your fork</span>
+<span class="code-comment"># This makes your GitHub fork match the parent exactly</span>
+git push origin main</code></pre>
+
+        <div class="alert alert-info mt-4">
+            <strong>Pro Tip:</strong> By following the "Sync" steps above, your fork will never show as being "behind" or "ahead" in a messy way. You'll always have a clean, straight line of history matching the original project.
+        </div>
     </div>
 </body>
 </html>
