@@ -18,15 +18,16 @@ from urllib.parse import urlparse
 # --- Configuration ---
 SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
 CLIENT_SECRET_FILE = 'client_secret.json'
+TOKEN_FILE = 'token.json'
 
-def get_gsc_service(token_file):
+def get_gsc_service():
     """Authenticates and returns a Google Search Console service object."""
     creds = None
-    if os.path.exists(token_file):
+    if os.path.exists(TOKEN_FILE):
         try:
-            creds = Credentials.from_authorized_user_file(token_file, SCOPES)
+            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
         except Exception as e:
-            print(f"Could not load credentials from {token_file}. Error: {e}")
+            print(f"Could not load credentials from {TOKEN_FILE}. Error: {e}")
             print("Will attempt to re-authenticate.")
             creds = None
 
@@ -38,8 +39,8 @@ def get_gsc_service(token_file):
             except exceptions.RefreshError as e:
                 print(f"Error refreshing token: {e}")
                 print("The refresh token is expired or revoked. Deleting it and re-authenticating.")
-                if os.path.exists(token_file):
-                    os.remove(token_file)
+                if os.path.exists(TOKEN_FILE):
+                    os.remove(TOKEN_FILE)
                 creds = None
         
         if not creds:
@@ -48,11 +49,11 @@ def get_gsc_service(token_file):
                 return None
             
             # Optimized for Cloud Shell: we expect the user to have generated a token already.
-            print(f"Error: {token_file} not found.")
+            print(f"Error: {TOKEN_FILE} not found.")
             print(f"Please run 'python auth-cloud-shell.py' to generate authentication.")
             return None
         
-        with open(token_file, 'w') as token:
+        with open(TOKEN_FILE, 'w') as token:
             token.write(creds.to_json())
             print("Authentication successful. Credentials saved.")
 
@@ -159,11 +160,7 @@ def select_report():
         print("Invalid selection.")
 
 def main():
-    parser = argparse.ArgumentParser(description="Interactive GSC Report Runner")
-    parser.add_argument("--token", help="Path to the token file to use.", default="token.json")
-    args = parser.parse_args()
-
-    service = get_gsc_service(args.token)
+    service = get_gsc_service()
     if not service:
         sys.exit(1)
         
@@ -178,9 +175,6 @@ def main():
     additional_flags = input("Flags: ")
     
     command = ["python", selected_report['file'], selected_site]
-    
-    # Pass the token through to the sub-script
-    command.extend(["--token", args.token])
     
     if additional_flags:
         command.extend(additional_flags.split())

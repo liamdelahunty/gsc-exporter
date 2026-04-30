@@ -3,11 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Script Flags</title>
+    <title>Script Flags Matrix - GSC Exporter</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { padding: 2rem; }
+        body { padding: 2rem; background-color: #f8f9fa; }
+        .container-fluid { max-width: 1200px; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-bottom: 1.5rem; }
+        .table-responsive { margin-top: 2rem; }
+        .check { color: green; font-weight: bold; }
+        .cross { color: #dc3545; }
         footer { margin-top: 3rem; text-align: center; color: #6c757d; border-top: 1px solid #dee2e6; padding-top: 1rem; }
+        .anomaly { background-color: #fff3cd; }
     </style>
 </head>
 <body>
@@ -19,98 +25,100 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="common-scenarios.html">Common Scenarios</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="script-flags.html">Script Flags</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">GitHub</a>
-                    </li>
+                    <li class="nav-item"><a class="nav-link" href="common-scenarios.html">Common Scenarios</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="script-flags.html">Script Flags</a></li>
+                    <li class="nav-item"><a class="nav-link" href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">GitHub</a></li>
                 </ul>
             </div>
         </div>
     </header>
-    <div class="container">
-        <h1 class="mt-5">Script Flags</h1>
 
+    <div class="container-fluid">
+        <h1>Script Flags Matrix</h1>
+        
         <div class="alert alert-info">
-            <strong>Note on Date Flags:</strong> All date-related flags like <code>--last-7-days</code>, <code>--last-28-days</code>, and <code>--last-month</code> are dynamic. They calculate date ranges based on the <strong>latest date for which data is available</strong> in Google Search Console, not based on today's calendar date. This accounts for GSC's typical data processing delay.
+            <strong>Note on Date Flags:</strong> Flags like <code>--last-7-days</code> calculate ranges based on the <strong>latest available data</strong> in GSC, not today's date.
         </div>
 
-        <h2 class="mt-4">gsc_pages_exporter.py</h2>
-        <ul>
-            <li><code>&lt;site_url&gt;</code> (positional argument)</li>
-            <li><code>--start-date</code></li>
-            <li><code>--end-date</code></li>
-            <li><code>--last-24-hours</code></li>
-            <li><code>--last-7-days</code></li>
-            <li><code>--last-28-days</code></li>
-            <li><code>--last-month</code> (default)</li>
-            <li><code>--last-quarter</code></li>
-            <li><code>--last-3-months</code></li>
-            <li><code>--last-6-months</code></li>
-            <li><code>--last-12-months</code></li>
-            <li><code>--last-16-months</code></li>
-        </ul>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="text-start">Script Name</th>
+                        <th>7d</th>
+                        <th>28d</th>
+                        <th>1mo</th>
+                        <th>Qtr</th>
+                        <th>3mo</th>
+                        <th>6mo</th>
+                        <th>12mo</th>
+                        <th>16mo</th>
+                        <th>Custom Range</th>
+                        <th>Cache</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="text-start">snapshot-report.py</td>
+                        <td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td>
+                    </tr>
+                    <tr>
+                        <td class="text-start">performance-analysis.py</td>
+                        <td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td>
+                    </tr>
+                    <tr>
+                        <td class="text-start">page-level-report.py</td>
+                        <td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td>
+                    </tr>
+                    <tr>
+                        <td class="text-start">gsc-pages-queries.py</td>
+                        <td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td>
+                    </tr>
+                    <tr>
+                        <td class="text-start">keyword-cannibalisation-report.py</td>
+                        <td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td>
+                        <td class="anomaly cross">❌</td>
+                    </tr>
+                    <tr>
+                        <td class="text-start">gsc_pages_exporter.py</td>
+                        <td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td>
+                    </tr>
+                    <tr>
+                        <td class="text-start">query-segmentation-report.py</td>
+                        <td class="cross">❌</td><td class="cross">❌</td><td class="check">✅</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="check">✅</td><td class="check">✅</td>
+                    </tr>
+                    <tr>
+                        <td class="text-start">monthly-summary-report.py</td>
+                        <td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="check">✅</td><td class="check">✅</td>
+                    </tr>
+                    <tr>
+                        <td class="text-start">generate_gsc_wrapped.py</td>
+                        <td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="check">✅</td><td class="cross">❌</td><td class="check">✅</td><td class="cross">❌</td>
+                    </tr>
+                    <tr>
+                        <td class="text-start text-muted">Trend Reports (16 month view)*</td>
+                        <td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="check">✅</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
-        <h2 class="mt-4">gsc-pages-queries.py</h2>
-        <ul>
-            <li><code>&lt;site_url&gt;</code> (positional argument)</li>
-            <li><code>--start-date</code></li>
-            <li><code>--end-date</code></li>
-            <li><code>--last-24-hours</code></li>
-            <li><code>--last-7-days</code></li>
-            <li><code>--last-28-days</code></li>
-            <li><code>--last-month</code> (default)</li>
-            <li><code>--last-quarter</code></li>
-            <li><code>--last-3-months</code></li>
-            <li><code>--last-6-months</code></li>
-            <li><code>--last-12-months</code></li>
-            <li><code>--last-16-months</code></li>
-        </ul>
+        <p class="text-muted mt-2">* Trend reports include: <code>key-performance-metrics.py</code>, <code>discover-key-performance-metrics.py</code>, <code>queries-pages-analysis.py</code>, <code>query-position-analysis.py</code>, <code>page-performance-over-time.py</code>, and <code>page-performance-single-page.py</code>. These scripts are designed to fetch the full 16 months of available data and do not accept smaller date range flags.</p>
 
-        <h2 class="mt-4">performance-analysis.py</h2>
-        <ul>
-            <li><code>&lt;site_url&gt;</code> (positional argument)</li>
-            <li><code>--start-date</code></li>
-            <li><code>--end-date</code></li>
-            <li><code>--last-24-hours</code></li>
-            <li><code>--last-7-days</code></li>
-            <li><code>--last-28-days</code></li>
-            <li><code>--last-month</code> (default)</li>
-            <li><code>--last-quarter</code></li>
-            <li><code>--last-3-months</code></li>
-            <li><code>--last-6-months</code></li>
-            <li><code>--last-12-months</code></li>
-            <li><code>--last-16-months</code></li>
-            <li><code>--compare-to-previous-year</code>: Compares the selected date range to the same period in the previous year.</li>
-            <li class="mt-2"><strong>Filtering Flags:</strong></li>
-            <li><code>--page-contains &lt;substring&gt;</code>: Include pages containing the substring.</li>
-            <li><code>--page-exact &lt;url&gt;</code>: Include only an exact page URL.</li>
-            <li><code>--page-not-contains &lt;substring&gt;</code>: Exclude pages containing the substring.</li>
-            <li><code>--query-contains &lt;substring&gt;</code>: Include queries containing the substring.</li>
-            <li><code>--query-exact &lt;phrase&gt;</code>: Include only an exact query phrase.</li>
-            <li><code>--query-not-contains &lt;substring&gt;</code>: Exclude queries containing the substring.</li>
-        </ul>
-
-        <h2 class="mt-4">snapshot-report.py</h2>
-        <ul>
-            <li><code>&lt;site_url&gt;</code> (positional argument)</li>
-            <li><code>--start-date</code></li>
-            <li><code>--end-date</code></li>
-            <li><code>--last-24-hours</code></li>
-            <li><code>--last-7-days</code></li>
-            <li><code>--last-28-days</code></li>
-            <li><code>--last-month</code> (default)</li>
-            <li><code>--last-quarter</code></li>
-            <li><code>--last-3-months</code></li>
-            <li><code>--last-6-months</code></li>
-            <li><code>--last-12-months</code></li>
-            <li><code>--last-16-months</code></li>
-        </ul>
+        <h2 class="mt-5">Identified Anomalies</h2>
+        <div class="list-group">
+            <div class="list-group-item list-group-item-warning">
+                <strong>Keyword Cannibalisation:</strong> Missing <code>--use-cache</code> support. This report can be slow to download, so caching would be a significant improvement.
+            </div>
+            <div class="list-group-item list-group-item-warning">
+                <strong>Query Segmentation:</strong> Only supports <code>--last-month</code> and custom dates. Should ideally support the full range of standard date flags.
+            </div>
+            <div class="list-group-item list-group-item-danger">
+                <strong>Global Token Flag:</strong> The <code>interactive-runner.py</code> now attempts to pass a <code>--token</code> flag to all scripts, but currently <strong>none</strong> of the underlying report scripts define this argument in their parser.
+            </div>
+        </div>
     </div>
+
     <footer>
         <p><a href="index.html">Back to Resources</a> | <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p>
     </footer>
