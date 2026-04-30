@@ -1,0 +1,69 @@
+# How to Authenticate GSC Exporter in Google Cloud Shell
+
+Since you are working in Google Cloud Shell, the standard `run_local_server()` method fails because your browser cannot reach `localhost` inside the Cloud Shell environment. Here are the two best ways to fix this.
+
+---
+
+## Method 1: Using the 'gcloud' CLI (Recommended)
+
+Google Cloud Shell has the `gcloud` tool pre-authenticated. You can use it to generate the `token.json` file your script needs.
+
+1. **Run this command in your terminal:**
+   Replace `client_secret.json` with the path to your secret file if it's named differently.
+   ```bash
+   gcloud auth application-default login --client-id-file=client_secret.json --scopes=https://www.googleapis.com/auth/webmasters.readonly,https://www.googleapis.com/auth/cloud-platform --no-browser
+   ```
+
+2. **Follow the instructions:**
+   - It will provide a URL. Copy and paste it into your browser.
+   - Authorize the application as usual.
+   - After authorizing, you will be given a **Verification Code**.
+   - Copy that code and paste it back into the Cloud Shell terminal.
+
+3. **Move the credentials to your project:**
+   The command saves the token to a hidden location. Move it to your project folder so the script can find it:
+   ```bash
+   cp ~/.config/gcloud/application_default_credentials.json token.json
+   ```
+
+4. **Run your script:**
+   ```bash
+   python interactive-runner.py
+   ```
+   The script will now find `token.json` and skip the browser step!
+
+---
+
+## Method 2: The "URL Swap" Trick (No code changes needed)
+
+If you want to keep using the script exactly as it is, you can use the Cloud Shell "Web Preview" feature to forward the authentication response.
+
+1. **Modify the script temporarily:**
+   In `interactive-runner.py`, change the port from `0` to `8080`:
+   ```python
+   # Change this line (around line 52):
+   creds = flow.run_local_server(port=8080)
+   ```
+
+2. **Run the script:**
+   `python interactive-runner.py`
+   It will print an authorization URL.
+
+3. **Authorize in your browser:**
+   Open the URL, log in, and click "Allow". 
+   Your browser will then try to go to `http://localhost:8080/...` and show an error ("Site can't be reached"). **This is expected.**
+
+4. **The Swap:**
+   - In your browser's address bar, look at the failed URL. It starts with `http://localhost:8080/?code=...`.
+   - In Google Cloud Shell, click the **Web Preview** button (top right) and select **Preview on port 8080**.
+   - This opens a new tab with a URL like `https://8080-dot-1234567-dot-devshell.appspot.com/`.
+   - **Copy** the `8080-dot-...appspot.com` part.
+   - Go back to the **failed tab** and replace `localhost:8080` with the Cloud Shell URL you just copied.
+   - Press **Enter**. 
+   - The script in Cloud Shell will receive the code and finish the setup!
+
+---
+
+## Which one should I use?
+- Use **Method 1** if you want the most reliable experience.
+- Use **Method 2** if you don't want to deal with moving hidden files.
