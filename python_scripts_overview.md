@@ -32,6 +32,7 @@ These scripts provide helper functions, automation, or alternative ways to run r
 *   **`gsc_pages_exporter.py`**: Exports a simple, bulk list of all discovered pages for a date range.
 *   **`run_for_sites.py`**: Runs a specific analysis script for a custom list of sites.
 *   **`run_all_reports_for_site.py`**: Runs a full suite of primary reports for a single site.
+*   **`run-monthly-reports.py`**: Runs a suite of reports for the last calendar month for multiple sites defined in a text file.
 *   **`run_wrapped_for_all_properties.py`**: Automates running the "Wrapped" report for every site in your account.
 *   **`generate_index.py`**: Creates an `index.html` file linking to all reports generated for a specific site.
 *   **`show_help.py`**: Displays a quick help menu with script descriptions.

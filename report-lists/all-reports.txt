@@ -1,0 +1,19 @@
+# This file contains a list of all primary Google Search Console report scripts.
+# Use it with the --reports-file argument in run-monthly-reports.py.
+
+snapshot-report.py
+performance-analysis.py
+page-level-report.py
+gsc-pages-queries.py
+key-performance-metrics.py
+discover-key-performance-metrics.py
+queries-pages-analysis.py
+query-position-analysis.py
+query-segmentation-report.py
+keyword-cannibalisation-report.py
+page-performance-over-time.py
+monthly-summary-report.py
+gsc_pages_exporter.py
+generate_gsc_wrapped.py
+consolidated-traffic-report.py
+monthly-search-type-performance-report.py
