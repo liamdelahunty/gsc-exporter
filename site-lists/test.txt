@@ -1,0 +1,7 @@
+# Add your site URLs here, one per line.
+# Example:
+# https://www.example.com
+# sc-domain:example.org
+
+https://www.croneri.co.uk/
+https://www.hr-inform.co.uk/
