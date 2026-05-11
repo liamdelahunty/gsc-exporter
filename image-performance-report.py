@@ -221,8 +221,8 @@ def create_html_report(site_url, start_date, end_date, data_payload):
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title text-primary">Top 50 Image Queries</h5>
-                        <p class="text-muted small">The search terms users typed in before clicking your images.</p>
+                        <h5 class="card-title text-primary">Top 50 Image Queries ({start_date} to {end_date})</h5>
+                        <p class="text-muted small">The search terms users typed in before clicking your images during the <strong>last complete calendar month</strong>.</p>
                         <div class="table-container">
                             {to_html_table(df_queries, "", 50)}
                         </div>
@@ -235,8 +235,8 @@ def create_html_report(site_url, start_date, end_date, data_payload):
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title text-primary">Top Landing Pages for Image Traffic</h5>
-                        <p class="text-muted small">Which pages on your site are being discovered through visual search.</p>
+                        <h5 class="card-title text-primary">Top Landing Pages for Image Traffic ({start_date} to {end_date})</h5>
+                        <p class="text-muted small">Which pages on your site were discovered through visual search during the <strong>last complete calendar month</strong>.</p>
                         <div class="table-container">
                             {to_html_table(df_pages, "", 50)}
                         </div>
