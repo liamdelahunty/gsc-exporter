@@ -16,4 +16,5 @@ monthly-summary-report.py
 historical-summary-report.py
 gsc_pages_exporter.py
 consolidated-traffic-report.py
+image-performance-report.py
 monthly-search-type-performance-report.py
