@@ -124,6 +124,7 @@ def create_html_report(site_url, start_date, end_date, data_payload):
     # Data unpacking
     df_queries = data_payload['queries']
     df_pages = data_payload['pages']
+    df_matrix = data_payload['matrix']
     df_history = data_payload['history']
     df_device = data_payload['device']
     df_country = data_payload['country']
@@ -221,10 +222,10 @@ def create_html_report(site_url, start_date, end_date, data_payload):
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title text-primary">Top 50 Image Queries ({start_date} to {end_date})</h5>
-                        <p class="text-muted small">The search terms users typed in before clicking your images during the <strong>last complete calendar month</strong>.</p>
+                        <h5 class="card-title text-primary">Query & Page Relationship Matrix ({start_date} to {end_date})</h5>
+                        <p class="text-muted small">Which specific queries lead to which landing pages during the <strong>last complete calendar month</strong>.</p>
                         <div class="table-container">
-                            {to_html_table(df_queries, "", 50)}
+                            {to_html_table(df_matrix, "", 100)}
                         </div>
                     </div>
                 </div>
@@ -232,11 +233,22 @@ def create_html_report(site_url, start_date, end_date, data_payload):
         </div>
 
         <div class="row">
-            <div class="col-md-12">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Top 50 Image Queries ({start_date} to {end_date})</h5>
+                        <p class="text-muted small">The search terms users typed in before clicking your images during the last complete month.</p>
+                        <div class="table-container">
+                            {to_html_table(df_queries, "", 50)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title text-primary">Top Landing Pages for Image Traffic ({start_date} to {end_date})</h5>
-                        <p class="text-muted small">Which pages on your site were discovered through visual search during the <strong>last complete calendar month</strong>.</p>
+                        <p class="text-muted small">Which pages on your site were discovered through visual search during the last complete month.</p>
                         <div class="table-container">
                             {to_html_table(df_pages, "", 50)}
                         </div>
@@ -337,12 +349,15 @@ def main():
     
     # 2. Fetch Top Pages
     df_pages = fetch_gsc_data(service, site_url, start_str, end_str, ['page'])
+
+    # 3. Fetch Query & Page Matrix (Relationship)
+    df_matrix = fetch_gsc_data(service, site_url, start_str, end_str, ['query', 'page'])
     
-    # 3. Fetch Device/Country Breakdown
+    # 4. Fetch Device/Country Breakdown
     df_device = fetch_gsc_data(service, site_url, start_str, end_str, ['device'])
     df_country = fetch_gsc_data(service, site_url, start_str, end_str, ['country'])
     
-    # 4. Fetch 16-month History
+    # 5. Fetch 16-month History
     history_start = (latest_date - relativedelta(months=15)).replace(day=1).strftime('%Y-%m-%d')
     print(f"Fetching 16-month history from {history_start}...")
     df_history_raw = fetch_gsc_data(service, site_url, history_start, latest_date.strftime('%Y-%m-%d'), ['date'])
@@ -361,6 +376,7 @@ def main():
     data_payload = {
         'queries': df_queries,
         'pages': df_pages,
+        'matrix': df_matrix,
         'history': df_history,
         'device': df_device,
         'country': df_country
@@ -379,9 +395,10 @@ def main():
     host_for_filename = host_dir.replace('.', '-')
     file_prefix = f"image-success-report-{host_for_filename}-{start_str}-to-{end_str}"
     
-    # Save CSVs (we'll save queries and pages)
+    # Save CSVs
     df_queries.to_csv(os.path.join(output_dir, f"{file_prefix}-queries.csv"), index=False)
     df_pages.to_csv(os.path.join(output_dir, f"{file_prefix}-pages.csv"), index=False)
+    df_matrix.to_csv(os.path.join(output_dir, f"{file_prefix}-matrix.csv"), index=False)
     
     # Generate HTML
     html_content = create_html_report(site_url, start_str, end_str, data_payload)
