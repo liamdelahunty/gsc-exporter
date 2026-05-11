@@ -13,7 +13,7 @@ query-segmentation-report.py
 keyword-cannibalisation-report.py
 page-performance-over-time.py
 monthly-summary-report.py
+historical-summary-report.py
 gsc_pages_exporter.py
-generate_gsc_wrapped.py
 consolidated-traffic-report.py
 monthly-search-type-performance-report.py

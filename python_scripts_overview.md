@@ -9,6 +9,10 @@ These scripts generate detailed reports (HTML and CSV) for single sites or all p
 *   **`key-performance-metrics.py`**: A 16-month overview of high-level metrics (Clicks, Impressions, CTR, Position).
 *   **`discover-key-performance-metrics.py`**: A 16-month overview specifically for Google Discover data.
 *   **`monthly-summary-report.py`**: A concise summary of performance for the last complete calendar month.
+*   **`historical-summary-report.py`**: Consolidates multiple monthly summary CSVs into a single historical trend report with charts.
+*   **`consolidated-traffic-report.py`**: Fetches and combines performance data for Web, Discover, and News over a specified number of months.
+*   **`monthly-search-type-performance-report.py`**: Generates a performance report for a specific search type (web, image, video, news) for the last complete month.
+*   **`search-type-performance-report.py`**: Generates a performance report for a specific search type for a given date range.
 *   **`snapshot-report.py`**: A detailed single-period snapshot, broken down by device and country.
 *   **`performance-analysis.py`**: Compares two time periods (e.g., month-over-month) to highlight performance changes.
 *   **`queries-pages-analysis.py`**: Extends high-level metrics with unique query and page counts.

@@ -10,7 +10,6 @@ https://library.croneri.co.uk/
 https://www.croneri.co.uk/
 https://www.hr-inform.co.uk/
 sc-domain:accountancydaily.co
-sc-domain:croneri.co.uk
 sc-domain:cronertaxwise.com
 sc-domain:employeradvice.org
 sc-domain:myviptaxteam.com
