@@ -184,6 +184,32 @@ def create_html_report(site_url, start_date, end_date, df_combined):
     df_ctr = df_combined['ctr'].copy()
     df_position = df_combined['position'].copy()
 
+    # --- Aggregate Calculations for Charts ---
+    months = df_clicks.columns.tolist()
+    
+    # Calculate totals/averages across all pages for each month
+    total_clicks = df_clicks.sum().tolist()
+    total_impressions = df_impressions.sum().tolist()
+    
+    # For CTR, it's better to do total clicks / total impressions for the group
+    group_ctr = (df_clicks.sum() / df_impressions.sum()).fillna(0).tolist()
+    
+    # For Position, we average the non-zero positions
+    group_position = df_position.replace(0, pd.NA).mean().fillna(0).tolist()
+    
+    # Active page count (pages with at least 1 click or impression)
+    active_pages = ((df_clicks > 0) | (df_impressions > 0)).sum().tolist()
+
+    import json
+    chart_labels = json.dumps(months)
+    chart_data = {
+        'clicks': json.dumps(total_clicks),
+        'impressions': json.dumps(total_impressions),
+        'ctr': json.dumps(group_ctr),
+        'position': json.dumps(group_position),
+        'active_pages': json.dumps(active_pages)
+    }
+
     def format_df_for_html(df, metric_name):
         """Formats a dataframe for HTML output with custom header and metric-specific formatting."""
         df_html = df.copy()
@@ -194,7 +220,7 @@ def create_html_report(site_url, start_date, end_date, df_combined):
                 if metric_name == "CTR Over Time":
                     df_html[col] = df_html[col].apply(lambda x: f"{x:.2%}" if pd.notna(x) else "0.00%")
                 elif metric_name == "Average Position Over Time":
-                    df_html[col] = df_html[col].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "0.00")
+                    df_html[col] = df_html[col].apply(lambda x: f"{x:.2f}" if pd.notna(x) and x > 0 else "0.00")
                 else: # Clicks and Impressions
                     df_html[col] = df_html[col].apply(lambda x: f"{int(x):,}" if pd.notna(x) else "0")
         
@@ -230,32 +256,26 @@ def create_html_report(site_url, start_date, end_date, df_combined):
 </div>
 """
 
-
-    # Generate custom HTML for Clicks table
+    # Generate custom HTML for tables
     clicks_table_html = format_df_for_html(df_clicks, "Clicks Over Time")
-
-    # Generate custom HTML for Impressions table
     impressions_table_html = format_df_for_html(df_impressions, "Impressions Over Time")
-    
-    # Generate custom HTML for CTR table
     ctr_table_html = format_df_for_html(df_ctr, "CTR Over Time")
-
-    # Generate custom HTML for Average Position table
     position_table_html = format_df_for_html(df_position, "Average Position Over Time")
     
     return f"""
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{report_title}</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 body {{ padding-top: 56px; }}
 h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem; }}
 .table-responsive {{ max-height: 600px; }}
-.table thead th {{ text-align: center; }} /* Center align all header cells */
-.table thead th:first-child {{ text-align: left; }} /* Left align the first header cell (Page) */
-.table tbody td:first-child {{ text-align: left; }} /* Left align the first data cell (Page URL) */
+.table thead th {{ text-align: center; }}
+.table thead th:first-child {{ text-align: left; }}
+.table tbody td:first-child {{ text-align: left; }}
 
 .table-container {{
-    max-height: 400px; /* Adjust as needed */
+    max-height: 400px;
     overflow-y: auto;
     position: relative;
     border: 1px solid #dee2e6;
@@ -269,9 +289,22 @@ h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem;
 .table-container thead th {{
     position: sticky;
     top: 0;
-    background-color: #f8f9fa; /* Bootstrap's default table head background */
+    background-color: #f8f9fa;
     z-index: 10;
     box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+}}
+.chart-container {{
+    position: relative;
+    height: 300px;
+    width: 100%;
+    margin-bottom: 2rem;
+}}
+.guide-section {{
+    background-color: #f8f9fa;
+    border-left: 4px solid #0d6efd;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border-radius: 0 0.25rem 0.25rem 0;
 }}
 </style></head>
 <body>
@@ -287,23 +320,163 @@ h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem;
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../../resources/index.html">Resources</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">GitHub</a>
-                    </li>
+                    <li class="nav-item"><a class="nav-link" href="../../resources/index.html">Resources</a></li>
+                    <li class="nav-item"><a class="nav-link" href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">GitHub</a></li>
                 </ul>
             </div>
         </div>
     </header>
     <main class="container-fluid py-4 flex-grow-1">
-        <p>This report tracks the top 100 pages based on clicks from the initial month's data.</p>
+        
+        <div class="guide-section">
+            <h4>How to Read This Report</h4>
+            <p>This report provides a 16-month longitudinal view of your currently top-performing pages.</p>
+            <div class="row">
+                <div class="col-md-4">
+                    <h6><strong>1. Methodology</strong></h6>
+                    <small>We first identify the top 100 pages based on clicks from the <strong>most recent month</strong> ({end_date[:7]}). We then track those specific 100 URLs backwards through time for 15 additional months.</small>
+                </div>
+                <div class="col-md-4">
+                    <h6><strong>2. The "Active Pages" Chart</strong></h6>
+                    <small>This shows how many of your current "Top 100" actually existed or had traffic in previous months. If the line drops as you look left, it means your current top content is relatively new or only recently started ranking.</small>
+                </div>
+                <div class="col-md-4">
+                    <h6><strong>3. Aggregate Trends</strong></h6>
+                    <small>The Clicks, Impressions, and CTR charts show the <strong>sum</strong> or <strong>weighted average</strong> of all 100 pages combined. It helps you see if your "Core Content" is gaining or losing momentum as a group.</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Total Clicks & Impressions</h5>
+                        <p class="card-text"><small class="text-muted">Combined volume for all 100 pages. Useful for identifying seasonal trends or site-wide impact.</small></p>
+                        <div class="chart-container"><canvas id="clicksImpressionsChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Average CTR & Position</h5>
+                        <p class="card-text"><small class="text-muted">Weighted CTR (Total Clicks/Total Impressions) and mean Position (0 values excluded). Higher is better for both.</small></p>
+                        <div class="chart-container"><canvas id="ctrPositionChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Active Pages Count</h5>
+                        <p class="card-text"><small class="text-muted">Number of the top 100 pages that had >0 impressions in that month. A declining line indicates newer content.</small></p>
+                        <div class="chart-container"><canvas id="pagesChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2>Detailed Page Performance Data</h2>
+        <p class="text-muted mb-4">The tables below provide the raw monthly data for each of the 100 pages, sorted by recent performance.</p>
+        
         <div class="mb-5">{clicks_table_html}</div>
         <div class="mb-5">{impressions_table_html}</div>
         <div class="mb-5">{ctr_table_html}</div>
         <div class="mb-5">{position_table_html}</div>
     </main>
+
+    <script>
+        const labels = {chart_labels};
+        const ctx1 = document.getElementById('clicksImpressionsChart').getContext('2d');
+        new Chart(ctx1, {{
+            type: 'line',
+            data: {{
+                labels: labels,
+                datasets: [
+                    {{
+                        label: 'Total Clicks',
+                        data: {chart_data['clicks']},
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1,
+                        yAxisID: 'y'
+                    }},
+                    {{
+                        label: 'Total Impressions',
+                        data: {chart_data['impressions']},
+                        borderColor: 'rgb(255, 99, 132)',
+                        tension: 0.1,
+                        yAxisID: 'y1'
+                    }}
+                ]
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {{
+                    y: {{ type: 'linear', display: true, position: 'left', title: {{ display: true, text: 'Clicks' }} }},
+                    y1: {{ type: 'linear', display: true, position: 'right', grid: {{ drawOnChartArea: false }}, title: {{ display: true, text: 'Impressions' }} }}
+                }}
+            }}
+        }});
+
+        const ctx2 = document.getElementById('ctrPositionChart').getContext('2d');
+        new Chart(ctx2, {{
+            type: 'line',
+            data: {{
+                labels: labels,
+                datasets: [
+                    {{
+                        label: 'Average CTR (%)',
+                        data: {chart_data['ctr']}.map(v => v * 100),
+                        borderColor: 'rgb(54, 162, 235)',
+                        tension: 0.1,
+                        yAxisID: 'y'
+                    }},
+                    {{
+                        label: 'Average Position',
+                        data: {chart_data['position']},
+                        borderColor: 'rgb(255, 205, 86)',
+                        tension: 0.1,
+                        yAxisID: 'y1'
+                    }}
+                ]
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {{
+                    y: {{ type: 'linear', display: true, position: 'left', title: {{ display: true, text: 'CTR (%)' }} }},
+                    y1: {{ type: 'linear', display: true, position: 'right', reverse: true, grid: {{ drawOnChartArea: false }}, title: {{ display: true, text: 'Avg. Position' }} }}
+                }}
+            }}
+        }});
+
+        const ctx3 = document.getElementById('pagesChart').getContext('2d');
+        new Chart(ctx3, {{
+            type: 'line',
+            data: {{
+                labels: labels,
+                datasets: [{{
+                    label: 'Active Pages',
+                    data: {chart_data['active_pages']},
+                    borderColor: 'rgb(153, 102, 255)',
+                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                    fill: true,
+                    tension: 0.1
+                }}]
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {{
+                    y: {{ beginAtZero: true, title: {{ display: true, text: 'Count of Pages' }} }}
+                }}
+            }}
+        }});
+    </script>
     <footer class="footer mt-auto py-3 bg-light">
         <div class="container text-center">
             <span class="text-muted">Report generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</span>

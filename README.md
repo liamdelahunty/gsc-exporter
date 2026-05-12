@@ -24,6 +24,7 @@ This repository contains a collection of Python scripts designed to connect to t
 | `generate_gsc_wrapped.py` | Creates a fun, "Spotify Wrapped"-style annual summary of your site's GSC performance. |
 | `run_for_sites.py` | A utility script to run any of the above analysis scripts for a custom list of sites. |
 | `run_all_reports_for_site.py` | A composite script to run all primary, monthly useful analysis reports for a single domain. |
+| `run-monthly-reports.py` | Runs a suite of reports for the last calendar month for multiple sites defined in a text file. |
 | `run_wrapped_for_all_properties.py` | A utility script to automate running the `generate_gsc_wrapped.py` script for every site you have access to. |
 | `consolidated-traffic-report.py` | Generates a consolidated report of Web, Discover, and News performance over 16 months. |
 | `monthly-search-type-performance-report.py` | Generates a monthly Google Search Console performance report by search type (web, discover, Google News, image, video, news) for a given site. |
@@ -682,6 +683,39 @@ The `<site_url>` is the full URL of the site property (e.g., `https://www.exampl
 To run all reports for `https://www.example.com` for the last complete month:
 ```bash
 python run_all_reports_for_site.py https://www.example.com --last-month
+```
+
+
+---
+
+## run-monthly-reports.py
+
+Runs a suite of Google Search Console reports for the last calendar month for multiple sites defined in a text file.
+
+This script automates the generation of various GSC reports for a group of sites defined in a text file. It intelligently identifies which reports support the `--last-month` flag and applies it automatically.
+
+### Usage
+
+```bash
+python run-monthly-reports.py --sites-file <path_to_sites.txt> [options]
+```
+
+### Options
+
+*   `--sites-file <path>`: (Required) Path to a text file containing a list of site URLs, one per line.
+*   `--reports-file <path>`: (Optional) Path to a text file containing a list of report script names to run, one per line. If omitted, it defaults to a comprehensive set of monthly useful reports.
+*   `--dry-run`: (Optional) Prints the commands that would be executed without actually running them.
+
+### Example
+
+To run all monthly reports for sites listed in `site-lists/sites.txt`:
+```bash
+python run-monthly-reports.py --sites-file site-lists/sites.txt
+```
+
+To run a custom list of reports (e.g., from `report-lists/all-reports.txt`) for those sites:
+```bash
+python run-monthly-reports.py --sites-file site-lists/sites.txt --reports-file report-lists/all-reports.txt
 ```
 
 
