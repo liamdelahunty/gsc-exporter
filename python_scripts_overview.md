@@ -23,6 +23,7 @@ These scripts generate detailed reports (HTML and CSV) for single sites or all p
 *   **`page-performance-single-page.py`**: Tracks the performance of a specific URL over the last 16 months.
 *   **`gsc-pages-queries.py`**: Explores the relationship between specific queries and the pages they lead to.
 *   **`page-level-report.py`**: Generates a page-level report with unique query counts for each URL.
+*   **`seasonal-performance-report.py`**: Compares page-level performance for the same month across multiple years. Useful for identifying seasonal content successes.
 *   **`image-performance-report.py`**: A specialized success report for Google Image Search, tracking queries, landing pages, and visual trends.
 *   **`url-inspection-report.py`**: Fetches detailed GSC URL inspection data for a single URL or a list.
 *   **`generate_gsc_wrapped.py`**: Creates a fun, "Spotify Wrapped"-style annual performance summary.
