@@ -150,7 +150,14 @@ def get_month_range(month_str):
 
 def create_seasonal_report_html(df, report_title, years_list):
     """Generates the HTML report for seasonal comparison."""
-    table_html = df.to_html(classes="table table-striped table-hover", index=False, border=0)
+    
+    display_df = df.copy()
+    
+    # Make URLs clickable and open in new window
+    if 'page' in display_df.columns:
+        display_df['page'] = display_df['page'].apply(lambda x: f'<a href="{x}" target="_blank" class="text-break">{x}</a>')
+
+    table_html = display_df.to_html(classes="table table-striped table-hover", index=False, border=0, escape=False)
     
     return f"""
 <!DOCTYPE html>
@@ -164,6 +171,8 @@ def create_seasonal_report_html(df, report_title, years_list):
         body {{ padding: 2rem; }}
         h1 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem; }}
         .table thead th {{ background-color: #434343; color: #ffffff; text-align: left; }}
+        .table td {{ word-wrap: break-word; min-width: 100px; max-width: 400px; }}
+        .text-break {{ word-break: break-all !important; }}
         footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
     </style>
 </head>
@@ -206,7 +215,6 @@ def main():
     output_dir = os.path.join('output', host_dir, 'seasonal')
     os.makedirs(output_dir, exist_ok=True)
 
-    # Path to common cache
     global_cache_dir = os.path.join('cache', 'page-data', host_dir)
     os.makedirs(global_cache_dir, exist_ok=True)
 
@@ -221,12 +229,10 @@ def main():
         cache_file = os.path.join(global_cache_dir, f'{year_str}.csv')
         df_year = None
         
-        # 1. Check common cache
         if os.path.exists(cache_file):
             print(f"Using cache for {year_str}")
             df_year = pd.read_csv(cache_file)
         else:
-            # 2. Check output folder reports
             site_output_dir = os.path.join('output', host_dir)
             pattern = os.path.join(site_output_dir, f"page-level-report-*-{start_date}-to-{end_date}.csv")
             matching_files = glob.glob(pattern)
@@ -235,10 +241,8 @@ def main():
                 df_year = pd.read_csv(matching_files[0])
                 if 'page' not in df_year.columns and 'Page' in df_year.columns:
                     df_year = df_year.rename(columns={'Page': 'page'})
-                # Save to cache
                 df_year[['page', 'clicks', 'impressions', 'ctr', 'position']].to_csv(cache_file, index=False)
             
-            # 3. Fetch from GSC if within 16 months
             if df_year is None:
                 sixteen_months_ago = date.today() - relativedelta(months=16)
                 if year_dt.date() >= sixteen_months_ago:

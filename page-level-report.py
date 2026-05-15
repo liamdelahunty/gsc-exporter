@@ -86,7 +86,7 @@ def get_latest_available_gsc_date(service, site_url, max_retries=5):
             request = {
                 'startDate': check_date_str,
                 'endDate': check_date_str,
-                'dimensions': ['date'], # Only need to check for any data
+                'dimensions': ['date'], 
                 'rowLimit': 1,
                 'startRow': 0
             }
@@ -98,7 +98,6 @@ def get_latest_available_gsc_date(service, site_url, max_retries=5):
             else:
                 print(f"No data for {check_date_str}, checking previous day.")
         except HttpError as e:
-            # GSC returns 400 if date range is too recent (no data yet)
             if e.resp.status == 400:
                 print(f"No data for {check_date_str}, checking previous day (HTTP 400).")
             else:
@@ -109,14 +108,14 @@ def get_latest_available_gsc_date(service, site_url, max_retries=5):
             print("Continuing to check previous days.")
             
     print(f"Could not determine latest available GSC date within {max_retries} days. Using today's date as a fallback.")
-    return current_date # Fallback to today if no data found after retries
+    return current_date 
 
 
 def get_gsc_data(service, site_url, start_date, end_date, dimensions, search_type='web'):
     """Fetches performance data from GSC with pagination and retries."""
     all_data = []
     start_row = 0
-    row_limit = 10000 # Reduced for better stability
+    row_limit = 10000 
     
     print(f"Fetching {search_type} data for dimensions: {', '.join(dimensions)}...")
 
@@ -144,19 +143,18 @@ def get_gsc_data(service, site_url, start_date, end_date, dimensions, search_typ
                 else:
                     break
                 success = True
-                break # Break attempt loop
+                break 
             except (socket.timeout, TimeoutError):
                 print(f"  - Timeout on attempt {attempt + 1} for {dimensions}, retrying...")
                 time.sleep(5 * (attempt + 1))
             except HttpError as e:
                 print(f"  - An HTTP error occurred: {e}")
-                break # Break attempt loop on other errors
+                break 
         
         if not success and attempt == 2:
             print(f"  - Failed to fetch data for {dimensions} after 3 attempts.")
             break
             
-        # Check if we should continue outer loop
         if 'rows' not in response or len(response['rows']) < row_limit:
             break
             
@@ -178,35 +176,22 @@ def create_html_report(df, report_title, period_str, summary_data, limit=None, t
 
     df_html = df.copy()
 
-
-    # --- Robust Pre-format numeric columns to strings for HTML display ---
-    # Ensure all columns are truly numeric before formatting
-    # Clicks and Impressions as integers
     df_html['clicks'] = pd.to_numeric(df_html['clicks'], errors='coerce').fillna(0).astype(int)
     df_html['impressions'] = pd.to_numeric(df_html['impressions'], errors='coerce').fillna(0).astype(int)
-    
-    # CTR and Position as floats
     df_html['ctr'] = pd.to_numeric(df_html['ctr'], errors='coerce').fillna(0.0)
     df_html['position'] = pd.to_numeric(df_html['position'], errors='coerce').fillna(0.0)
     
-    # Query # as float, then to int for display
     if 'Query #' in df_html.columns:
-        df_html['Query #'] = pd.to_numeric(df_html['Query #'], errors='coerce').fillna(0) # Keep as float for now, convert to int during formatting
+        df_html['Query #'] = pd.to_numeric(df_html['Query #'], errors='coerce').fillna(0) 
 
-    # Now apply string formatting
-    df_html['clicks'] = df_html['clicks'].apply(lambda x: f"{x:,}") # Already int
-    df_html['impressions'] = df_html['impressions'].apply(lambda x: f"{x:,}") # Already int
-    df_html['ctr'] = df_html['ctr'].apply(lambda x: f"{x:.2%}") # Already float
-    
-    if search_type != 'discover':
-        df_html['position'] = df_html['position'].apply(lambda x: f"{x:.2f}") # Already float
-    else:
-        df_html['position'] = df_html['position'].apply(lambda x: f"{x:.2f}") # Already float
+    df_html['clicks'] = df_html['clicks'].apply(lambda x: f"{x:,}") 
+    df_html['impressions'] = df_html['impressions'].apply(lambda x: f"{x:,}") 
+    df_html['ctr'] = df_html['ctr'].apply(lambda x: f"{x:.2%}") 
+    df_html['position'] = df_html['position'].apply(lambda x: f"{x:.2f}") 
 
     if 'Query #' in df_html.columns:
         df_html['Query #'] = df_html['Query #'].apply(lambda x: f"{int(x):,}" if pd.notna(x) else "0")
 
-    # --- Truncation Alert ---
     truncation_alert_html = ""
     if limit is not None and total_rows is not None and total_rows > limit:
         truncation_alert_html = f"""
@@ -216,9 +201,6 @@ def create_html_report(df, report_title, period_str, summary_data, limit=None, t
         </div>
         """
 
-    # Manual HTML table generation using divs and bootstrap grid
-    
-    # --- Build table header ---
     header_cols_html = []
     header_cols_html.append('<div class="col-6">Page</div>')
     
@@ -230,24 +212,23 @@ def create_html_report(df, report_title, period_str, summary_data, limit=None, t
         header_cols_html.append('<div class="col-1 text-end">Clicks</div>')
         header_cols_html.append('<div class="col-1 text-end">Impressions</div>')
         header_cols_html.append('<div class="col-1 text-end">CTR</div>')
-        header_cols_html.append('<div class="col-1 text-end">Position</div>')
+        header_cols_html.append('<div class="col-1 text-end">Pos</div>')
         header_cols_html.append('<div class="col-2 text-end">Query #</div>')
 
     table_header = f"""
-<div class="container">
-  <div class="row fw-bold py-2 bg-dark text-white">
+<div class="container-fluid px-4">
+  <div class="row fw-bold py-2 bg-dark text-white rounded-top">
     {''.join(header_cols_html)}
   </div>
 """
 
-    # --- Build table body ---
     table_body = ""
     for i, row in df_html.iterrows():
         bg_class = "bg-light" if i % 2 == 0 else ""
         row_cols_html = []
         
         page_url = row["page"]
-        row_cols_html.append(f'<div class="col-6" style="word-wrap: break-word; overflow-wrap: break-word;"><a href="{page_url}" target="_blank">{page_url}</a></div>')
+        row_cols_html.append(f'<div class="col-6" style="word-wrap: break-word; overflow-wrap: break-word;"><a href="{page_url}" target="_blank" class="text-break">{page_url}</a></div>')
 
         if search_type == 'discover':
             row_cols_html.append(f'<div class="col-2 text-end">{row["clicks"]}</div>')
@@ -258,11 +239,10 @@ def create_html_report(df, report_title, period_str, summary_data, limit=None, t
             row_cols_html.append(f'<div class="col-1 text-end">{row["impressions"]}</div>')
             row_cols_html.append(f'<div class="col-1 text-end">{row["ctr"]}</div>')
             row_cols_html.append(f'<div class="col-1 text-end">{row["position"]}</div>')
-            # Check if 'Query #' exists before formatting, in case it was dropped or not fetched
             if 'Query #' in row:
                 row_cols_html.append(f'<div class="col-2 text-end">{row["Query #"]}</div>')
             else:
-                row_cols_html.append(f'<div class="col-2 text-end">0</div>') # Default to 0 or N/A
+                row_cols_html.append(f'<div class="col-2 text-end">0</div>') 
 
         table_body += f"""
   <div class="row py-2 border-bottom {bg_class}">
@@ -270,21 +250,13 @@ def create_html_report(df, report_title, period_str, summary_data, limit=None, t
   </div>
 """
 
-    report_body = table_header + table_body + '</div>'
+    report_body_content = table_header + table_body + '</div>'
 
     summary_html = "<h2 class='mt-5'>Overall Summary</h2><table class='table table-bordered' style='max-width: 500px;'>"
     for key, value in summary_data.items():
         summary_html += f"<tr><th style='width: 50%;'>{key}</th><td>{value}</td></tr>"
     summary_html += "</table>"
-
-    report_body_content = table_header + table_body + '</div>'
-
-    summary_html = "<h2 class='mt-5'>Overall Summary</h1><table class='table table-bordered' style='max-width: 500px;'>"
-    for key, value in summary_data.items():
-        summary_html += f"<tr><th style='width: 50%;'>{key}</th><td>{value}</td></tr>"
-    summary_html += "</table>"
     
-    # Combined main content
     main_content_html = f"""
         <div class="container-fluid">
             <p class="text-muted">Analysis for the period: {period_str}</p>
@@ -303,22 +275,18 @@ def create_html_report(df, report_title, period_str, summary_data, limit=None, t
     <title>{report_title}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {{ padding-top: 56px; }} /* Offset for fixed header */
-        h1 {{ padding-bottom: .5rem; }}
-        h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem; }} /* Added h2 style */
-        .table-responsive {{ margin-top: 20px; }} /* Added from url-inspection-report.py */
-        footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }} /* Retained from page-level-report.py */
+        body {{ padding: 2rem; background-color: #f8f9fa; }}
+        h1 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; }}
+        h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem; }}
+        .text-break {{ word-break: break-all !important; }}
+        footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
     </style>
 </head>
 <body>
-    <header class="navbar navbar-expand-lg navbar-light bg-light border-bottom mb-4 fixed-top">
-        <div class="container-fluid">
-            <h1 class="h3 mb-0">{report_title}</h1>
-        </div>
-    </header>
-    <main class="container-fluid py-4 flex-grow-1">
+    <div class="container-fluid">
+        <h1>{report_title}</h1>
         {main_content_html}
-    </main>
+    </div>
     <footer class="footer mt-auto py-3 bg-light">
         <div class="container text-center">
             <span class="text-muted">Report generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}. <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></span>
@@ -361,7 +329,6 @@ def main():
     args = parser.parse_args()
     site_url = args.site_url
 
-    # Set default date range if none is chosen
     if not any([
         args.start_date, args.last_24_hours, args.last_7_days, args.last_28_days,
         args.last_month, args.last_quarter, args.last_3_months,
@@ -369,7 +336,6 @@ def main():
     ]):
         args.last_month = True
 
-    # Authenticate GSC service once
     service = get_gsc_service()
     if not service:
         return
@@ -422,7 +388,6 @@ def main():
         end_date = latest_available_date.strftime('%Y-%m-%d')
         period_label = "last-16-months"
     
-    # Define output paths
     if site_url.startswith('sc-domain:'):
         host_plain = site_url.replace('sc-domain:', '')
     else:
@@ -434,47 +399,36 @@ def main():
     host_for_filename = host_dir.replace('.', '-')
 
     filename_suffix = "-no-query" if args.strip_query_strings else ""
-    # Generate a more descriptive filename suffix if search_type is not 'web'
     search_type_suffix = f"-{args.search_type}" if args.search_type != 'web' else ""
     file_prefix = f"page-level-report-{host_for_filename}{search_type_suffix}-{start_date}-to-{end_date}{filename_suffix}"
     csv_output_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_output_path = os.path.join(output_dir, f"{file_prefix}.html")
 
     page_level_data = None
-    summary_data = None
-    df_page_query = pd.DataFrame() # Initialize df_page_query here
+    df_page_query = pd.DataFrame() 
 
     if args.use_cache and os.path.exists(csv_output_path):
         print(f"Found cached data at {csv_output_path}. Using it to generate report.")
         page_level_data = pd.read_csv(csv_output_path)
-        # Manually convert 'Query #' column back to integer if it exists
         if 'Query #' in page_level_data.columns:
              page_level_data.rename(columns={'Query #': 'query_count'}, inplace=True)
 
     if page_level_data is None:
         print(f"Using date range: {start_date} to {end_date}")
 
-        # Fetch page-level data (unsampled)
         df_pages = get_gsc_data(service, site_url, start_date, end_date, ['page'], args.search_type)
         if df_pages.empty:
             print("No page data found for the specified period. Exiting.")
             return
             
-        # Handle 'position' column for discover search type, as it's not present in Discover data
         if args.search_type == 'discover':
-            df_pages['position'] = 0.0 # Discover data does not have a 'position'
+            df_pages['position'] = 0.0 
 
-            
-        # Fetch page-query data (potentially sampled) to get query counts
         if args.search_type == 'discover':
-            # For 'discover' search type, queries are not relevant, so we don't fetch page-query data.
-            # This avoids the "Request contains an invalid argument." error.
             df_page_query = pd.DataFrame()
         else:
-            # Fetch page-query data (potentially sampled) to get query counts
             df_page_query = get_gsc_data(service, site_url, start_date, end_date, ['page', 'query'], args.search_type)
         
-        # Strip query strings if the flag is set
         if args.strip_query_strings:
             print("Stripping query strings from page URLs...")
             df_pages['page'] = df_pages['page'].str.split('?').str[0]
@@ -490,7 +444,6 @@ def main():
             df_pages['position'] = df_pages.apply(lambda row: row['impression_weighted_position'] / row['impressions'] if row['impressions'] > 0 else 0, axis=1)
             df_pages.drop(columns=['impression_weighted_position'], inplace=True)
 
-        # Calculate query counts from the page-query data
         if df_page_query is not None and not df_page_query.empty:
             query_counts = df_page_query.groupby('page')['query'].nunique().reset_index()
             query_counts.rename(columns={'query': 'query_count'}, inplace=True)
@@ -500,16 +453,12 @@ def main():
             print("Warning: Could not retrieve page-query data. 'Query #' column will be 0.")
             df_pages['query_count'] = 0
 
-        # Finalize the report dataframe
         page_level_data = df_pages[['page', 'clicks', 'impressions', 'ctr', 'position', 'query_count']].copy()
         page_level_data = page_level_data.sort_values(by='clicks', ascending=False)
         
-        # Save CSV
         page_level_data.to_csv(csv_output_path, index=False, encoding='utf-8')
         print(f"\nSuccessfully exported page-level data to {csv_output_path}")
-        print(f"Hint: To recreate this report from the saved data, use the --use-cache flag.")
 
-    # Always calculate summary data from the page_level_data dataframe
     total_pages = len(page_level_data)
     total_clicks = page_level_data['clicks'].sum()
     total_impressions = page_level_data['impressions'].sum()
@@ -517,7 +466,6 @@ def main():
     total_impression_weighted_position = (page_level_data['impressions'] * page_level_data['position']).sum()
     avg_position = total_impression_weighted_position / total_impressions if total_impressions > 0 else 0
     
-    # Total unique queries cannot be determined from the cached file, so handle this case
     if args.use_cache and os.path.exists(csv_output_path):
         if 'query_count' in page_level_data.columns:
             total_unique_queries_str = f"{page_level_data['query_count'].sum():,.0f}"
@@ -536,14 +484,10 @@ def main():
         "Total Unique Queries": total_unique_queries_str
     }
     
-    # Rename column for HTML report
     page_level_data.rename(columns={'query_count': 'Query #'}, inplace=True)
-    
-    # Apply limit for HTML report
     html_df = page_level_data.head(args.limit)
 
     try:
-        # Generate and save HTML report
         html_output = create_html_report(
             df=html_df,
             report_title=f"{args.search_type.capitalize()} Page-Level Report for {host_dir}",
@@ -551,7 +495,7 @@ def main():
             summary_data=summary_data,
             limit=args.limit,
             total_rows=len(page_level_data),
-            search_type=args.search_type  # Pass search_type
+            search_type=args.search_type  
         )
         with open(html_output_path, 'w', encoding='utf-8') as f:
             f.write(html_output)

@@ -154,6 +154,10 @@ def create_report_html(spikes_df, report_title, site_url, months_count):
         return f"<html><head><title>{report_title}</title></head><body><h1>{report_title}</h1><p>No spikes detected.</p></body></html>"
 
     display_df = spikes_df.copy()
+    
+    # Make URLs clickable and open in new window
+    display_df['page'] = display_df['page'].apply(lambda x: f'<a href="{x}" target="_blank" class="text-break">{x}</a>')
+    
     display_df['clicks'] = display_df['clicks'].apply(lambda x: f"{x:,}")
     display_df['impressions'] = display_df['impressions'].apply(lambda x: f"{x:,}")
     display_df['avg_clicks'] = display_df['avg_clicks'].apply(lambda x: f"{x:,.2f}")
@@ -161,7 +165,7 @@ def create_report_html(spikes_df, report_title, site_url, months_count):
     display_df['clicks_z_score'] = display_df['clicks_z_score'].apply(lambda x: f"{x:.2f}" if not pd.isna(x) else "N/A")
     display_df['impressions_z_score'] = display_df['impressions_z_score'].apply(lambda x: f"{x:.2f}" if not pd.isna(x) else "N/A")
 
-    table_html = display_df.to_html(classes="table table-striped table-hover", index=False, border=0)
+    table_html = display_df.to_html(classes="table table-striped table-hover", index=False, border=0, escape=False)
     
     return f"""
 <!DOCTYPE html>
@@ -175,6 +179,8 @@ def create_report_html(spikes_df, report_title, site_url, months_count):
         body {{ padding: 2rem; }}
         h1 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-bottom: 1rem; }}
         .table thead th {{ background-color: #434343; color: #ffffff; text-align: left; }}
+        .table td {{ word-wrap: break-word; min-width: 100px; max-width: 400px; }}
+        .text-break {{ word-break: break-all !important; }}
         footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
     </style>
 </head>
@@ -232,17 +238,14 @@ def main():
         if os.path.exists(cache_file):
             df_month = pd.read_csv(cache_file)
         else:
-            # Check for existing page-level report in output folder
             site_output_dir = os.path.join('output', host_dir)
             pattern = os.path.join(site_output_dir, f"page-level-report-*-{start_date}-to-{end_date}.csv")
             matching_files = glob.glob(pattern)
             if matching_files:
                 print(f"Found existing report for {month_str}: {matching_files[0]}")
                 df_month = pd.read_csv(matching_files[0])
-                # Ensure column names match
                 if 'page' not in df_month.columns and 'Page' in df_month.columns:
                     df_month = df_month.rename(columns={'Page': 'page'})
-                # Save to cache for next time
                 df_month[['page', 'clicks', 'impressions']].to_csv(cache_file, index=False)
             elif month_dt >= sixteen_months_ago:
                 print(f"Fetching data for {month_str}...")
@@ -254,7 +257,6 @@ def main():
             
         if df_month is not None:
             df_month['month'] = month_str
-            # Ensure we only have needed columns
             df_month = df_month[['month', 'page', 'clicks', 'impressions']]
             all_data_frames.append(df_month)
 
