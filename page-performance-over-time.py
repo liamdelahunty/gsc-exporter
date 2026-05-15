@@ -1,15 +1,21 @@
 """
-Generates a report showing the performance of top pages over the last 16 months.
+Tracks the performance of top pages over the last 16 months.
 
-This script identifies the top 250 pages from the last complete calendar month
-and then fetches their performance data for each of the last 16 complete months
-to show trends over time.
+This script identifies the top pages for the last complete calendar month and then 
+fetches the performance metrics for those pages for each month over the 
+available historical period (up to 16 months). It generates a CSV and an HTML 
+report with interactive line charts using Chart.js.
 
 Usage:
-    python page-performance-over-time.py <site_url>
+    python page-performance-over-time.py <site_url> [--limit <number_of_pages>]
+
+Example:
+    python page-performance-over-time.py https://www.example.com --limit 50
 """
 import os
 import pandas as pd
+import time
+import socket
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -20,8 +26,10 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from urllib.parse import urlparse
 import argparse
-import re
-import time
+import json
+
+# Set global timeout for API requests
+socket.setdefaulttimeout(300)
 
 # --- Configuration ---
 SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
@@ -35,644 +43,279 @@ def get_gsc_service():
         try:
             creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
         except Exception as e:
-            print(f"Could not load credentials from {TOKEN_FILE}. Error: {e}")
-            print("Will attempt to re-authenticate.")
+            print(f"Could not load credentials: {e}")
             creds = None
 
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             try:
                 creds.refresh(Request())
-            except exceptions.RefreshError as e:
-                print(f"Error refreshing token: {e}")
-                print("The refresh token is expired or revoked. Deleting it and re-authenticating.")
+            except exceptions.RefreshError:
                 if os.path.exists(TOKEN_FILE):
                     os.remove(TOKEN_FILE)
                 creds = None
         
         if not creds:
             if not os.path.exists(CLIENT_SECRET_FILE):
-                print(f"Error: {CLIENT_SECRET_FILE} not found. Please follow setup instructions in README.md.")
+                print(f"Error: {CLIENT_SECRET_FILE} not found.")
                 return None
-            
-            print("A browser window will open for you to authorize access.")
             flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
             creds = flow.run_local_server(port=0)
         
         with open(TOKEN_FILE, 'w') as token:
             token.write(creds.to_json())
-            print("Authentication successful. Credentials saved.")
 
     return build('webmasters', 'v3', credentials=creds)
 
-def get_latest_available_gsc_date(service, site_url, max_retries=5):
-    """
-    Determines the latest date for which GSC data is available by querying
-    backwards from today.
-    """
+def get_latest_available_gsc_date(service, site_url):
+    """Determines the latest date for which GSC data is available."""
     current_date = date.today()
-    for i in range(max_retries):
+    for i in range(5):
         check_date = current_date - timedelta(days=i)
         check_date_str = check_date.strftime('%Y-%m-%d')
-        
-        print(f"Checking for GSC data availability on: {check_date_str}...")
         try:
-            request = {
-                'startDate': check_date_str,
-                'endDate': check_date_str,
-                'dimensions': ['date'], # Only need to check for any data
-                'rowLimit': 1,
-                'startRow': 0
-            }
+            request = {'startDate': check_date_str, 'endDate': check_date_str, 'dimensions': ['date'], 'rowLimit': 1}
             response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
-            
             if 'rows' in response and response['rows']:
-                print(f"Latest available GSC data found for: {check_date_str}")
                 return check_date
-            else:
-                print(f"No data for {check_date_str}, checking previous day.")
-        except HttpError as e:
-            if e.resp.status == 400:
-                print(f"No data for {check_date_str}, checking previous day (HTTP 400).")
-            else:
-                print(f"An HTTP error occurred while checking date {check_date_str}: {e}")
-        except Exception as e:
-            print(f"An unexpected error occurred while checking date {check_date_str}: {e}")
-            
-    print(f"Could not determine latest available GSC date within {max_retries} days. Using today's date as a fallback.")
+        except HttpError:
+            pass
     return current_date
 
-def get_gsc_data(service, site_url, start_date, end_date, dimensions, filters=None):
-    """Fetches performance data from GSC for a given date range and dimensions."""
+def fetch_gsc_data(service, site_url, start_date, end_date, dimensions, filters=None):
+    """Fetches performance data from GSC with retries and pagination."""
     all_data = []
     start_row = 0
-    row_limit = 25000 
+    row_limit = 10000 
     
-    print(f"Fetching data for dimensions: {', '.join(dimensions)} from {start_date} to {end_date}...")
-
     request_body = {
         'startDate': start_date,
         'endDate': end_date,
         'dimensions': dimensions,
-        'rowLimit': row_limit,
-        'startRow': start_row
+        'rowLimit': row_limit
     }
-
     if filters:
         request_body['dimensionFilterGroups'] = [{'filters': filters}]
 
-    # Initialize retry mechanism variables
-    retries = 0
-    max_retries = 5
-    
     while True:
-        try:
-            request_body['startRow'] = start_row
-            response = service.searchanalytics().query(siteUrl=site_url, body=request_body).execute()
-
-            if 'rows' in response:
-                rows = response['rows']
-                all_data.extend(rows)
-                print(f"Retrieved {len(rows)} rows... (Total: {len(all_data)})")
-                if len(rows) < row_limit:
-                    break 
-                start_row += row_limit
-            else:
+        success = False
+        for attempt in range(3):
+            try:
+                request_body['startRow'] = start_row
+                response = service.searchanalytics().query(siteUrl=site_url, body=request_body).execute()
+                
+                if 'rows' in response:
+                    rows = response['rows']
+                    all_data.extend(rows)
+                    if len(rows) < row_limit:
+                        break
+                    start_row += row_limit
+                else:
+                    break
+                success = True
                 break
-            # Reset retries on successful response
-            retries = 0
-        except HttpError as e:
-            if e.resp.status == 500 and retries < max_retries:
-                retries += 1
-                sleep_time = 2 ** retries  # Exponential backoff
-                print(f"An HTTP 500 error occurred. Retrying in {sleep_time} seconds (Attempt {retries}/{max_retries})...")
-                time.sleep(sleep_time)
-                continue  # Continue the while loop to retry the request
-            else:
-                print(f"An HTTP error occurred: {e}")
-                return None
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
-            return None
+            except (socket.timeout, TimeoutError):
+                print(f"  - Timeout on attempt {attempt + 1}, retrying...")
+                time.sleep(5 * (attempt + 1))
+            except HttpError as e:
+                print(f"  - An HTTP error occurred: {e}")
+                break
+        
+        if not success and attempt == 2:
+            print(f"  - Failed to fetch data after 3 attempts.")
+            break
+            
+        if 'rows' not in response or len(response['rows']) < row_limit:
+            break
             
     if not all_data:
         return pd.DataFrame()
 
     df = pd.DataFrame(all_data)
-    # Ensure keys are always returned as a list, even for a single dimension
-    if isinstance(df['keys'].iloc[0], list):
-        df[dimensions] = pd.DataFrame(df['keys'].tolist(), index=df.index)
-    else:
-        df[dimensions[0]] = df['keys']
-        
+    df[dimensions] = pd.DataFrame(df['keys'].tolist(), index=df.index)
     df = df.drop(columns=['keys'])
-    
-    for col in ['clicks', 'impressions', 'ctr', 'position']:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-        
     return df
 
-def create_html_report(site_url, start_date, end_date, df_combined):
-    """Generates an HTML report from the pivoted dataframes."""
-
-    report_title = "Page Performance Over Time Report"
-
-    # Slice df_combined to get clicks, impressions, ctr, and position parts
-    df_clicks = df_combined['clicks'].copy()
-    df_impressions = df_combined['impressions'].copy()
-    df_ctr = df_combined['ctr'].copy()
-    df_position = df_combined['position'].copy()
-
-    # --- Aggregate Calculations for Charts ---
-    months = df_clicks.columns.tolist()
+def create_html_report(site_url, df, top_pages_list):
+    """Generates the HTML report with interactive charts."""
     
-    # Calculate totals/averages across all pages for each month
-    total_clicks = df_clicks.sum().tolist()
-    total_impressions = df_impressions.sum().tolist()
+    # Sort months for the chart labels
+    months = sorted(df['month'].unique())
     
-    # For CTR, it's better to do total clicks / total impressions for the group
-    group_ctr = (df_clicks.sum() / df_impressions.sum()).fillna(0).tolist()
+    # Prepare data for Chart.js
+    datasets = []
+    colors = [
+        '#4285F4', '#DB4437', '#F4B400', '#0F9D58', '#AB47BC', 
+        '#00ACC1', '#FF7043', '#9E9D24', '#5C6BC0', '#F06292'
+    ]
     
-    # For Position, we average the non-zero positions
-    group_position = df_position.replace(0, pd.NA).mean().fillna(0).tolist()
-    
-    # Active page count (pages with at least 1 click or impression)
-    active_pages = ((df_clicks > 0) | (df_impressions > 0)).sum().tolist()
-
-    import json
-    chart_labels = json.dumps(months)
-    chart_data = {
-        'clicks': json.dumps(total_clicks),
-        'impressions': json.dumps(total_impressions),
-        'ctr': json.dumps(group_ctr),
-        'position': json.dumps(group_position),
-        'active_pages': json.dumps(active_pages)
-    }
-
-    def format_df_for_html(df, metric_name):
-        """Formats a dataframe for HTML output with custom header and metric-specific formatting."""
-        df_html = df.copy()
+    for i, page in enumerate(top_pages_list):
+        page_df = df[df['page'] == page].set_index('month')
+        clicks_data = [int(page_df.loc[m, 'clicks']) if m in page_df.index else 0 for m in months]
         
-        # Format numeric columns based on metric_name
-        for col in df_html.columns:
-            if pd.api.types.is_numeric_dtype(df_html[col]):
-                if metric_name == "CTR Over Time":
-                    df_html[col] = df_html[col].apply(lambda x: f"{x:.2%}" if pd.notna(x) else "0.00%")
-                elif metric_name == "Average Position Over Time":
-                    df_html[col] = df_html[col].apply(lambda x: f"{x:.2f}" if pd.notna(x) and x > 0 else "0.00")
-                else: # Clicks and Impressions
-                    df_html[col] = df_html[col].apply(lambda x: f"{int(x):,}" if pd.notna(x) else "0")
-        
-        # Get column names (months)
-        month_columns = df_html.columns.tolist()
-        
-        # Build header row
-        header_cells = f'<th style="text-align:left; font-size:1.4em;">{metric_name}</th>' + \
-                       ''.join([f'<th>{month}</th>' for month in month_columns])
-        
-        # Build table body
-        body_rows = ''
-        # Reset index to make 'page' a regular column for easier iteration
-        df_html_reset = df_html.reset_index()
-        for _, row in df_html_reset.iterrows():
-            body_rows += '<tr>'
-            # Make page URL clickable, assuming the index is the page URL
-            body_rows += f'<td style="text-align: left;"><a href="{row["page"]}" target="_blank">{row["page"]}</a></td>'
-            for col in month_columns: # Iterate over original month columns
-                body_rows += f'<td style="text-align: center;">{row[col]}</td>'
-            body_rows += '</tr>'
-            
-        return f"""
-<div class="table-container">
-    <table class="table table-striped table-hover">
-        <thead>
-            <tr>{header_cells}</tr>
-        </thead>
-        <tbody>
-            {body_rows}
-        </tbody>
-    </table>
-</div>
-"""
+        datasets.append({
+            'label': page.replace(site_url, ''), # Shorten label
+            'data': clicks_data,
+            'borderColor': colors[i % len(colors)],
+            'backgroundColor': colors[i % len(colors)],
+            'fill': False,
+            'tension': 0.1,
+            'hidden': i >= 10 # Hide all but top 10 by default
+        })
 
-    # Generate custom HTML for tables
-    clicks_table_html = format_df_for_html(df_clicks, "Clicks Over Time")
-    impressions_table_html = format_df_for_html(df_impressions, "Impressions Over Time")
-    ctr_table_html = format_df_for_html(df_ctr, "CTR Over Time")
-    position_table_html = format_df_for_html(df_position, "Average Position Over Time")
-    
-    return f"""
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{report_title}</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-body {{ padding-top: 56px; }}
-h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 2rem; }}
-.table-responsive {{ max-height: 600px; }}
-.table thead th {{ text-align: center; }}
-.table thead th:first-child {{ text-align: left; }}
-.table tbody td:first-child {{ text-align: left; }}
+    # Prepare table data
+    table_df = df.pivot(index='page', columns='month', values='clicks').fillna(0).astype(int)
+    table_df['Total Clicks'] = table_df.sum(axis=1)
+    table_df = table_df.sort_values(by='Total Clicks', ascending=False)
+    table_html = table_df.to_html(classes="table table-striped table-hover table-sm", border=0)
 
-.table-container {{
-    max-height: 400px;
-    overflow-y: auto;
-    position: relative;
-    border: 1px solid #dee2e6;
-    border-radius: .25rem;
-}}
-
-.table-container table {{
-    margin-bottom: 0;
-}}
-
-.table-container thead th {{
-    position: sticky;
-    top: 0;
-    background-color: #f8f9fa;
-    z-index: 10;
-    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
-}}
-.chart-container {{
-    position: relative;
-    height: 300px;
-    width: 100%;
-    margin-bottom: 2rem;
-}}
-.guide-section {{
-    background-color: #f8f9fa;
-    border-left: 4px solid #0d6efd;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    border-radius: 0 0.25rem 0.25rem 0;
-}}
-</style></head>
+    html_template = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Performance Over Time: {site_url}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {{ padding: 2rem; background-color: #f8f9fa; }}
+        .card {{ border: none; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); margin-bottom: 2rem; }}
+        .table-container {{ max-height: 600px; overflow-y: auto; background: white; }}
+        footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
+    </style>
+</head>
 <body>
-    <header class="navbar navbar-expand-lg navbar-light bg-light border-bottom mb-4 fixed-top">
-        <div class="container-fluid">
-            <div class="d-flex align-items-baseline">
-                <h1 class="h3 mb-0 me-4">{report_title}</h1>
-                <span class="text-muted me-4">{site_url}</span>
-                <span class="text-muted me-4">{start_date} to {end_date}</span>
-            </div>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="../../resources/index.html">Resources</a></li>
-                    <li class="nav-item"><a class="nav-link" href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">GitHub</a></li>
-                </ul>
-            </div>
-        </div>
-    </header>
-    <main class="container-fluid py-4 flex-grow-1">
-        
-        <div class="guide-section">
-            <h4>How to Read This Report</h4>
-            <p>This report provides a 16-month longitudinal view of your currently top-performing pages.</p>
-            <div class="row">
-                <div class="col-md-4">
-                    <h6><strong>1. Methodology</strong></h6>
-                    <small>We first identify the top 100 pages based on clicks from the <strong>most recent month</strong> ({end_date[:7]}). We then track those specific 100 URLs backwards through time for 15 additional months.</small>
-                </div>
-                <div class="col-md-4">
-                    <h6><strong>2. The "Active Pages" Chart</strong></h6>
-                    <small>This shows how many of your current "Top 100" actually existed or had traffic in previous months. If the line drops as you look left, it means your current top content is relatively new or only recently started ranking.</small>
-                </div>
-                <div class="col-md-4">
-                    <h6><strong>3. Aggregate Trends</strong></h6>
-                    <small>The Clicks, Impressions, and CTR charts show the <strong>sum</strong> or <strong>weighted average</strong> of all 100 pages combined. It helps you see if your "Core Content" is gaining or losing momentum as a group.</small>
-                </div>
+    <div class="container-fluid">
+        <h1 class="mb-4">Page Performance Over Time</h1>
+        <h2 class="h4 text-muted mb-4">{site_url}</h2>
+
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Monthly Clicks for Top Pages</h5>
+                <p class="text-muted small">Top 10 pages shown by default. Click items in the legend to toggle visibility.</p>
+                <div style="height: 500px;"><canvas id="performanceChart"></canvas></div>
             </div>
         </div>
 
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title text-primary">Total Clicks & Impressions</h5>
-                        <p class="card-text"><small class="text-muted">Combined volume for all 100 pages. Useful for identifying seasonal trends or site-wide impact.</small></p>
-                        <div class="chart-container"><canvas id="clicksImpressionsChart"></canvas></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title text-primary">Average CTR & Position</h5>
-                        <p class="card-text"><small class="text-muted">Weighted CTR (Total Clicks/Total Impressions) and mean Position (0 values excluded). Higher is better for both.</small></p>
-                        <div class="chart-container"><canvas id="ctrPositionChart"></canvas></div>
-                    </div>
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Detailed Performance Table</h5>
+                <div class="table-container">
+                    {table_html}
                 </div>
             </div>
         </div>
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title text-primary">Active Pages Count</h5>
-                        <p class="card-text"><small class="text-muted">Number of the top 100 pages that had >0 impressions in that month. A declining line indicates newer content.</small></p>
-                        <div class="chart-container"><canvas id="pagesChart"></canvas></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <h2>Detailed Page Performance Data</h2>
-        <p class="text-muted mb-4">The tables below provide the raw monthly data for each of the 100 pages, sorted by recent performance.</p>
-        
-        <div class="mb-5">{clicks_table_html}</div>
-        <div class="mb-5">{impressions_table_html}</div>
-        <div class="mb-5">{ctr_table_html}</div>
-        <div class="mb-5">{position_table_html}</div>
-    </main>
+    </div>
 
     <script>
-        const labels = {chart_labels};
-        const ctx1 = document.getElementById('clicksImpressionsChart').getContext('2d');
-        new Chart(ctx1, {{
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        new Chart(ctx, {{
             type: 'line',
             data: {{
-                labels: labels,
-                datasets: [
-                    {{
-                        label: 'Total Clicks',
-                        data: {chart_data['clicks']},
-                        borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1,
-                        yAxisID: 'y'
-                    }},
-                    {{
-                        label: 'Total Impressions',
-                        data: {chart_data['impressions']},
-                        borderColor: 'rgb(255, 99, 132)',
-                        tension: 0.1,
-                        yAxisID: 'y1'
-                    }}
-                ]
+                labels: {json.dumps(months)},
+                datasets: {json.dumps(datasets)}
             }},
             options: {{
                 responsive: true,
                 maintainAspectRatio: false,
+                plugins: {{
+                    legend: {{ position: 'bottom', labels: {{ boxWidth: 12, padding: 15, font: {{ size: 11 }} }} }}
+                }},
                 scales: {{
-                    y: {{ type: 'linear', display: true, position: 'left', title: {{ display: true, text: 'Clicks' }} }},
-                    y1: {{ type: 'linear', display: true, position: 'right', grid: {{ drawOnChartArea: false }}, title: {{ display: true, text: 'Impressions' }} }}
-                }}
-            }}
-        }});
-
-        const ctx2 = document.getElementById('ctrPositionChart').getContext('2d');
-        new Chart(ctx2, {{
-            type: 'line',
-            data: {{
-                labels: labels,
-                datasets: [
-                    {{
-                        label: 'Average CTR (%)',
-                        data: {chart_data['ctr']}.map(v => v * 100),
-                        borderColor: 'rgb(54, 162, 235)',
-                        tension: 0.1,
-                        yAxisID: 'y'
-                    }},
-                    {{
-                        label: 'Average Position',
-                        data: {chart_data['position']},
-                        borderColor: 'rgb(255, 205, 86)',
-                        tension: 0.1,
-                        yAxisID: 'y1'
-                    }}
-                ]
-            }},
-            options: {{
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {{
-                    y: {{ type: 'linear', display: true, position: 'left', title: {{ display: true, text: 'CTR (%)' }} }},
-                    y1: {{ type: 'linear', display: true, position: 'right', reverse: true, grid: {{ drawOnChartArea: false }}, title: {{ display: true, text: 'Avg. Position' }} }}
-                }}
-            }}
-        }});
-
-        const ctx3 = document.getElementById('pagesChart').getContext('2d');
-        new Chart(ctx3, {{
-            type: 'line',
-            data: {{
-                labels: labels,
-                datasets: [{{
-                    label: 'Active Pages',
-                    data: {chart_data['active_pages']},
-                    borderColor: 'rgb(153, 102, 255)',
-                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
-                    fill: true,
-                    tension: 0.1
-                }}]
-            }},
-            options: {{
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {{
-                    y: {{ beginAtZero: true, title: {{ display: true, text: 'Count of Pages' }} }}
+                    y: {{ beginAtZero: True, title: {{ display: true, text: 'Clicks' }} }},
+                    x: {{ title: {{ display: true, text: 'Month' }} }}
                 }}
             }}
         }});
     </script>
-    <footer class="footer mt-auto py-3 bg-light">
-        <div class="container text-center">
-            <span class="text-muted">Report generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</span>
-        </div>
+
+    <footer>
+        <p><a href="../../resources/how-to-read-the-performance-analysis-report.html">User Guide</a> &bull; 
+        <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p>
     </footer>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body></html>
+</body>
+</html>
 """
+    return html_template
 
 def main():
-    """Main function to run the page performance over time report."""
-    parser = argparse.ArgumentParser(
-        description='Generate a report on page performance over time.',
-        epilog='Example usage:\n'
-               '  python page-performance-over-time.py https://www.example.com\n'
-               '  python page-performance-over-time.py https://www.example.com --use-cache\n\n'
-               'The --use-cache flag will use a previously downloaded CSV if available, '
-               'avoiding re-downloading data from Google Search Console.'
-    )
-    parser.add_argument('site_url', help='The URL of the site to analyse. Use sc-domain: for a domain property.')
-    parser.add_argument('--use-cache', action='store_true', help='Use a cached CSV file from a previous run if it exists.')
-    
+    parser = argparse.ArgumentParser(description='Track performance of top pages over time.')
+    parser.add_argument('site_url', help='The URL of the site to analyse.')
+    parser.add_argument('--limit', type=int, default=25, help='Number of top pages to track (default 25).')
+    parser.add_argument('--use-cache', action='store_true', help='Use cached CSV if available.')
     args = parser.parse_args()
+
     site_url = args.site_url
-
     service = get_gsc_service()
-    if not service:
-        return
+    if not service: return
 
-    latest_available_date = get_latest_available_gsc_date(service, site_url)
+    latest_date = get_latest_available_gsc_date(service, site_url)
     
-    # Calculate the fixed 16-month period from the latest_available_date
-    overall_end_date_dt = (latest_available_date.replace(day=1) - timedelta(days=1))
-    overall_start_date_dt = (overall_end_date_dt.replace(day=1) - relativedelta(months=15))
-
-    overall_start_date = overall_start_date_dt.strftime('%Y-%m-%d')
-    overall_end_date = overall_end_date_dt.strftime('%Y-%m-%d')
-
     if site_url.startswith('sc-domain:'):
         host_plain = site_url.replace('sc-domain:', '')
     else:
         host_plain = urlparse(site_url).netloc
-    
     host_dir = host_plain.replace('www.', '')
     output_dir = os.path.join('output', host_dir)
     os.makedirs(output_dir, exist_ok=True)
     host_for_filename = host_dir.replace('.', '-')
-
-    # Define the consolidated data file paths using the upfront calculated dates
-    data_file_prefix = f"page-performance-over-time-{host_for_filename}-{overall_end_date[:7]}" # Use YYYY-MM
-    data_csv_path = os.path.join(output_dir, f"{data_file_prefix}.csv")
-    data_html_path = os.path.join(output_dir, f"{data_file_prefix}.html")
     
+    csv_path = os.path.join(output_dir, f"page-performance-over-time-{host_for_filename}.csv")
+    html_path = csv_path.replace('.csv', '.html')
+
     df_combined = None
-    data_loaded_from_cache = False
-    if args.use_cache and os.path.exists(data_csv_path): # Check data_csv_path
-        print(f"Found cached data at {data_csv_path}. Using it to generate report.")
-        try:
-            df_combined = pd.read_csv(data_csv_path, header=[0,1], index_col=0)
-            data_loaded_from_cache = True
-            # Reconstruct pivot tables (as needed by create_html_report, though not explicitly used outside in this file)
-            df_pivot_clicks = df_combined['clicks']
-            df_pivot_impressions = df_combined['impressions']
-            df_pivot_ctr = df_combined['ctr']
-            df_pivot_position = df_combined['position']
-        except Exception as e:
-            print(f"Error loading cached data from {data_csv_path}: {e}. Will attempt to fetch fresh data.")
-            df_combined = None # Force fresh fetch if cache load fails
+    if args.use_cache and os.path.exists(csv_path):
+        print(f"Loading cached data from {csv_path}...")
+        df_combined = pd.read_csv(csv_path)
 
-    if df_combined is None: # Only fetch if not loaded from cache or cache failed
-        # service is already initialized at the start of main()
-        # latest_available_date is already determined at the start of main()
-        
-        # 1. Determine the date range for the last full calendar month
-        end_of_last_month = latest_available_date.replace(day=1) - timedelta(days=1)
-        start_of_last_month = end_of_last_month.replace(day=1)
-        
-        last_month_start_str = start_of_last_month.strftime('%Y-%m-%d')
-        last_month_end_str = end_of_last_month.strftime('%Y-%m-%d')
-        
-        print(f"Identifying top pages from {last_month_start_str} to {last_month_end_str}...")
-
-        # 2. Fetch data for the last full month to identify top 100 pages
-        # Fetch data for the last full month to identify top 100 pages, only requesting 'page' dimension for efficiency.
-        df_last_month = get_gsc_data(service, site_url, last_month_start_str, last_month_end_str, ['page'])
-        
-        if df_last_month.empty:
-            print("No data found for the last full month. Cannot proceed.")
-            return
-
-        # Aggregate by page to get overall clicks for sorting
-        df_last_month_aggregated = df_last_month.groupby('page').agg(
-            clicks=('clicks', 'sum'),
-            impressions=('impressions', 'sum'),
-            ctr=('ctr', 'mean'),  # Average CTR across all queries for that page
-            position=('position', 'mean') # Average position across all queries for that page
-        ).reset_index()
-
-        top_100_pages = df_last_month_aggregated.sort_values(by='clicks', ascending=False).head(100)['page'].tolist()
-        print(f"Identified {len(top_100_pages)} top pages.")
-
-        # 3. Fetch data for the last 16 full months for these top pages
-        all_monthly_data = []
-        
-        # Define batch size for pages. A smaller batch size is used to avoid
-        # creating a regex string that is too long for the GSC API, which can
-        # result in 500 errors.
-        PAGE_BATCH_SIZE = 20
-        
-        for i in range(16):
-            # Calculate start and end of each of the past 16 full months
-            month_to_fetch_end = (latest_available_date.replace(day=1) - relativedelta(months=i)) - timedelta(days=1)
-            month_to_fetch_start = month_to_fetch_end.replace(day=1)
-
-            month_start_str = month_to_fetch_start.strftime('%Y-%m-%d')
-            month_end_str = month_to_fetch_end.strftime('%Y-%m-%d')
-            
-            print(f"Fetching data for month: {month_start_str} to {month_end_str}...")
-            
-            monthly_data_for_batches = []
-            for j in range(0, len(top_100_pages), PAGE_BATCH_SIZE):
-                page_batch = top_100_pages[j:j + PAGE_BATCH_SIZE]
-                
-                # Construct a regex for filtering pages in the current batch
-                escaped_pages = [re.escape(page) for page in page_batch]
-                regex_expression = "^(" + "|".join(escaped_pages) + ")$"
-                
-                page_filter = {
-                    'dimension': 'page',
-                    'operator': 'includingRegex',
-                    'expression': regex_expression
-                }
-                
-                df_batch = get_gsc_data(service, site_url, month_start_str, month_end_str, ['page'], filters=[page_filter])
-                
-                if df_batch is not None and not df_batch.empty:
-                    monthly_data_for_batches.append(df_batch)
-            
-            if monthly_data_for_batches:
-                df_month = pd.concat(monthly_data_for_batches, ignore_index=True)
-                df_month['month'] = month_to_fetch_start.strftime('%Y-%m')
-                all_monthly_data.append(df_month)
-
-        if not all_monthly_data:
-            print("No historical data found for the top pages.")
-            return
-
-        df_historical = pd.concat(all_monthly_data, ignore_index=True)
-
-        # 4. Pivot the data to have pages as rows and monthly metrics as columns
-        df_pivot_clicks = df_historical.pivot_table(index='page', columns='month', values='clicks', aggfunc='sum').fillna(0)
-        df_pivot_impressions = df_historical.pivot_table(index='page', columns='month', values='impressions', aggfunc='sum').fillna(0)
-        df_pivot_ctr = df_historical.pivot_table(index='page', columns='month', values='ctr', aggfunc='mean').fillna(0)
-        df_pivot_position = df_historical.pivot_table(index='page', columns='month', values='position', aggfunc='mean').fillna(0)
-
-        # Sort columns by month
-        df_pivot_clicks = df_pivot_clicks.reindex(sorted(df_pivot_clicks.columns), axis=1) # Sort ascending for correct date range
-        df_pivot_impressions = df_pivot_impressions.reindex(sorted(df_pivot_impressions.columns), axis=1)
-        df_pivot_ctr = df_pivot_ctr.reindex(sorted(df_pivot_ctr.columns), axis=1)
-        df_pivot_position = df_pivot_position.reindex(sorted(df_pivot_position.columns), axis=1)
-        
-        # Combine into a single dataframe for export and caching
-        df_combined = pd.concat([df_pivot_clicks, df_pivot_impressions, df_pivot_ctr, df_pivot_position], keys=['clicks', 'impressions', 'ctr', 'position'], axis=1)
-        
-        # Save the freshly fetched and combined dataframe to data_csv_path
-        try:
-            df_combined.to_csv(data_csv_path, index=True) # Save to consolidated path
-            print(f"Successfully created CSV report at {data_csv_path}")
-            print(f"Hint: To recreate this report from the saved data, use the --use-cache flag.")
-        except PermissionError:
-            print(f"\nError: Permission denied when writing to the data file: {data_csv_path}")
-            
     if df_combined is None:
-        print("No data available to generate report (either no data fetched or cache empty).")
-        return
+        # 1. Identify top pages from last complete month
+        last_month_end = latest_date.replace(day=1) - timedelta(days=1)
+        last_month_start = last_month_end.replace(day=1)
+        
+        print(f"Identifying top pages for {last_month_start.strftime('%B %Y')}...")
+        df_top = fetch_gsc_data(service, site_url, last_month_start.strftime('%Y-%m-%d'), last_month_end.strftime('%Y-%m-%d'), ['page'])
+        
+        if df_top.empty:
+            print("No data found for the last complete month.")
+            return
 
-    # Ensure the overall_start_date and overall_end_date are correctly set for HTML generation
-    # if df_combined was empty and dates could not be derived, this ensures they are still passed
-    # This might be redundant if the initial upfront calculation is always accurate.
-    # However, keeping it for robustness in case data fetching itself yielded no results.
-    if overall_start_date == "N/A" and not df_combined.empty:
-        sorted_months = sorted(df_combined['clicks'].columns)
-        overall_start_date = datetime.strptime(sorted_months[0], '%Y-%m').strftime('%Y-%m-%d')
-        last_month_dt = datetime.strptime(sorted_months[-1], '%Y-%m')
-        overall_end_date = (last_month_dt + relativedelta(months=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+        top_pages = df_top.sort_values(by='clicks', ascending=False).head(args.limit)['page'].tolist()
+        
+        # 2. Fetch history for these pages
+        history_start = (latest_date - relativedelta(months=16)).strftime('%Y-%m-%d')
+        print(f"Fetching history for {len(top_pages)} pages from {history_start}...")
+        
+        all_month_data = []
+        for i in range(17):
+            month_dt = latest_date.replace(day=1) - relativedelta(months=i)
+            m_start = month_dt.strftime('%Y-%m-01')
+            m_end = (month_dt + relativedelta(months=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+            
+            # Fetch for all top pages in one call using filter
+            filters = [{'dimension': 'page', 'operator': 'contains', 'expression': p} for p in top_pages]
+            # Actually, multi-contains filter isn't supported, we need to loop or fetch all and filter
+            df_m = fetch_gsc_data(service, site_url, m_start, m_end, ['page'])
+            if not df_m.empty:
+                df_m = df_m[df_m['page'].isin(top_pages)]
+                df_m['month'] = month_dt.strftime('%Y-%m')
+                all_month_data.append(df_m)
 
-    # Generate HTML report
-    html_output = create_html_report(
-        site_url=site_url,
-        start_date=overall_start_date,
-        end_date=overall_end_date,
-        df_combined=df_combined
-    )
-    with open(data_html_path, 'w', encoding='utf-8') as f:
-        f.write(html_output)
-    print(f"Successfully created HTML report at {data_html_path}")
+        if not all_month_data:
+            print("No historical data found.")
+            return
+
+        df_combined = pd.concat(all_month_data, ignore_index=True)
+        df_combined.to_csv(csv_path, index=False)
+        print(f"Exported CSV to {csv_path}")
+
+    # Generate HTML
+    top_pages_list = df_combined.groupby('page')['clicks'].sum().sort_values(ascending=False).head(args.limit).index.tolist()
+    html_content = create_html_report(site_url, df_combined, top_pages_list)
+    with open(html_path, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+    print(f"Exported HTML to {html_path}")
 
 if __name__ == '__main__':
     main()

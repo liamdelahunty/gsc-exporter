@@ -27,7 +27,10 @@ MONTHLY_SUPPORTED_SCRIPTS = [
     "query-segmentation-report.py",
     "keyword-cannibalisation-report.py",
     "gsc_pages_exporter.py",
-    "generate_gsc_wrapped.py"
+    "generate_gsc_wrapped.py",
+    "seasonal-performance-report.py",
+    "seasonal-page-spike-report.py",
+    "seasonal-query-spike-report.py"
 ]
 
 # Default list of reports to run.
@@ -46,7 +49,10 @@ DEFAULT_REPORTS = [
     "monthly-summary-report.py",
     "gsc_pages_exporter.py",
     "generate_gsc_wrapped.py",
-    "monthly-search-type-performance-report.py"
+    "monthly-search-type-performance-report.py",
+    "seasonal-performance-report.py",
+    "seasonal-page-spike-report.py",
+    "seasonal-query-spike-report.py"
 ]
 
 def main():

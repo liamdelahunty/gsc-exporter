@@ -13,6 +13,8 @@ Example:
 """
 import os
 import pandas as pd
+import time
+import socket
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -23,6 +25,9 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from urllib.parse import urlparse
 import argparse
+
+# Set global timeout for API requests
+socket.setdefaulttimeout(300)
 
 # --- Configuration ---
 SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
@@ -108,33 +113,52 @@ def get_latest_available_gsc_date(service, site_url, max_retries=5):
 
 
 def get_gsc_data(service, site_url, start_date, end_date, dimensions, search_type='web'):
-    """Fetches performance data from GSC for a given date range and dimensions."""
+    """Fetches performance data from GSC with pagination and retries."""
     all_data = []
-    row_limit = 25000 
+    start_row = 0
+    row_limit = 10000 # Reduced for better stability
     
     print(f"Fetching {search_type} data for dimensions: {', '.join(dimensions)}...")
 
-    try:
-        request = {
-            'startDate': start_date,
-            'endDate': end_date,
-            'dimensions': dimensions,
-            'searchType': search_type,
-            'rowLimit': row_limit,
-            'startRow': 0
-        }
-        response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
+    while True:
+        success = False
+        for attempt in range(3):
+            try:
+                request = {
+                    'startDate': start_date,
+                    'endDate': end_date,
+                    'dimensions': dimensions,
+                    'searchType': search_type,
+                    'rowLimit': row_limit,
+                    'startRow': start_row
+                }
+                response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
 
-        if 'rows' in response:
-            rows = response['rows']
-            all_data.extend(rows)
-            print(f"Retrieved {len(rows)} rows... (Total: {len(all_data)})")
-    except HttpError as e:
-        print(f"An HTTP error occurred: {e}")
-        return None
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        return None
+                if 'rows' in response:
+                    rows = response['rows']
+                    all_data.extend(rows)
+                    if len(rows) < row_limit:
+                        break
+                    start_row += row_limit
+                    print(f"  - Retrieved {len(all_data)} rows...")
+                else:
+                    break
+                success = True
+                break # Break attempt loop
+            except (socket.timeout, TimeoutError):
+                print(f"  - Timeout on attempt {attempt + 1} for {dimensions}, retrying...")
+                time.sleep(5 * (attempt + 1))
+            except HttpError as e:
+                print(f"  - An HTTP error occurred: {e}")
+                break # Break attempt loop on other errors
+        
+        if not success and attempt == 2:
+            print(f"  - Failed to fetch data for {dimensions} after 3 attempts.")
+            break
+            
+        # Check if we should continue outer loop
+        if 'rows' not in response or len(response['rows']) < row_limit:
+            break
             
     if not all_data:
         return pd.DataFrame()
@@ -429,9 +453,6 @@ def main():
 
     if page_level_data is None:
         print(f"Using date range: {start_date} to {end_date}")
-        # service is already authenticated above
-        # if not service:
-        #     return
 
         # Fetch page-level data (unsampled)
         df_pages = get_gsc_data(service, site_url, start_date, end_date, ['page'], args.search_type)
@@ -476,7 +497,7 @@ def main():
             df_pages = pd.merge(df_pages, query_counts, on='page', how='left')
             df_pages['query_count'] = df_pages['query_count'].fillna(0)
         else:
-            print("Warning: Could not retrieve page-query data due to a timeout or other error. 'Query #' column will be 0.")
+            print("Warning: Could not retrieve page-query data. 'Query #' column will be 0.")
             df_pages['query_count'] = 0
 
         # Finalize the report dataframe
