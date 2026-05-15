@@ -89,7 +89,7 @@ def fetch_page_data(service, site_url, start_date, end_date):
     """Fetches page-level performance data from GSC with retries."""
     all_pages = []
     start_row = 0
-    row_limit = 10000 # Reduced from 25000 for better stability
+    row_limit = 10000 
     
     print(f"    - Fetching data for {start_date} to {end_date}...")
     
@@ -114,19 +114,18 @@ def fetch_page_data(service, site_url, start_date, end_date):
                 else:
                     break
                 success = True
-                break # Break attempt loop
+                break 
             except (socket.timeout, TimeoutError):
                 print(f"      - Timeout on attempt {attempt + 1}, retrying...")
                 time.sleep(5 * (attempt + 1))
             except HttpError as e:
                 print(f"      - Error: {e}")
-                break # Break attempt loop on other errors
+                break 
         
         if not success and attempt == 2:
             print(f"      - Failed to fetch data after 3 attempts.")
             break
             
-        # Check if we should continue outer loop
         if 'rows' not in response or len(response['rows']) < row_limit:
             break
             
@@ -154,7 +153,6 @@ def create_report_html(spikes_df, report_title, site_url, months_count):
     if spikes_df.empty:
         return f"<html><head><title>{report_title}</title></head><body><h1>{report_title}</h1><p>No spikes detected.</p></body></html>"
 
-    # Format numbers
     display_df = spikes_df.copy()
     display_df['clicks'] = display_df['clicks'].apply(lambda x: f"{x:,}")
     display_df['impressions'] = display_df['impressions'].apply(lambda x: f"{x:,}")
@@ -178,7 +176,6 @@ def create_report_html(spikes_df, report_title, site_url, months_count):
         h1 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-bottom: 1rem; }}
         .table thead th {{ background-color: #434343; color: #ffffff; text-align: left; }}
         footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
-        .z-score {{ font-weight: bold; color: #d63384; }}
     </style>
 </head>
 <body>
@@ -209,14 +206,12 @@ def main():
     latest_date = get_latest_available_gsc_date(service, args.site_url)
     target_month_date = latest_date.replace(day=1) - timedelta(days=1)
     
-    # Prepare output directory
     if args.site_url.startswith('sc-domain:'):
         host_plain = args.site_url.replace('sc-domain:', '')
     else:
         host_plain = urlparse(args.site_url).netloc
     host_dir = host_plain.replace('www.', '').replace('.', '-')
     
-    # Use a common cache directory for page-level data
     cache_dir = os.path.join('cache', 'page-data', host_dir)
     os.makedirs(cache_dir, exist_ok=True)
     
@@ -230,22 +225,37 @@ def main():
     for i in range(args.months):
         month_dt = target_month_date - relativedelta(months=i)
         month_str = month_dt.strftime('%Y-%m')
+        start_date, end_date = get_month_range(month_str)
         cache_file = os.path.join(cache_dir, f'{month_str}.csv')
         
         df_month = None
         if os.path.exists(cache_file):
             df_month = pd.read_csv(cache_file)
-        elif month_dt >= sixteen_months_ago:
-            print(f"Fetching data for {month_str}...")
-            start_date, end_date = get_month_range(month_str)
-            df_month = fetch_page_data(service, args.site_url, start_date, end_date)
-            if df_month is not None:
-                df_month.to_csv(cache_file, index=False)
         else:
-            print(f"Skipping {month_str} (no cache and > 16 months ago).")
+            # Check for existing page-level report in output folder
+            site_output_dir = os.path.join('output', host_dir)
+            pattern = os.path.join(site_output_dir, f"page-level-report-*-{start_date}-to-{end_date}.csv")
+            matching_files = glob.glob(pattern)
+            if matching_files:
+                print(f"Found existing report for {month_str}: {matching_files[0]}")
+                df_month = pd.read_csv(matching_files[0])
+                # Ensure column names match
+                if 'page' not in df_month.columns and 'Page' in df_month.columns:
+                    df_month = df_month.rename(columns={'Page': 'page'})
+                # Save to cache for next time
+                df_month[['page', 'clicks', 'impressions']].to_csv(cache_file, index=False)
+            elif month_dt >= sixteen_months_ago:
+                print(f"Fetching data for {month_str}...")
+                df_month = fetch_page_data(service, args.site_url, start_date, end_date)
+                if df_month is not None:
+                    df_month.to_csv(cache_file, index=False)
+            else:
+                print(f"Skipping {month_str} (no cache/report and > 16 months ago).")
             
         if df_month is not None:
             df_month['month'] = month_str
+            # Ensure we only have needed columns
+            df_month = df_month[['month', 'page', 'clicks', 'impressions']]
             all_data_frames.append(df_month)
 
     if not all_data_frames:
@@ -254,7 +264,6 @@ def main():
 
     df = pd.concat(all_data_frames, ignore_index=True)
     
-    # Calculate stats per page
     stats = df.groupby('page').agg({
         'clicks': ['mean', 'std', 'count'],
         'impressions': ['mean', 'std']
@@ -262,10 +271,8 @@ def main():
     stats.columns = ['_'.join(col).strip() for col in stats.columns.values]
     stats = stats.reset_index()
 
-    # Join stats back to main df
     df = df.merge(stats, on='page')
 
-    # Calculate Z-scores
     df['clicks_z_score'] = (df['clicks'] - df['clicks_mean']) / df['clicks_std'].replace(0, np.nan)
     df['impressions_z_score'] = (df['impressions'] - df['impressions_mean']) / df['impressions_std'].replace(0, np.nan)
 
@@ -275,12 +282,9 @@ def main():
     )
     
     spikes = df[is_spike].copy()
-    
-    # Sort by Z-score descending
     spikes['max_z'] = spikes[['clicks_z_score', 'impressions_z_score']].max(axis=1)
     spikes = spikes.sort_values(by=['month', 'max_z'], ascending=[False, False])
 
-    # Select columns for report
     report_df = spikes[[
         'month', 'page', 'clicks', 'clicks_mean', 'clicks_z_score', 
         'impressions', 'impressions_mean', 'impressions_z_score'
@@ -290,7 +294,6 @@ def main():
         'impressions_mean': 'avg_impressions'
     })
 
-    # Save results
     report_title = f"Seasonal Page Spikes Report: {args.site_url}"
     date_suffix = datetime.now().strftime("%Y-%m-%d")
     csv_path = os.path.join(output_dir, f'seasonal-page-spikes-{date_suffix}.csv')

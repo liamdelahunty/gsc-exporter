@@ -112,7 +112,7 @@ def fetch_page_data(service, site_url, start_date, end_date):
                 else:
                     break
                 success = True
-                break # Break attempt loop
+                break 
             except (socket.timeout, TimeoutError):
                 print(f"    - Timeout on attempt {attempt + 1}, retrying...")
                 time.sleep(5 * (attempt + 1))
@@ -191,7 +191,6 @@ def main():
     service = get_gsc_service()
     if not service: return
 
-    # Determine target month
     if not args.month:
         latest_date = get_latest_available_gsc_date(service, args.site_url)
         target_month_date = latest_date.replace(day=1) - timedelta(days=1)
@@ -199,15 +198,17 @@ def main():
 
     target_dt = datetime.strptime(args.month, '%Y-%m')
     
-    # Prepare output directory
-    site_output_name = args.site_url
-    if site_output_name.startswith('sc-domain:'):
-        host_plain = site_output_name.replace('sc-domain:', '')
+    if args.site_url.startswith('sc-domain:'):
+        host_plain = args.site_url.replace('sc-domain:', '')
     else:
-        host_plain = urlparse(site_output_name).netloc
+        host_plain = urlparse(args.site_url).netloc
     host_dir = host_plain.replace('www.', '').replace('.', '-')
     output_dir = os.path.join('output', host_dir, 'seasonal')
     os.makedirs(output_dir, exist_ok=True)
+
+    # Path to common cache
+    global_cache_dir = os.path.join('cache', 'page-data', host_dir)
+    os.makedirs(global_cache_dir, exist_ok=True)
 
     all_years_data = []
     years_list = []
@@ -217,37 +218,38 @@ def main():
         year_str = year_dt.strftime('%Y-%m')
         start_date, end_date = get_month_range(year_str)
         
-        # 1. Check for seasonal-specific cache
-        csv_cache_path = os.path.join(output_dir, f'page-data-{year_str}.csv')
+        cache_file = os.path.join(global_cache_dir, f'{year_str}.csv')
         df_year = None
         
-        if os.path.exists(csv_cache_path):
-            print(f"Using seasonal cache for {year_str}")
-            df_year = pd.read_csv(csv_cache_path)
+        # 1. Check common cache
+        if os.path.exists(cache_file):
+            print(f"Using cache for {year_str}")
+            df_year = pd.read_csv(cache_file)
         else:
-            # 2. Check for general monthly report cache in the host directory
-            host_root_dir = os.path.join('output', host_dir)
-            page_report_pattern = os.path.join(host_root_dir, f"page-level-report-*-{start_date}-to-{end_date}.csv")
-            potential_page_caches = glob.glob(page_report_pattern)
-            if potential_page_caches:
-                print(f"Found existing page-level report for {year_str}: {potential_page_caches[0]}")
-                df_year = pd.read_csv(potential_page_caches[0])
+            # 2. Check output folder reports
+            site_output_dir = os.path.join('output', host_dir)
+            pattern = os.path.join(site_output_dir, f"page-level-report-*-{start_date}-to-{end_date}.csv")
+            matching_files = glob.glob(pattern)
+            if matching_files:
+                print(f"Found existing report for {year_str}: {matching_files[0]}")
+                df_year = pd.read_csv(matching_files[0])
+                if 'page' not in df_year.columns and 'Page' in df_year.columns:
+                    df_year = df_year.rename(columns={'Page': 'page'})
+                # Save to cache
+                df_year[['page', 'clicks', 'impressions', 'ctr', 'position']].to_csv(cache_file, index=False)
             
-            # 3. Fetch from GSC if within 16 months and not found in cache
+            # 3. Fetch from GSC if within 16 months
             if df_year is None:
                 sixteen_months_ago = date.today() - relativedelta(months=16)
                 if year_dt.date() >= sixteen_months_ago:
                     df_year = fetch_page_data(service, args.site_url, start_date, end_date)
                     if df_year is not None:
-                        df_year.to_csv(csv_cache_path, index=False)
+                        df_year.to_csv(cache_file, index=False)
                 else:
-                    print(f"Data for {year_str} is older than 16 months and no cache was found. Skipping.")
+                    print(f"Data for {year_str} is older than 16 months and no cache/report was found. Skipping.")
         
         if df_year is not None:
             years_list.append(year_dt.year)
-            if 'page' not in df_year.columns and 'Page' in df_year.columns:
-                df_year = df_year.rename(columns={'Page': 'page'})
-            
             cols_to_keep = ['page', 'clicks', 'impressions', 'ctr', 'position']
             df_year = df_year[[c for c in cols_to_keep if c in df_year.columns]]
             
