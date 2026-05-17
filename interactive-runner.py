@@ -90,7 +90,7 @@ def select_report():
         '2': {'name': 'Performance Analysis', 'file': 'performance-analysis.py'},
         '3': {'name': 'Page-Level Report', 'file': 'reports/page-level-report.py'},
         '4': {'name': 'Queries & Pages Detailed', 'file': 'reports/gsc-pages-queries.py'},
-        '5': {'name': 'Key Performance Metrics', 'file': 'key-performance-metrics.py'},
+        '5': {'name': 'Key Performance Metrics', 'file': 'reports/key-performance-metrics.py'},
         '6': {'name': 'Discover Performance Metrics', 'file': 'reports/discover-key-performance-metrics.py'},
         '7': {'name': 'Queries & Pages Summary', 'file': 'queries-pages-analysis.py'},
         '8': {'name': 'Query Position Analysis', 'file': 'query-position-analysis.py'},
