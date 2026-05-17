@@ -105,7 +105,7 @@ def select_report():
         '17': {'name': 'Monthly Search Type Performance', 'file': 'monthly-search-type-performance-report.py'},
         '18': {'name': 'Search Type Performance Report', 'file': 'search-type-performance-report.py'},
         '19': {'name': 'URL Inspection Report', 'file': 'url-inspection-report.py'},
-        '20': {'name': 'Export All Pages', 'file': 'gsc_pages_exporter.py'},
+        '20': {'name': 'Export All Pages', 'file': 'reports/gsc_pages_exporter.py'},
         '21': {'name': 'Generate GSC Wrapped', 'file': 'reports/generate_gsc_wrapped.py'},
         '22': {'name': 'Seasonal Performance (Year-over-Year)', 'file': 'seasonal-performance-report.py'},
         '23': {'name': 'Seasonal Page Spikes (Z-Score)', 'file': 'reports/seasonal-page-spike-report.py'},
