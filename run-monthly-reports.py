@@ -22,14 +22,13 @@ import argparse
 MONTHLY_SUPPORTED_SCRIPTS = [
     "snapshot-report.py",
     "performance-analysis.py",
-    "page-level-report.py",
-    "gsc-pages-queries.py",
+    "reports/page-level-report.py",
     "query-segmentation-report.py",
     "keyword-cannibalisation-report.py",
     "gsc_pages_exporter.py",
     "generate_gsc_wrapped.py",
     "seasonal-performance-report.py",
-    "seasonal-page-spike-report.py",
+    "reports/seasonal-page-spike-report.py",
     "seasonal-query-spike-report.py"
 ]
 
@@ -37,7 +36,7 @@ MONTHLY_SUPPORTED_SCRIPTS = [
 DEFAULT_REPORTS = [
     "snapshot-report.py",
     "performance-analysis.py",
-    "page-level-report.py",
+    "reports/page-level-report.py",
     "gsc-pages-queries.py",
     "key-performance-metrics.py",
     "discover-key-performance-metrics.py",
@@ -51,7 +50,7 @@ DEFAULT_REPORTS = [
     "generate_gsc_wrapped.py",
     "monthly-search-type-performance-report.py",
     "seasonal-performance-report.py",
-    "seasonal-page-spike-report.py",
+    "reports/seasonal-page-spike-report.py",
     "seasonal-query-spike-report.py"
 ]
 
@@ -124,6 +123,10 @@ Example Usage:
             print(f"\n>>> Executing {report} for {site}...")
             
             # Use sys.executable to ensure we use the same Python environment
+            # Set PYTHONPATH to the current directory so that 'core' can be found
+            env = os.environ.copy()
+            env["PYTHONPATH"] = os.getcwd()
+            
             command = [sys.executable, report, site]
             
             # Add --last-month if supported and not overridden by other date flags
@@ -149,7 +152,7 @@ Example Usage:
             try:
                 # Use subprocess.run to execute the script
                 # We don't use capture_output=True so the user can see progress in real-time
-                process = subprocess.run(command)
+                process = subprocess.run(command, env=env)
                 
                 if process.returncode == 0:
                     print(f"--- SUCCESS: {report} completed for {site}")
