@@ -8,56 +8,9 @@ import os
 import subprocess
 import sys
 import argparse
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from google.auth import exceptions
+import importlib.util
 from urllib.parse import urlparse
-
-# --- Configuration ---
-SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
-CLIENT_SECRET_FILE = 'client_secret.json'
-TOKEN_FILE = 'token.json'
-
-def get_gsc_service():
-    """Authenticates and returns a Google Search Console service object."""
-    creds = None
-    if os.path.exists(TOKEN_FILE):
-        try:
-            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-        except Exception as e:
-            print(f"Could not load credentials from {TOKEN_FILE}. Error: {e}")
-            print("Will attempt to re-authenticate.")
-            creds = None
-
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            try:
-                print("Credentials have expired. Attempting to refresh...")
-                creds.refresh(Request())
-            except exceptions.RefreshError as e:
-                print(f"Error refreshing token: {e}")
-                print("The refresh token is expired or revoked. Deleting it and re-authenticating.")
-                if os.path.exists(TOKEN_FILE):
-                    os.remove(TOKEN_FILE)
-                creds = None
-        
-        if not creds:
-            if not os.path.exists(CLIENT_SECRET_FILE):
-                print(f"Error: {CLIENT_SECRET_FILE} not found. Please follow setup instructions in README.md.")
-                return None
-            
-            # Optimized for Cloud Shell: we expect the user to have generated a token already.
-            print(f"Error: {TOKEN_FILE} not found.")
-            print(f"Please run 'python auth-cloud-shell.py' to generate authentication.")
-            return None
-        
-        with open(TOKEN_FILE, 'w') as token:
-            token.write(creds.to_json())
-            print("Authentication successful. Credentials saved.")
-
-    return build('webmasters', 'v3', credentials=creds)
+from core.client import get_gsc_service
 
 def get_all_sites(service):
     """Fetches a list of all sites in the user's GSC account."""
@@ -135,7 +88,7 @@ def select_report():
     reports = {
         '1': {'name': 'Snapshot Report', 'file': 'snapshot-report.py'},
         '2': {'name': 'Performance Analysis', 'file': 'performance-analysis.py'},
-        '3': {'name': 'Page-Level Report', 'file': 'page-level-report.py'},
+        '3': {'name': 'Page-Level Report', 'file': 'reports/page-level-report.py'},
         '4': {'name': 'Queries & Pages Detailed', 'file': 'gsc-pages-queries.py'},
         '5': {'name': 'Key Performance Metrics', 'file': 'key-performance-metrics.py'},
         '6': {'name': 'Discover Performance Metrics', 'file': 'discover-key-performance-metrics.py'},
@@ -155,7 +108,7 @@ def select_report():
         '20': {'name': 'Export All Pages', 'file': 'gsc_pages_exporter.py'},
         '21': {'name': 'Generate GSC Wrapped', 'file': 'generate_gsc_wrapped.py'},
         '22': {'name': 'Seasonal Performance (Year-over-Year)', 'file': 'seasonal-performance-report.py'},
-        '23': {'name': 'Seasonal Page Spikes (Z-Score)', 'file': 'seasonal-page-spike-report.py'},
+        '23': {'name': 'Seasonal Page Spikes (Z-Score)', 'file': 'reports/seasonal-page-spike-report.py'},
         '24': {'name': 'Seasonal Query Spikes (Z-Score)', 'file': 'seasonal-query-spike-report.py'},
     }
     print("\nAvailable Reports:")
