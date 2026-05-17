@@ -17,8 +17,8 @@
     - `core/cache.py`: Hash-based caching with monthly fragmentation and data re-aggregation.
 - Created `reports/` directory for modularised reports.
 - Migrated pilot reports to `reports/`:
-    - `reports/page-level-report.py`: Fully refactored to use `core.cache` and `core.naming`.
-    - `reports/seasonal-page-spike-report.py`: Refactored to leverage monthly caching for historical baselines.
+    - `reports/page_level_report.py`: Fully refactored to use `core.cache` and `core.naming`.
+    - `reports/seasonal_page_spike_report.py`: Refactored to leverage monthly caching for historical baselines.
 - Updated `interactive-runner.py`:
     - Now uses `core.client` for all authentication.
     - Points to new locations in `reports/` for pilot scripts.
@@ -29,4 +29,21 @@
     - Initialised `tests/` directory.
     - Implemented unit tests for `core/naming.py` and `core/cache.py` using `pytest`.
     - Verified 100% pass rate for naming logic and monthly data aggregation.
-- Verified that modular reports follow the new naming convention (dot-notation for directories, hyphens for filenames).
+
+## 2026-05-18: Phase 2 - Alphabetical Migration and Integration Testing
+- **Report Migration**: Successfully migrated and refactored the following reports:
+    - `consolidated_traffic_report.py`
+    - `discover_key_performance_metrics.py`
+    - `generate_gsc_wrapped.py`
+    - `gsc_pages_exporter.py`
+    - `gsc_pages_queries.py`
+    - `historical_summary_report.py`
+    - `image_performance_report.py`
+    - `key_performance_metrics.py`
+    - `keyword_cannibalisation_report.py`
+- **Standardisation**: Renamed all migrated report files to use underscores (e.g., `page_level_report.py`) to satisfy Python's module import requirements for automated testing.
+- **Integration Testing**:
+    - Implemented `tests/test_reports.py` using `pytest` and `pytest-mock`.
+    - Verified that all 11 migrated reports (2 pilots + 9 alphabetical) execute successfully and generate output without errors.
+    - Achieved a 100% pass rate for the integration test suite.
+- Updated `interactive-runner.py` to point to the new underscored filenames in the `reports/` directory.
