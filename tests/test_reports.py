@@ -16,10 +16,20 @@ from reports.historical_summary_report import run_report as run_historical
 from reports.image_performance_report import run_report as run_image
 from reports.key_performance_metrics import run_report as run_key_metrics
 from reports.keyword_cannibalisation_report import run_report as run_cannibalisation
+from reports.monthly_search_type_performance_report import run_report as run_search_type
+from reports.monthly_summary_report import run_report as run_summary
+from reports.page_performance_over_time import run_report as run_page_over_time
+from reports.page_performance_single_page import run_report as run_single_page
+from reports.performance_analysis import run_report as run_performance_analysis
 
 @pytest.fixture
 def mock_service():
-    return MagicMock()
+    service = MagicMock()
+    # Mock for find_covering_site
+    service.sites().list().execute.return_value = {
+        'siteEntry': [{'siteUrl': 'https://www.example.com/'}]
+    }
+    return service
 
 @pytest.fixture
 def mock_fetch(mocker):
@@ -81,3 +91,31 @@ def test_historical_summary_report(mocker):
 def test_image_performance_report(mock_service, mock_fetch):
     site = 'https://www.example.com/'
     run_image(mock_service, site)
+
+def test_key_performance_metrics(mock_service, mock_fetch):
+    site = 'https://www.example.com/'
+    run_key_metrics(mock_service, site)
+
+def test_keyword_cannibalisation_report(mock_service, mock_fetch):
+    site = 'https://www.example.com/'
+    run_cannibalisation(mock_service, site)
+
+def test_monthly_search_type_report(mock_service, mock_fetch):
+    site = 'https://www.example.com/'
+    run_search_type(mock_service, site)
+
+def test_monthly_summary_report(mock_service, mock_fetch):
+    site = 'https://www.example.com/'
+    run_summary(mock_service, [site])
+
+def test_page_performance_over_time_report(mock_service, mock_fetch):
+    site = 'https://www.example.com/'
+    run_page_over_time(mock_service, site)
+
+def test_page_performance_single_page_report(mock_service, mock_fetch):
+    page = 'https://www.example.com/p1'
+    run_single_page(mock_service, page)
+
+def test_performance_analysis_report(mock_service, mock_fetch):
+    site = 'https://www.example.com/'
+    run_performance_analysis(mock_service, site, '2024-01-01', '2024-01-31', '2023-01-01', '2023-01-31')

@@ -47,3 +47,6 @@
     - Verified that all 11 migrated reports (2 pilots + 9 alphabetical) execute successfully and generate output without errors.
     - Achieved a 100% pass rate for the integration test suite.
 - Updated `interactive-runner.py` to point to the new underscored filenames in the `reports/` directory.
+
+## Future Tasks (Follow-up)
+- **Utility Migration**: Review root-level utility scripts (e.g., `auth-cloud-shell.py`, `generate_brand_files.py`, `show_available_domains.py`, etc.). Move these to `core/` if they provide shared functionality, or create a `/utilities` directory for isolated helper scripts.
