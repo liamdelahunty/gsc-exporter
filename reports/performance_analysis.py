@@ -1,20 +1,116 @@
-import pandas as pd
 import os
-from core.naming import get_output_dir
+import sys
+import pandas as pd
+from datetime import datetime, date, timedelta
+from dateutil.relativedelta import relativedelta
+import argparse
+
+# Add parent directory to sys.path to allow importing core
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
+from core.client import get_gsc_service
+
+def create_html_report(page_title, current_period_str, previous_period_str, df_best, df_worst, df_low_ctr, df_rising_stars, df_falling_stars):
+    """Generates an HTML report from the analysis dataframes."""
+    
+    # Helper to convert dataframe to HTML table with Bootstrap classes
+    def df_to_html(df, table_id):
+        if df.empty:
+            return "<p>No data available for this section.</p>"
+        
+        df = df.copy()
+        # Format CTR and Position columns first
+        for col_name in ['ctr_current', 'ctr_previous']:
+            if col_name in df.columns:
+                df[col_name] = df[col_name].apply(lambda x: f"{x:.2%}")
+        for col_name in ['position_current', 'position_previous']:
+            if col_name in df.columns:
+                df[col_name] = df[col_name].apply(lambda x: f"{x:.2f}")
+
+        # Format Clicks and Impressions columns with comma separators
+        for col in df.columns:
+            if 'clicks' in col or 'impressions' in col:
+                # Ensure the column is numeric before formatting
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+                df[col] = df[col].apply(lambda x: f"{int(x):,}") # Format as integer with commas
+
+        return df.to_html(classes="table table-striped table-hover", index=False, table_id=table_id, border=0)
+
+    html_template = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{page_title}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {{ padding: 2rem; background-color: #f8f9fa; }}
+        .table-responsive {{ max-height: 500px; overflow-y: auto; background-color: white; border-radius: 8px; border: 1px solid #dee2e6; }}
+        h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: 0.5rem; margin-top: 2rem; }}
+        footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
+        .table thead th {{ text-align: left; background-color: #434343; color: white; }}
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1 class="mb-3">{page_title}</h1>
+        <p class="text-muted">Current Period: {current_period_str} | Previous Period: {previous_period_str}</p>
+
+        <h2>Best Performing Content (by Clicks Change)</h2>
+        <p class="text-muted">These pages have seen the largest increase in clicks. Analyse them to understand what is working well.</p>
+        <div class="table-responsive">
+            {df_to_html(df_best, 'table-best')}
+        </div>
+
+        <h2>Worst Performing Content (by Clicks Change)</h2>
+        <p class="text-muted">These pages have lost the most clicks. Investigate whether this is due to content decay, seasonality, or new competition.</p>
+        <div class="table-responsive">
+            {df_to_html(df_worst, 'table-worst')}
+        </div>
+        
+        <h2>Rising Stars</h2>
+        <p class="text-muted">Pages with minimal previous visibility that are now gaining significant impressions. These may be new content pieces or topics gaining traction.</p>
+        <div class="table-responsive">
+            {df_to_html(df_rising_stars, 'table-rising')}
+        </div>
+
+        <h2>Falling Stars</h2>
+        <p class="text-muted">Previously strong pages that have experienced a dramatic drop in clicks. These require urgent attention to diagnose the cause of the decline.</p>
+        <div class="table-responsive">
+            {df_to_html(df_falling_stars, 'table-falling')}
+        </div>
+
+        <h2>High Impressions, Low CTR Opportunities</h2>
+        <p class="text-muted">These pages are good candidates for title and meta description optimisation to improve their Click-Through Rate (CTR).</p>
+        <div class="table-responsive">
+            {df_to_html(df_low_ctr, 'table-low-ctr')}
+        </div>
+        
+    </div>
+
+    <footer>
+        <p>Report generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}. <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p>
+    </footer>
+</body>
+</html>
+"""
+    return html_template
 
 def run_report(service, site_url, start_date, end_date, comparison_start_date=None, comparison_end_date=None):
     """
     Runs the performance analysis report.
     """
-    print(f"Running performance analysis for {site_url}")
+    print(f"Running performance analysis for {site_url} ({start_date} to {end_date})")
 
     # Fetch data for current period
-    df_current = fetch_with_cache(service, site_url, start_date, end_date, dimensions=['query', 'page'])
+    df_current = fetch_with_cache(service, site_url, start_date, end_date, dimensions=['query', 'page']).copy()
     
     # Fetch data for comparison period if provided
     if comparison_start_date and comparison_end_date:
-        df_previous = fetch_with_cache(service, site_url, comparison_start_date, comparison_end_date, dimensions=['query', 'page'])
+        df_previous = fetch_with_cache(service, site_url, comparison_start_date, comparison_end_date, dimensions=['query', 'page']).copy()
     else:
         df_previous = pd.DataFrame()
 
@@ -38,7 +134,8 @@ def run_report(service, site_url, start_date, end_date, comparison_start_date=No
     else:
         df_merged = df_current
         for col in ['clicks_previous', 'impressions_previous', 'ctr_previous', 'position_previous']:
-            df_merged[col] = 0
+            if col not in df_merged.columns:
+                df_merged[col] = 0
 
     # Fill NaN values
     numeric_cols = df_merged.select_dtypes(include=['number']).columns
@@ -46,10 +143,108 @@ def run_report(service, site_url, start_date, end_date, comparison_start_date=No
     
     # Calculate deltas
     df_merged['clicks_delta'] = df_merged['clicks_current'] - df_merged['clicks_previous']
+    df_merged['impressions_delta'] = df_merged['impressions_current'] - df_merged['impressions_previous']
+    df_merged['ctr_delta'] = df_merged['ctr_current'] - df_merged['ctr_previous']
+    df_merged['position_delta'] = df_merged['position_previous'] - df_merged['position_current']
     
-    # Save output
+    # Sort for analysis
+    df_best = df_merged.sort_values(by='clicks_delta', ascending=False).head(20)
+    df_worst = df_merged.sort_values(by='clicks_delta', ascending=True).head(20)
+
+    # Identify low CTR opportunities
+    low_ctr_threshold_impressions = 1000
+    low_ctr_threshold_ctr = 0.01
+    df_low_ctr = df_merged[
+        (df_merged['impressions_current'] >= low_ctr_threshold_impressions) &
+        (df_merged['ctr_current'] < low_ctr_threshold_ctr)
+    ].sort_values(by='impressions_current', ascending=False).head(20)
+
+    # Identify Rising and Falling Stars
+    rising_stars_prev_impressions_max = 50
+    rising_stars_curr_impressions_min = 500
+    df_rising_stars = df_merged[
+        (df_merged['impressions_previous'] < rising_stars_prev_impressions_max) &
+        (df_merged['impressions_current'] >= rising_stars_curr_impressions_min)
+    ].sort_values(by='impressions_current', ascending=False).head(20)
+
+    falling_stars_prev_clicks_min = 500
+    falling_stars_curr_clicks_max = 50
+    df_falling_stars = df_merged[
+        (df_merged['clicks_previous'] >= falling_stars_prev_clicks_min) &
+        (df_merged['clicks_current'] < falling_stars_curr_clicks_max)
+    ].sort_values(by='clicks_delta', ascending=True).head(20)
+
+    # Output paths
     output_dir = get_output_dir(site_url)
     os.makedirs(output_dir, exist_ok=True)
-    csv_path = os.path.join(output_dir, f"performance-analysis-{start_date}-to-{end_date}.csv")
+    slug = get_filename_slug(site_url)
+    
+    csv_path = os.path.join(output_dir, f"performance-analysis-{slug}-{start_date}-to-{end_date}.csv")
+    html_path = os.path.join(output_dir, f"performance-analysis-{slug}-{start_date}-to-{end_date}.html")
+    
+    # Save CSV
     df_merged.to_csv(csv_path, index=False)
+    
+    # Generate and save HTML
+    html_content = create_html_report(
+        page_title=f"Performance Analysis for {site_url}",
+        current_period_str=f"{start_date} to {end_date}",
+        previous_period_str=f"{comparison_start_date} to {comparison_end_date}" if comparison_start_date else "N/A",
+        df_best=df_best,
+        df_worst=df_worst,
+        df_low_ctr=df_low_ctr,
+        df_rising_stars=df_rising_stars,
+        df_falling_stars=df_falling_stars
+    )
+    with open(html_path, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+        
     print(f"Report saved to {csv_path}")
+    print(f"HTML report saved to {html_path}")
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Run performance analysis.')
+    parser.add_argument('site_url', help='The URL of the site to analyse.')
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
+    
+    args = parser.parse_args()
+    
+    comparison_start_date = None
+    comparison_end_date = None
+
+    if args.last_month:
+        today = date.today()
+        # Current = Last month
+        end_date_dt = today.replace(day=1) - relativedelta(days=1)
+        start_date_dt = end_date_dt.replace(day=1)
+        
+        # Previous = Month before last month
+        comparison_end_date_dt = start_date_dt - relativedelta(days=1)
+        comparison_start_date_dt = comparison_end_date_dt.replace(day=1)
+        
+        start_date = start_date_dt.strftime('%Y-%m-%d')
+        end_date = end_date_dt.strftime('%Y-%m-%d')
+        comparison_start_date = comparison_start_date_dt.strftime('%Y-%m-%d')
+        comparison_end_date = comparison_end_date_dt.strftime('%Y-%m-%d')
+    else:
+        start_date = args.start_date
+        end_date = args.end_date
+        # Default comparison is previous period of same length
+        if start_date and end_date:
+            s_dt = datetime.strptime(start_date, '%Y-%m-%d')
+            e_dt = datetime.strptime(end_date, '%Y-%m-%d')
+            delta = e_dt - s_dt
+            comparison_end_date_dt = s_dt - timedelta(days=1)
+            comparison_start_date_dt = comparison_end_date_dt - delta
+            comparison_start_date = comparison_start_date_dt.strftime('%Y-%m-%d')
+            comparison_end_date = comparison_end_date_dt.strftime('%Y-%m-%d')
+        
+    if not start_date or not end_date:
+        print("Error: Either provide --start-date and --end-date, or use --last-month.")
+        sys.exit(1)
+        
+    service = get_gsc_service()
+    if service:
+        run_report(service, args.site_url, start_date, end_date, comparison_start_date, comparison_end_date)

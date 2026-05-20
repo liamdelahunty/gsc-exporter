@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import pandas as pd
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
-from core.naming import get_output_dir
+from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
 
 def create_snapshot_html_report(page_title, period_str, summary_df, df_top_clicks, df_top_impressions, df_low_ctr, df_devices, df_countries):
@@ -27,6 +27,8 @@ def create_snapshot_html_report(page_title, period_str, summary_df, df_top_click
     def df_to_html(df, table_id, float_format="%.2f"):
         if df.empty:
             return "<p>No data available for this section.</p>"
+        
+        df = df.copy()
         # Custom styling for CTR and Position columns
         if 'ctr' in df.columns:
             df['ctr'] = df['ctr'].apply(lambda x: f"{x:.2%}")
@@ -148,9 +150,9 @@ def run_report(service, site_url, start_date, end_date):
     # Output paths
     output_dir = get_output_dir(site_url)
     os.makedirs(output_dir, exist_ok=True)
+    slug = get_filename_slug(site_url)
     
-    host_for_filename = site_url.replace('https://', '').replace('http://', '').replace('www.', '').replace('.', '-')
-    base_file_prefix = f"snapshot-{host_for_filename}-{start_date}-to-{end_date}"
+    base_file_prefix = f"snapshot-{slug}-{start_date}-to-{end_date}"
     html_path = os.path.join(output_dir, f"{base_file_prefix}-report.html")
 
     # Generate and save HTML
