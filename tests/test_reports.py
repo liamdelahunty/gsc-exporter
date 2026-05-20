@@ -61,4 +61,12 @@ def test_snapshot_report(mock_service, mocker):
     slug = get_filename_slug(site)
     assert os.path.exists(os.path.join(output_dir, f"snapshot-{slug}-2024-01-01-to-2024-01-31-report.html"))
 
-# (Remaining tests can be added/fixed one by one)
+def test_query_position_analysis_report(mock_service, mocker):
+    mocker.patch('reports.query_position_analysis.fetch_with_cache', return_value=pd.DataFrame(mock_df_data))
+    from reports.query_position_analysis import run_report
+    
+    site = 'https://www.example.com/'
+    run_report(mock_service, site, months=1)
+    output_dir = get_output_dir(site)
+    assert os.path.exists(os.path.join(output_dir, "query-position-analysis-historical.csv"))
+    assert os.path.exists(os.path.join(output_dir, "query-position-analysis-historical.html"))
