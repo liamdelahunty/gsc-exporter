@@ -163,6 +163,20 @@ def run_report(site_url):
         return None
 
     df = pd.concat(df_list, ignore_index=True)
+    
+    # Ensure 'month' column exists before sorting
+    if 'month' not in df.columns:
+        # Try to extract month from filename if it's missing in CSV
+        # This is a fallback for older versions of the monthly summary
+        print("Warning: 'month' column missing. Attempting to derive from data...")
+        # (Assuming the monthly summary has at least one date or we can infer it)
+        # For now, let's just fail gracefully with a better message if we can't find it.
+        if 'date' in df.columns:
+            df['month'] = pd.to_datetime(df['date']).dt.strftime('%Y-%m')
+        else:
+             print("Error: Could not find 'month' or 'date' column in CSV files.")
+             return None
+
     df = df.sort_values(by='month').reset_index(drop=True)
 
     # Define output paths

@@ -127,21 +127,19 @@ def create_single_site_html_report(df, report_title, full_period_str):
 </html>
 """
 
-def run_report(service, site_url, months=16):
+def run_report(service, site_url, start_date=None, end_date=None, months=16):
     """Executes the Discover performance metrics report."""
-    print(f"Running Discover Performance Report for {site_url} ({months} months)...")
+    print(f"Running Discover Performance Report for {site_url}...")
     
     # 1. Determine Date Range
-    today = date.today()
-    end_date_dt = today.replace(day=1) - timedelta(days=1)
-    start_date_dt = (end_date_dt.replace(day=1) - relativedelta(months=months-1))
-    
-    start_date = start_date_dt.strftime('%Y-%m-%d')
-    end_date = end_date_dt.strftime('%Y-%m-%d')
+    if not start_date or not end_date:
+        today = date.today()
+        end_date_dt = today.replace(day=1) - timedelta(days=1)
+        start_date_dt = (end_date_dt.replace(day=1) - relativedelta(months=months-1))
+        start_date = start_date_dt.strftime('%Y-%m-%d')
+        end_date = end_date_dt.strftime('%Y-%m-%d')
 
     # 2. Fetch Data (will aggregate by month using cache fragmentation)
-    # Dimensions is empty because we want site-wide Discover metrics per date
-    # But core/cache aggregates by 'dimensions'. So let's use ['date'] and then re-aggregate.
     df = fetch_with_cache(service, site_url, start_date, end_date, ['date'], 'discover')
     
     if df.empty:
@@ -169,7 +167,7 @@ def run_report(service, site_url, months=16):
     slug = get_filename_slug(site_url)
     
     most_recent_month = monthly_df['month'].iloc[0]
-    file_prefix = f"discover-performance-{slug}-{most_recent_month}"
+    file_prefix = f"discover-performance-{slug}-{start_date}-to-{end_date}"
     
     csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
@@ -192,9 +190,23 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Discover performance report.')
     parser.add_argument('site_url', help='The URL of the site to analyse.')
-    parser.add_argument('--months', type=int, default=16, help='Number of months.')
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
+    parser.add_argument('--months', type=int, default=16, help='Number of months (default: 16).')
     
     args = parser.parse_args()
+    
+    start_date = args.start_date
+    end_date = args.end_date
+    
+    if args.last_month:
+        today = date.today()
+        end_date_dt = today.replace(day=1) - timedelta(days=1)
+        start_date_dt = end_date_dt.replace(day=1)
+        start_date = start_date_dt.strftime('%Y-%m-%d')
+        end_date = end_date_dt.strftime('%Y-%m-%d')
+
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url, args.months)
+        run_report(service, args.site_url, start_date, end_date, args.months)

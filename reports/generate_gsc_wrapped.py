@@ -142,21 +142,53 @@ def run_report(service, site_url, start_date=None, end_date=None, last_12_months
     top_query = top_non_brand_queries[0]['query'] if top_non_brand_queries else (top_brand_queries[0]['query'] if top_brand_queries else "N/A")
     top_query_clicks = top_non_brand_queries[0]['clicks'] if top_non_brand_queries else (top_brand_queries[0]['clicks'] if top_brand_queries else 0)
 
-    # Busiest Month
-    most_clicked_month, most_clicked_month_clicks = "N/A", 0
+    # Busiest Months for other metrics
+    most_impressed_month, most_impressed_month_impressions = "N/A", 0
+    highest_ctr_month, highest_ctr_month_ctr = "N/A", 0
+    best_position_month, best_position_month_position = "N/A", 0
+
     if not df_daily.empty:
         df_daily['month_date'] = pd.to_datetime(df_daily['date'])
         df_daily['month_name'] = df_daily['month_date'].dt.strftime('%B')
-        monthly = df_daily.groupby('month_name')['clicks'].sum().reset_index()
-        top_month = monthly.nlargest(1, 'clicks')
-        if not top_month.empty:
-            most_clicked_month = top_month.iloc[0]['month_name']
-            most_clicked_month_clicks = top_month.iloc[0]['clicks']
+        
+        monthly_agg = df_daily.groupby('month_name').agg({
+            'clicks': 'sum',
+            'impressions': 'sum',
+            'ctr': 'mean',
+            'position': 'mean'
+        }).reset_index()
+
+        top_month_clicks = monthly_agg.nlargest(1, 'clicks')
+        if not top_month_clicks.empty:
+            most_clicked_month = top_month_clicks.iloc[0]['month_name']
+            most_clicked_month_clicks = top_month_clicks.iloc[0]['clicks']
+
+        top_month_imps = monthly_agg.nlargest(1, 'impressions')
+        if not top_month_imps.empty:
+            most_impressed_month = top_month_imps.iloc[0]['month_name']
+            most_impressed_month_impressions = top_month_imps.iloc[0]['impressions']
+
+        top_month_ctr = monthly_agg.nlargest(1, 'ctr')
+        if not top_month_ctr.empty:
+            highest_ctr_month = top_month_ctr.iloc[0]['month_name']
+            highest_ctr_month_ctr = top_month_ctr.iloc[0]['ctr']
+
+        # Lowest position is best
+        top_month_pos = monthly_agg.nsmallest(1, 'position')
+        if not top_month_pos.empty:
+            best_position_month = top_month_pos.iloc[0]['month_name']
+            best_position_month_position = top_month_pos.iloc[0]['position']
 
     # 4. Final Data Object
+    from urllib.parse import urlparse
+    hostname = urlparse(site_url).hostname or site_url
+
     wrapped_data = {
         'site_url': site_url,
+        'hostname': hostname,
         'report_period': date_range_label,
+        'start_date': start_date,
+        'end_date': end_date,
         'total_clicks': total_clicks,
         'total_impressions': total_impressions,
         'top_page': top_pages_list[0]['url'] if top_pages_list else "N/A",
@@ -170,6 +202,12 @@ def run_report(service, site_url, start_date=None, end_date=None, last_12_months
         'unique_queries_str': unique_queries_str,
         'most_clicked_month': most_clicked_month,
         'most_clicked_month_clicks': most_clicked_month_clicks,
+        'most_impressed_month': most_impressed_month,
+        'most_impressed_month_impressions': most_impressed_month_impressions,
+        'highest_ctr_month': highest_ctr_month,
+        'highest_ctr_month_ctr': highest_ctr_month_ctr,
+        'best_position_month': best_position_month,
+        'best_position_month_position': best_position_month_position,
     }
     
     narratives = generate_wrapped_narrative(wrapped_data)

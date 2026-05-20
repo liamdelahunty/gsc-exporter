@@ -51,26 +51,19 @@
     - Achieved a 100% pass rate for the integration test suite.
 - Updated `interactive-runner.py` to point to the new underscored filenames in the `reports/` directory.
 
-## 2026-05-20: Phase 3 - Runner Synchronisation and Utility Migration
-- **Runner Updates**:
-    - Updated `interactive-runner.py` to point all reports to the modular `reports/` directory using underscore naming convention.
-    - Updated `run-monthly-reports.py` to use modularised reports and fixed inconsistent naming (hyphens to underscores).
-    - Refactored `run_all_reports_for_site.py` to use modular reports and verified script paths.
-    - Cleaned up `run_wrapped_for_all_properties.py` to use `core.client` and point to the modular Wrapped report.
-    - Updated `run_for_sites.py` to use `python` (instead of `py`) and improved path handling for modular reports.
-- **Utility Migration**:
-    - Created `utilities/` directory for isolated helper scripts.
-    - Migrated the following scripts to `utilities/`:
-        - `auth-cloud-shell.py`
-        - `generate_brand_files.py`
-        - `show_available_domains.py`
-        - `show_data_range.py`
-        - `show_help.py`
-        - `generate_index.py`
-        - `monthly_cache_manager.py` (marked as deprecated by `core.cache`).
+## 2026-05-20: Phase 4 - Final Synchronisation and Templating
+- **Standardisation & Bug Fixes**:
+    - Refactored `discover_key_performance_metrics.py`, `page_performance_over_time.py`, and `query_segmentation_report.py` to support standard CLI arguments (`--last-month`, `--start-date`, `--end-date`).
+    - Fixed `KeyError: 'month'` in `historical_summary_report.py` by adding robust column detection and derivation.
+    - Resolved `NameError` and pathing issues in `consolidated_traffic_report.py` by integrating `FileSystemLoader` for templates.
+    - Corrected template context in `generate_gsc_wrapped.py` to ensure all "Wrapped" metrics (Impressions, CTR, Position) render correctly.
+    - Updated `url_inspection_report.py` to use standard `run_report(service, site_url, ...)` signature for better integration with batch runners.
+- **HTML Templating (Phase 4)**:
+    - Migrated `performance_analysis.py` to use a dedicated Jinja2 template (`templates/performance-analysis-template.html`).
+    - Standardised CSS and layout across migrated reports for visual consistency.
+- **Validation**:
+    - Implemented a temporary test suite to verify all 24 reports against a live GSC property.
+    - Achieved a 100% pass rate for CSV and HTML generation across the entire modular suite.
 - **Cleanup**:
-    - Deleted redundant root-level report scripts that have been fully migrated to `reports/`.
-    - Moved miscellaneous documentation (`cloud-shell-auth-guide.txt`, `python_scripts_overview.md`) to the `resources/` directory.
-- **Verification**:
-    - Verified that modular reports are still importable.
-    - Root directory is now clean, containing only primary runners, configuration, and structural directories.
+    - Final purge of temporary test scripts and root-level artifacts.
+    - Verified `PYTHONPATH` handling in all primary runners.

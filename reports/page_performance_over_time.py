@@ -110,34 +110,36 @@ def create_html_report(site_url, df, top_pages_list):
 """
     return html_template
 
-def run_report(service, site_url, limit=25):
+def run_report(service, site_url, start_date=None, end_date=None, limit=25):
     """Executes the page performance over time report."""
     print(f"Running Page Performance Over Time Report for {site_url}...")
     
     # 1. Determine Date Range
-    today = date.today()
-    last_month_end = today.replace(day=1) - timedelta(days=1)
-    last_month_start = last_month_end.replace(day=1)
+    if not start_date or not end_date:
+        today = date.today()
+        last_month_end = today.replace(day=1) - timedelta(days=1)
+        last_month_start = last_month_end.replace(day=1)
+        start_date = last_month_start.strftime('%Y-%m-%d')
+        end_date = last_month_end.strftime('%Y-%m-%d')
+    else:
+        last_month_start = datetime.strptime(start_date, '%Y-%m-%d')
+        last_month_end = datetime.strptime(end_date, '%Y-%m-%d')
     
-    # 2. Fetch Top Pages for Last Month
-    df_top = fetch_with_cache(service, site_url, last_month_start.strftime('%Y-%m-%d'), last_month_end.strftime('%Y-%m-%d'), ['page'])
+    # 2. Fetch Top Pages for the provided period
+    df_top = fetch_with_cache(service, site_url, start_date, end_date, ['page'])
     if df_top.empty:
-        print("No page data found for the last month.")
+        print(f"No page data found for {start_date} to {end_date}.")
         return None
         
     top_pages = df_top.sort_values(by='clicks', ascending=False).head(limit)['page'].tolist()
     
     # 3. Fetch 16 Months of Historical Data
     all_month_data = []
-    # Start from the current month's incomplete data or the last complete month?
-    # Original script used i in range(17) starting from latest_date.
     for i in range(16):
         month_dt = last_month_start - relativedelta(months=i)
         m_start = month_dt.strftime('%Y-%m-01')
         m_end = (month_dt + relativedelta(months=1) - timedelta(days=1)).strftime('%Y-%m-%d')
         
-        # We fetch all pages for the month and filter, or fetch just the top pages?
-        # fetch_with_cache fetches all requested dimensions. Filtering afterwards is safer for cache reusability.
         df_m = fetch_with_cache(service, site_url, m_start, m_end, ['page'])
         if not df_m.empty:
             df_m = df_m[df_m['page'].isin(top_pages)].copy()
@@ -155,7 +157,7 @@ def run_report(service, site_url, limit=25):
     os.makedirs(output_dir, exist_ok=True)
     slug = get_filename_slug(site_url)
     
-    file_prefix = f"page-performance-over-time-{slug}"
+    file_prefix = f"page-performance-over-time-{slug}-{start_date}-to-{end_date}"
     csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
     
@@ -163,7 +165,6 @@ def run_report(service, site_url, limit=25):
     df_combined.to_csv(csv_path, index=False)
     
     # 6. Generate HTML
-    # We want to use the same top pages list for the chart
     top_pages_list = df_combined.groupby('page')['clicks'].sum().sort_values(ascending=False).head(limit).index.tolist()
     html_content = create_html_report(site_url, df_combined, top_pages_list)
     
@@ -179,10 +180,23 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Track performance of top pages over time.')
     parser.add_argument('site_url', help='The URL of the site to analyse.')
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     parser.add_argument('--limit', type=int, default=25, help='Number of top pages to track.')
     
     args = parser.parse_args()
     
+    start_date = args.start_date
+    end_date = args.end_date
+    
+    if args.last_month:
+        today = date.today()
+        end_date_dt = today.replace(day=1) - timedelta(days=1)
+        start_date_dt = end_date_dt.replace(day=1)
+        start_date = start_date_dt.strftime('%Y-%m-%d')
+        end_date = end_date_dt.strftime('%Y-%m-%d')
+        
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url, args.limit)
+        run_report(service, args.site_url, start_date, end_date, args.limit)

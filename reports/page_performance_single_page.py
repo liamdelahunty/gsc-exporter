@@ -152,10 +152,12 @@ footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
         chart_data_json, table_html, datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     )
 
-def run_report(service, page_url):
+def run_report(service, page_url, site_url=None):
     """Executes the single page performance report."""
-    print(f"Finding GSC property for {page_url}...")
-    site_url = find_covering_site(service, page_url)
+    if not site_url:
+        print(f"Finding GSC property for {page_url}...")
+        site_url = find_covering_site(service, page_url)
+        
     if not site_url:
         print(f"Could not find a property for {page_url}")
         return None
@@ -236,9 +238,17 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Performance of a single page over time.')
     parser.add_argument('page_url', help='The URL of the page to analyse.')
+    parser.add_argument('--site-url', help='The GSC property URL (optional).')
+    
+    # Accept but ignore start/end date for compatibility with batch runner
+    parser.add_argument('--start-date', help=argparse.SUPPRESS)
+    parser.add_argument('--end-date', help=argparse.SUPPRESS)
+    parser.add_argument('--last-month', action='store_true', help=argparse.SUPPRESS)
     
     args = parser.parse_args()
     
     service = get_gsc_service()
     if service:
-        run_report(service, args.page_url)
+        # If site_url is provided, we can skip find_covering_site inside run_report
+        # or just pass it in. Let's update run_report to take it.
+        run_report(service, args.page_url, site_url=args.site_url)

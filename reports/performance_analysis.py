@@ -12,8 +12,10 @@ from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
 from core.client import get_gsc_service
 
+from jinja2 import Environment, FileSystemLoader
+
 def create_html_report(page_title, current_period_str, previous_period_str, df_best, df_worst, df_low_ctr, df_rising_stars, df_falling_stars):
-    """Generates an HTML report from the analysis dataframes."""
+    """Generates an HTML report using a Jinja2 template."""
     
     # Helper to convert dataframe to HTML table with Bootstrap classes
     def df_to_html(df, table_id):
@@ -38,66 +40,23 @@ def create_html_report(page_title, current_period_str, previous_period_str, df_b
 
         return df.to_html(classes="table table-striped table-hover", index=False, table_id=table_id, border=0)
 
-    html_template = f"""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{page_title}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {{ padding: 2rem; background-color: #f8f9fa; }}
-        .table-responsive {{ max-height: 500px; overflow-y: auto; background-color: white; border-radius: 8px; border: 1px solid #dee2e6; }}
-        h2 {{ border-bottom: 2px solid #dee2e6; padding-bottom: 0.5rem; margin-top: 2rem; }}
-        footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
-        .table thead th {{ text-align: left; background-color: #434343; color: white; }}
-    </style>
-</head>
-<body>
-    <div class="container-fluid">
-        <h1 class="mb-3">{page_title}</h1>
-        <p class="text-muted">Current Period: {current_period_str} | Previous Period: {previous_period_str}</p>
+    template_loader = FileSystemLoader('templates')
+    env = Environment(loader=template_loader)
+    template = env.get_template('performance-analysis-template.html')
 
-        <h2>Best Performing Content (by Clicks Change)</h2>
-        <p class="text-muted">These pages have seen the largest increase in clicks. Analyse them to understand what is working well.</p>
-        <div class="table-responsive">
-            {df_to_html(df_best, 'table-best')}
-        </div>
-
-        <h2>Worst Performing Content (by Clicks Change)</h2>
-        <p class="text-muted">These pages have lost the most clicks. Investigate whether this is due to content decay, seasonality, or new competition.</p>
-        <div class="table-responsive">
-            {df_to_html(df_worst, 'table-worst')}
-        </div>
-        
-        <h2>Rising Stars</h2>
-        <p class="text-muted">Pages with minimal previous visibility that are now gaining significant impressions. These may be new content pieces or topics gaining traction.</p>
-        <div class="table-responsive">
-            {df_to_html(df_rising_stars, 'table-rising')}
-        </div>
-
-        <h2>Falling Stars</h2>
-        <p class="text-muted">Previously strong pages that have experienced a dramatic drop in clicks. These require urgent attention to diagnose the cause of the decline.</p>
-        <div class="table-responsive">
-            {df_to_html(df_falling_stars, 'table-falling')}
-        </div>
-
-        <h2>High Impressions, Low CTR Opportunities</h2>
-        <p class="text-muted">These pages are good candidates for title and meta description optimisation to improve their Click-Through Rate (CTR).</p>
-        <div class="table-responsive">
-            {df_to_html(df_low_ctr, 'table-low-ctr')}
-        </div>
-        
-    </div>
-
-    <footer>
-        <p>Report generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}. <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p>
-    </footer>
-</body>
-</html>
-"""
-    return html_template
+    html_content = template.render(
+        page_title=page_title,
+        current_period_str=current_period_str,
+        previous_period_str=previous_period_str,
+        df_best_html=df_to_html(df_best, 'table-best'),
+        df_worst_html=df_to_html(df_worst, 'table-worst'),
+        df_rising_stars_html=df_to_html(df_rising_stars, 'table-rising'),
+        df_falling_stars_html=df_to_html(df_falling_stars, 'table-falling'),
+        df_low_ctr_html=df_to_html(df_low_ctr, 'table-low-ctr'),
+        generation_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
+    
+    return html_content
 
 def run_report(service, site_url, start_date, end_date, comparison_start_date=None, comparison_end_date=None):
     """

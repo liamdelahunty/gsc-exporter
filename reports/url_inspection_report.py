@@ -57,9 +57,9 @@ def _format_inspection_data_for_csv(inspect_url, inspection_data, request_timest
     })
     return row
 
-def run_report(service, urls, site_list_name="report"):
+def run_report(service, site_url, urls, site_list_name="report"):
     """Executes the URL inspection report for a list of URLs."""
-    print(f"Running URL Inspection Report for {len(urls)} URLs...")
+    print(f"Running URL Inspection Report for {len(urls)} URLs on {site_url}...")
     
     request_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     current_date_str = datetime.now().strftime("%Y-%m-%d")
@@ -68,16 +68,13 @@ def run_report(service, urls, site_list_name="report"):
     
     for url in urls:
         print(f"Inspecting: {url}")
-        # Derive site URL for API
-        parsed = urlparse(url)
-        site_url = f"{parsed.scheme}://{parsed.netloc}/"
-        
+        # The site_url passed in is the GSC property to use
         inspection_data = get_url_inspection_data(service, site_url, url)
         all_inspection_results[url] = inspection_data
     
     # Paths
-    # Using 'account' as a generic output directory for list-based reports
-    output_dir = os.path.join(get_output_dir("account"), 'url-inspection')
+    slug = site_url.replace('https://', '').replace('http://', '').replace('sc-domain:', '').replace('/', '-')
+    output_dir = os.path.join(get_output_dir(site_url), 'url-inspection')
     os.makedirs(output_dir, exist_ok=True)
     
     base_filename = f"inspection-{site_list_name}-{current_date_str}"
@@ -95,12 +92,18 @@ if __name__ == '__main__':
     from core.client import get_gsc_service
     
     parser = argparse.ArgumentParser(description='Inspect URLs.')
-    parser.add_argument('--url', help='Single URL.')
+    parser.add_argument('site_url', help='The GSC property URL.')
+    parser.add_argument('--url', help='Single URL to inspect.')
     parser.add_argument('--sites-file', help='File with URLs.')
+    
+    # Compatibility flags
+    parser.add_argument('--start-date', help=argparse.SUPPRESS)
+    parser.add_argument('--end-date', help=argparse.SUPPRESS)
+    parser.add_argument('--last-month', action='store_true', help=argparse.SUPPRESS)
     
     args = parser.parse_args()
     
-    service = get_gsc_service() # Need searchconsole v1 service
+    service = get_gsc_service() 
     
     if service:
         urls = []
@@ -111,5 +114,12 @@ if __name__ == '__main__':
             with open(args.sites_file, 'r') as f:
                 urls = [line.strip() for line in f if line.strip()]
             name = os.path.splitext(os.path.basename(args.sites_file))[0]
+        else:
+            # Default to inspecting the site_url itself if no list provided
+            urls = [args.site_url] if args.site_url.startswith('http') else []
+            name = "site-root"
             
-        run_report(service, urls, name)
+        if urls:
+            run_report(service, args.site_url, urls, name)
+        else:
+            print("No URLs provided for inspection.")

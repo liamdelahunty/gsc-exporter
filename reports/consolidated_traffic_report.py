@@ -163,7 +163,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url, args.months)"""
+        run_report(service, args.site_url, args.months)
 
 def generate_html_report(df, site_url, html_output_path):
     """Generates the HTML report."""
@@ -223,7 +223,10 @@ def generate_html_report(df, site_url, html_output_path):
 
     chart_data = df.sort_values('month').to_json(orient='records')
 
-    template = Environment().from_string(HTML_TEMPLATE)
+    template_loader = FileSystemLoader('templates')
+    env = Environment(loader=template_loader)
+    template = env.get_template('consolidated-traffic-report-template.html')
+
     html_content = template.render(
         site_url=site_url,
         start_month=start_month,

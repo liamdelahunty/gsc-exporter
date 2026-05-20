@@ -19,10 +19,17 @@ def _segment_queries(df):
     df['position_segment'] = pd.cut(df['position'], bins=bins, labels=labels)
     return df
 
-def run_report(service, site_url, start_date, end_date):
+def run_report(service, site_url, start_date=None, end_date=None):
     """
     Runs the query segmentation report.
     """
+    if not start_date or not end_date:
+        today = date.today()
+        first_day_current_month = today.replace(day=1)
+        last_day_last_month = first_day_current_month - timedelta(days=1)
+        start_date = last_day_last_month.replace(day=1).strftime('%Y-%m-%d')
+        end_date = last_day_last_month.strftime('%Y-%m-%d')
+
     print(f"Running query segmentation report for {site_url} ({start_date} to {end_date})")
     
     # 1. Fetch data
