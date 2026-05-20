@@ -7,13 +7,13 @@ or from a file.
 
 Usage:
     # Run for a few sites listed directly
-    python run_for_sites.py query-position-analysis.py https://www.example.com https://www.example.co.uk
+    python run_for_sites.py reports/query_position_analysis.py https://www.example.com https://www.example.co.uk
 
     # Run for a list of sites from a file
-    python run_for_sites.py gsc-pages-queries.py --sites-file my_sites.txt
+    python run_for_sites.py reports/gsc_pages_queries.py --sites-file site-lists/sites.txt
 
     # Pass additional arguments to the target script
-    python run_for_sites.py snapshot-report.py --sites-file my_sites.txt --last-7-days
+    python run_for_sites.py reports/snapshot_report.py --sites-file site-lists/sites.txt --last-7-days
 """
 
 import os
@@ -29,7 +29,7 @@ def main():
         description='Run a specified analysis script for a list of GSC properties.',
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument('script_to_run', help='The Python script to execute (e.g., query-position-analysis.py).')
+    parser.add_argument('script_to_run', help='The Python script to execute (e.g., reports/query_position_analysis.py).')
     
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('sites', nargs='*', default=[], help='A list of site URLs to process.')
@@ -40,7 +40,7 @@ def main():
 
     script_to_run = args.script_to_run
     if not os.path.exists(script_to_run):
-        print(f"Error: The script '{script_to_run}' was not found in the current directory.")
+        print(f"Error: The script '{script_to_run}' was not found.")
         return
 
     sites_to_process = []
@@ -65,36 +65,24 @@ def main():
         print(f"\n{'='*20} Running for: {site} {'='*20}")
         
         # Construct the command for the subprocess
-        command = ['py', script_to_run, site] + other_args
+        command = ['python', script_to_run, site] + other_args
         
         print(f"Executing command: {' '.join(command)}")
         
         try:
-            # Use subprocess.run and capture output
+            # Use subprocess.run
             process = subprocess.run(
                 command, 
-                capture_output=True, 
+                capture_output=False, 
                 text=True, 
-                check=False # Do not raise exception on non-zero exit codes
+                check=False
             )
             
-            # Print stdout and stderr from the child process
-            if process.stdout:
-                print("--- Output ---")
-                print(process.stdout)
-            if process.stderr:
-                print("--- Errors ---")
-                print(process.stderr)
-
             if process.returncode == 0:
                 print(f"\n----- Successfully completed for {site} -----")
             else:
                 print(f"\n----- Script finished with a non-zero exit code ({process.returncode}) for {site} -----")
 
-        except FileNotFoundError:
-            print(f"\nError: 'py' command not found. Is Python installed and configured in your system's PATH?")
-            print("You might need to use 'python' instead of 'py'.")
-            break # Stop processing if Python command fails
         except Exception as e:
             print(f"\nAn unexpected error occurred while running the script for {site}: {e}")
 

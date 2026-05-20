@@ -36,17 +36,17 @@ def main():
     # List of primary analysis scripts to run.
     # generate_gsc_wrapped.py amd monthly-summary-report.py not included.
     analysis_scripts = [
-        "gsc-pages-queries.py",
-        "gsc_pages_exporter.py",
-        "key-performance-metrics.py",
-        "page-level-report.py", 
-        "page-performance-over-time.py",
-        "performance-analysis.py",
-        "queries-pages-analysis.py",
-        "query-position-analysis.py",
-        "query-segmentation-report.py",
-        "snapshot-report.py",
-        "monthly-search-type-performance-report.py",
+        "reports/gsc_pages_queries.py",
+        "reports/gsc_pages_exporter.py",
+        "reports/key_performance_metrics.py",
+        "reports/page_level_report.py", 
+        "reports/page_performance_over_time.py",
+        "reports/performance_analysis.py",
+        "reports/queries_pages_analysis.py",
+        "reports/query_position_analysis.py",
+        "reports/query_segmentation_report.py",
+        "reports/snapshot_report.py",
+        "reports/monthly_search_type_performance_report.py",
     ]
 
     print(f"\n--- Running all reports for site: {site_url} ---")

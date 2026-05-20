@@ -20,38 +20,38 @@ import argparse
 # List of reports that support the --last-month flag. 
 # These will have --last-month appended if no other date flag is provided.
 MONTHLY_SUPPORTED_SCRIPTS = [
-    "snapshot-report.py",
-    "performance-analysis.py",
-    "reports/page-level-report.py",
-    "query-segmentation-report.py",
-    "keyword-cannibalisation-report.py",
-    "gsc_pages_exporter.py",
-    "generate_gsc_wrapped.py",
-    "seasonal-performance-report.py",
-    "reports/seasonal-page-spike-report.py",
-    "seasonal-query-spike-report.py"
+    "reports/snapshot_report.py",
+    "reports/performance_analysis.py",
+    "reports/page_level_report.py",
+    "reports/query_segmentation_report.py",
+    "reports/keyword_cannibalisation_report.py",
+    "reports/gsc_pages_exporter.py",
+    "reports/generate_gsc_wrapped.py",
+    "reports/seasonal_performance_report.py",
+    "reports/seasonal_page_spike_report.py",
+    "reports/seasonal_query_spike_report.py"
 ]
 
 # Default list of reports to run.
 DEFAULT_REPORTS = [
-    "snapshot-report.py",
-    "performance-analysis.py",
-    "reports/page-level-report.py",
-    "gsc-pages-queries.py",
-    "key-performance-metrics.py",
-    "discover-key-performance-metrics.py",
-    "queries-pages-analysis.py",
-    "query-position-analysis.py",
-    "query-segmentation-report.py",
-    "keyword-cannibalisation-report.py",
-    "page-performance-over-time.py",
-    "monthly-summary-report.py",
-    "gsc_pages_exporter.py",
-    "generate_gsc_wrapped.py",
-    "monthly-search-type-performance-report.py",
-    "seasonal-performance-report.py",
-    "reports/seasonal-page-spike-report.py",
-    "seasonal-query-spike-report.py"
+    "reports/snapshot_report.py",
+    "reports/performance_analysis.py",
+    "reports/page_level_report.py",
+    "reports/gsc_pages_queries.py",
+    "reports/key_performance_metrics.py",
+    "reports/discover_key_performance_metrics.py",
+    "reports/queries_pages_analysis.py",
+    "reports/query_position_analysis.py",
+    "reports/query_segmentation_report.py",
+    "reports/keyword_cannibalisation_report.py",
+    "reports/page_performance_over_time.py",
+    "reports/monthly_summary_report.py",
+    "reports/gsc_pages_exporter.py",
+    "reports/generate_gsc_wrapped.py",
+    "reports/monthly_search_type_performance_report.py",
+    "reports/seasonal_performance_report.py",
+    "reports/seasonal_page_spike_report.py",
+    "reports/seasonal_query_spike_report.py"
 ]
 
 def main():

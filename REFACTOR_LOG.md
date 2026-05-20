@@ -51,5 +51,26 @@
     - Achieved a 100% pass rate for the integration test suite.
 - Updated `interactive-runner.py` to point to the new underscored filenames in the `reports/` directory.
 
-## Future Tasks (Follow-up)
-- **Utility Migration**: Review root-level utility scripts (e.g., `auth-cloud-shell.py`, `generate_brand_files.py`, `show_available_domains.py`, etc.). Move these to `core/` if they provide shared functionality, or create a `/utilities` directory for isolated helper scripts.
+## 2026-05-20: Phase 3 - Runner Synchronisation and Utility Migration
+- **Runner Updates**:
+    - Updated `interactive-runner.py` to point all reports to the modular `reports/` directory using underscore naming convention.
+    - Updated `run-monthly-reports.py` to use modularised reports and fixed inconsistent naming (hyphens to underscores).
+    - Refactored `run_all_reports_for_site.py` to use modular reports and verified script paths.
+    - Cleaned up `run_wrapped_for_all_properties.py` to use `core.client` and point to the modular Wrapped report.
+    - Updated `run_for_sites.py` to use `python` (instead of `py`) and improved path handling for modular reports.
+- **Utility Migration**:
+    - Created `utilities/` directory for isolated helper scripts.
+    - Migrated the following scripts to `utilities/`:
+        - `auth-cloud-shell.py`
+        - `generate_brand_files.py`
+        - `show_available_domains.py`
+        - `show_data_range.py`
+        - `show_help.py`
+        - `generate_index.py`
+        - `monthly_cache_manager.py` (marked as deprecated by `core.cache`).
+- **Cleanup**:
+    - Deleted redundant root-level report scripts that have been fully migrated to `reports/`.
+    - Moved miscellaneous documentation (`cloud-shell-auth-guide.txt`, `python_scripts_overview.md`) to the `resources/` directory.
+- **Verification**:
+    - Verified that modular reports are still importable.
+    - Root directory is now clean, containing only primary runners, configuration, and structural directories.

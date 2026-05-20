@@ -86,15 +86,15 @@ def select_property(sites):
 def select_report():
     """Displays a list of available reports and prompts the user to select one."""
     reports = {
-        '1': {'name': 'Snapshot Report', 'file': 'snapshot-report.py'},
-        '2': {'name': 'Performance Analysis', 'file': 'performance-analysis.py'},
+        '1': {'name': 'Snapshot Report', 'file': 'reports/snapshot_report.py'},
+        '2': {'name': 'Performance Analysis', 'file': 'reports/performance_analysis.py'},
         '3': {'name': 'Page-Level Report', 'file': 'reports/page_level_report.py'},
         '4': {'name': 'Queries & Pages Detailed', 'file': 'reports/gsc_pages_queries.py'},
         '5': {'name': 'Key Performance Metrics', 'file': 'reports/key_performance_metrics.py'},
         '6': {'name': 'Discover Performance Metrics', 'file': 'reports/discover_key_performance_metrics.py'},
-        '7': {'name': 'Queries & Pages Summary', 'file': 'queries-pages-analysis.py'},
-        '8': {'name': 'Query Position Analysis', 'file': 'query-position-analysis.py'},
-        '9': {'name': 'Query Segmentation Report', 'file': 'query-segmentation-report.py'},
+        '7': {'name': 'Queries & Pages Summary', 'file': 'reports/queries_pages_analysis.py'},
+        '8': {'name': 'Query Position Analysis', 'file': 'reports/query_position_analysis.py'},
+        '9': {'name': 'Query Segmentation Report', 'file': 'reports/query_segmentation_report.py'},
         '10': {'name': 'Keyword Cannibalisation Report', 'file': 'reports/keyword_cannibalisation_report.py'},
         '11': {'name': 'Page Performance Over Time', 'file': 'reports/page_performance_over_time.py'},
         '12': {'name': 'Single Page Performance', 'file': 'reports/page_performance_single_page.py'},
@@ -103,13 +103,13 @@ def select_report():
         '15': {'name': 'Consolidated Traffic Report', 'file': 'reports/consolidated_traffic_report.py'},
         '16': {'name': 'Image Performance Report', 'file': 'reports/image_performance_report.py'},
         '17': {'name': 'Monthly Search Type Performance', 'file': 'reports/monthly_search_type_performance_report.py'},
-        '18': {'name': 'Search Type Performance Report', 'file': 'search-type-performance-report.py'},
-        '19': {'name': 'URL Inspection Report', 'file': 'url-inspection-report.py'},
+        '18': {'name': 'Search Type Performance Report', 'file': 'reports/search_type_performance.py'},
+        '19': {'name': 'URL Inspection Report', 'file': 'reports/url_inspection_report.py'},
         '20': {'name': 'Export All Pages', 'file': 'reports/gsc_pages_exporter.py'},
         '21': {'name': 'Generate GSC Wrapped', 'file': 'reports/generate_gsc_wrapped.py'},
-        '22': {'name': 'Seasonal Performance (Year-over-Year)', 'file': 'seasonal-performance-report.py'},
+        '22': {'name': 'Seasonal Performance (Year-over-Year)', 'file': 'reports/seasonal_performance_report.py'},
         '23': {'name': 'Seasonal Page Spikes (Z-Score)', 'file': 'reports/seasonal_page_spike_report.py'},
-        '24': {'name': 'Seasonal Query Spikes (Z-Score)', 'file': 'seasonal-query-spike-report.py'},
+        '24': {'name': 'Seasonal Query Spikes (Z-Score)', 'file': 'reports/seasonal_query_spike_report.py'},
     }
     print("\nAvailable Reports:")
     for key in sorted(reports.keys(), key=int):
