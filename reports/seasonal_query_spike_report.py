@@ -127,14 +127,15 @@ def run_report(service, site_url, months=16, threshold=2.0, min_clicks=10):
     csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
     
-    report_df.to_csv(csv_path, index=False)
+    report_df.to_csv(csv_path, index=False, encoding='utf-8')
     
     report_title = f"Seasonal Query Spikes Report: {site_url}"
     html_content = create_report_html(report_df, report_title, site_url, months)
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
         
-    print(f"Report completed: {html_path}")
+    print(f"CSV saved to: {csv_path}")
+    print(f"HTML saved to: {html_path}")
     return html_path
 
 if __name__ == '__main__':

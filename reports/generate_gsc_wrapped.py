@@ -228,10 +228,20 @@ def run_report(service, site_url, start_date=None, end_date=None, last_12_months
     html_filename = f"gsc-wrapped-{slug}-{start_date}-to-{end_date}.html"
     html_output_path = os.path.join(output_dir, html_filename)
 
+    csv_pages_filename = f"gsc-wrapped-{slug}-pages-{start_date}-to-{end_date}.csv"
+    csv_queries_filename = f"gsc-wrapped-{slug}-queries-{start_date}-to-{end_date}.csv"
+    csv_pages_path = os.path.join(output_dir, csv_pages_filename)
+    csv_queries_path = os.path.join(output_dir, csv_queries_filename)
+
     with open(html_output_path, 'w', encoding='utf-8') as f:
         f.write(html_output)
+    
+    df_pages.to_csv(csv_pages_path, index=False, encoding='utf-8')
+    df_queries.to_csv(csv_queries_path, index=False, encoding='utf-8')
         
-    print(f"Report completed: {html_output_path}")
+    print(f"CSV saved to: {csv_pages_path}")
+    print(f"CSV saved to: {csv_queries_path}")
+    print(f"HTML saved to: {html_output_path}")
     return html_output_path
 
 if __name__ == '__main__':

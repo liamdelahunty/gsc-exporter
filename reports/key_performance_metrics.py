@@ -128,7 +128,7 @@ def run_report(service, site_url, months=16):
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
 
     # 5. Save and Generate
-    monthly_df.to_csv(csv_path, index=False)
+    monthly_df.to_csv(csv_path, index=False, encoding='utf-8')
     
     full_period_str = f"Monthly breakdown from {monthly_df['month'].min()} to {monthly_df['month'].max()}"
     html_content = create_single_site_html_report(monthly_df, site_url, full_period_str)
@@ -136,7 +136,8 @@ def run_report(service, site_url, months=16):
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
         
-    print(f"Report completed: {html_path}")
+    print(f"CSV saved to: {csv_path}")
+    print(f"HTML saved to: {html_path}")
     return html_path
 
 if __name__ == '__main__':

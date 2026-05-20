@@ -120,14 +120,15 @@ def run_report(service, site_url, month=None, years=3):
     csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
     
-    merged_df.to_csv(csv_path, index=False)
+    merged_df.to_csv(csv_path, index=False, encoding='utf-8')
     
     report_title = f"Seasonal Performance Report: {target_dt.strftime('%B')} ({site_url})"
     html_content = create_seasonal_report_html(merged_df, report_title, years_list)
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
         
-    print(f"Report completed: {html_path}")
+    print(f"CSV saved to: {csv_path}")
+    print(f"HTML saved to: {html_path}")
     return html_path
 
 if __name__ == '__main__':

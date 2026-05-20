@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import pandas as pd
 from datetime import datetime
 from urllib.parse import urlparse
-from core.naming import get_output_dir
+from core.naming import get_output_dir, get_filename_slug
 
 def get_url_inspection_data(service, site_url, inspect_url):
     """Fetches URL inspection data for a given URL."""
@@ -57,6 +57,40 @@ def _format_inspection_data_for_csv(inspect_url, inspection_data, request_timest
     })
     return row
 
+def create_html_report(df, report_title, timestamp):
+    """Generates an HTML report from the DataFrame."""
+    table_html = df.to_html(classes="table table-striped table-hover", index=False, border=0)
+
+    return f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{report_title}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {{ padding: 2rem; background-color: #f8f9fa; }}
+        h1 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; }}
+        .table-responsive {{ margin-top: 2rem; }}
+        footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1>{report_title}</h1>
+        <p class="text-muted">Inspection performed on: {timestamp}</p>
+        <div class="table-responsive">
+            {table_html}
+        </div>
+    </div>
+    <footer>
+        <p>Report generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}. <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p>
+    </footer>
+</body>
+</html>
+"""
+
 def run_report(service, site_url, urls, site_list_name="report"):
     """Executes the URL inspection report for a list of URLs."""
     print(f"Running URL Inspection Report for {len(urls)} URLs on {site_url}...")
@@ -73,18 +107,30 @@ def run_report(service, site_url, urls, site_list_name="report"):
         all_inspection_results[url] = inspection_data
     
     # Paths
-    slug = site_url.replace('https://', '').replace('http://', '').replace('sc-domain:', '').replace('/', '-')
+    slug = get_filename_slug(site_url)
     output_dir = os.path.join(get_output_dir(site_url), 'url-inspection')
     os.makedirs(output_dir, exist_ok=True)
     
     base_filename = f"inspection-{site_list_name}-{current_date_str}"
     csv_path = os.path.join(output_dir, f"{base_filename}.csv")
+    html_path = os.path.join(output_dir, f"{base_filename}.html")
     
     # Save CSV
     formatted_data_list = [_format_inspection_data_for_csv(url, data, request_timestamp) for url, data in all_inspection_results.items()]
-    pd.DataFrame(formatted_data_list).to_csv(csv_path, index=False, encoding='utf-8')
+    df = pd.DataFrame(formatted_data_list)
+    df.to_csv(csv_path, index=False, encoding='utf-8')
     
-    print(f"Report completed: {csv_path}")
+    # Save HTML
+    html_content = create_html_report(
+        df,
+        f"URL Inspection Report: {site_url}",
+        request_timestamp
+    )
+    with open(html_path, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+
+    print(f"CSV saved to: {csv_path}")
+    print(f"HTML saved to: {html_path}")
     return csv_path
 
 if __name__ == '__main__':

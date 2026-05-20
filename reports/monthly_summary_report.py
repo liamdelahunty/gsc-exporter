@@ -128,7 +128,7 @@ def run_report(service, sites, start_date, end_date, report_label=None):
     csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
 
-    df.to_csv(csv_path, index=False)
+    df.to_csv(csv_path, index=False, encoding='utf-8')
 
     report_title = f"GSC Monthly Summary"
     if len(sites) == 1: report_title += f" for {sites[0]}"
@@ -137,7 +137,8 @@ def run_report(service, sites, start_date, end_date, report_label=None):
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
 
-    print(f"Report completed: {html_path}")
+    print(f"CSV saved to: {csv_path}")
+    print(f"HTML saved to: {html_path}")
     return html_path
 
 if __name__ == '__main__':

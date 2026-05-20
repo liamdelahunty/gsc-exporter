@@ -191,8 +191,19 @@ def run_report(service, site_url):
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
+    
+    csv_queries_path = os.path.join(output_dir, f"{file_prefix}-queries.csv")
+    csv_pages_path = os.path.join(output_dir, f"{file_prefix}-pages.csv")
+    csv_matrix_path = os.path.join(output_dir, f"{file_prefix}-matrix.csv")
+    
+    df_queries.to_csv(csv_queries_path, index=False, encoding='utf-8')
+    df_pages.to_csv(csv_pages_path, index=False, encoding='utf-8')
+    df_matrix.to_csv(csv_matrix_path, index=False, encoding='utf-8')
         
-    print(f"Report completed: {html_path}")
+    print(f"CSV saved to: {csv_queries_path}")
+    print(f"CSV saved to: {csv_pages_path}")
+    print(f"CSV saved to: {csv_matrix_path}")
+    print(f"HTML saved to: {html_path}")
     return html_path
 
 if __name__ == '__main__':

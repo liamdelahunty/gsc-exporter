@@ -142,7 +142,7 @@ def run_report(service, site_url, start_date, end_date, comparison_start_date=No
     html_path = os.path.join(output_dir, f"performance-analysis-{slug}-{start_date}-to-{end_date}.html")
     
     # Save CSV
-    df_merged.to_csv(csv_path, index=False)
+    df_merged.to_csv(csv_path, index=False, encoding='utf-8')
     
     # Generate and save HTML
     html_content = create_html_report(
@@ -158,8 +158,8 @@ def run_report(service, site_url, start_date, end_date, comparison_start_date=No
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
         
-    print(f"Report saved to {csv_path}")
-    print(f"HTML report saved to {html_path}")
+    print(f"CSV saved to: {csv_path}")
+    print(f"HTML saved to: {html_path}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run performance analysis.')

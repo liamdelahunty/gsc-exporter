@@ -156,9 +156,13 @@ def run_report(service, site_url, start_date, end_date):
     html_path = os.path.join(output_dir, f"{base_file_prefix}-report.html")
     
     # Save CSVs
-    df_pages.to_csv(os.path.join(output_dir, f"{base_file_prefix}-pages.csv"), index=False)
-    df_devices.to_csv(os.path.join(output_dir, f"{base_file_prefix}-devices.csv"), index=False)
-    df_countries.to_csv(os.path.join(output_dir, f"{base_file_prefix}-countries.csv"), index=False)
+    csv_pages_path = os.path.join(output_dir, f"{base_file_prefix}-pages.csv")
+    csv_devices_path = os.path.join(output_dir, f"{base_file_prefix}-devices.csv")
+    csv_countries_path = os.path.join(output_dir, f"{base_file_prefix}-countries.csv")
+    
+    df_pages.to_csv(csv_pages_path, index=False, encoding='utf-8')
+    df_devices.to_csv(csv_devices_path, index=False, encoding='utf-8')
+    df_countries.to_csv(csv_countries_path, index=False, encoding='utf-8')
 
     # Generate and save HTML
     html_content = create_snapshot_html_report(
@@ -174,7 +178,10 @@ def run_report(service, site_url, start_date, end_date):
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
         
-    print(f"Report completed: {html_path}")
+    print(f"CSV saved to: {csv_pages_path}")
+    print(f"CSV saved to: {csv_devices_path}")
+    print(f"CSV saved to: {csv_countries_path}")
+    print(f"HTML saved to: {html_path}")
     return html_path
 
 if __name__ == '__main__':

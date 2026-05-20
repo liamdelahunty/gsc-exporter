@@ -151,9 +151,11 @@ def run_report(service, site_url, months=16):
         df_final = pd.DataFrame(all_monthly_data)
         output_dir = get_output_dir(site_url)
         os.makedirs(output_dir, exist_ok=True)
-        csv_path = os.path.join(output_dir, "query-position-analysis-historical.csv")
-        html_path = os.path.join(output_dir, "query-position-analysis-historical.html")
-        df_final.to_csv(csv_path, index=False)
+        slug = get_filename_slug(site_url)
+        
+        csv_path = os.path.join(output_dir, f"query-position-analysis-{slug}-historical.csv")
+        html_path = os.path.join(output_dir, f"query-position-analysis-{slug}-historical.html")
+        df_final.to_csv(csv_path, index=False, encoding='utf-8')
         
         # Generate HTML
         start_month = df_final['month'].min()
@@ -162,8 +164,8 @@ def run_report(service, site_url, months=16):
         with open(html_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
             
-        print(f"Report saved to {csv_path}")
-        print(f"HTML report saved to {html_path}")
+        print(f"CSV saved to: {csv_path}")
+        print(f"HTML saved to: {html_path}")
     else:
         print(f"No data found for {site_url}")
 

@@ -162,7 +162,7 @@ def run_report(service, site_url, start_date=None, end_date=None, limit=25):
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
     
     # 5. Save CSV
-    df_combined.to_csv(csv_path, index=False)
+    df_combined.to_csv(csv_path, index=False, encoding='utf-8')
     
     # 6. Generate HTML
     top_pages_list = df_combined.groupby('page')['clicks'].sum().sort_values(ascending=False).head(limit).index.tolist()
@@ -171,7 +171,8 @@ def run_report(service, site_url, start_date=None, end_date=None, limit=25):
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
         
-    print(f"Report completed: {html_path}")
+    print(f"CSV saved to: {csv_path}")
+    print(f"HTML saved to: {html_path}")
     return html_path
 
 if __name__ == '__main__':

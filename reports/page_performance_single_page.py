@@ -222,14 +222,15 @@ def run_report(service, page_url, site_url=None):
     csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
     
-    df_combined.to_csv(csv_path)
+    df_combined.to_csv(csv_path, encoding='utf-8')
     
     # 4. Generate HTML
     html_content = create_html_report(page_url, site_url, start_date, end_date, df_combined)
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
         
-    print(f"Report completed: {html_path}")
+    print(f"CSV saved to: {csv_path}")
+    print(f"HTML saved to: {html_path}")
     return html_path
 
 if __name__ == '__main__':

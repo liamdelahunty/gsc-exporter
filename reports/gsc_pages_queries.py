@@ -135,14 +135,15 @@ def run_report(service, site_url, start_date, end_date, report_limit=250, sub_ta
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
 
     # 4. Save CSV
-    df.to_csv(csv_path, index=False)
+    df.to_csv(csv_path, index=False, encoding='utf-8')
     
     # 5. Generate HTML
     html_content = create_html_report(df, site_url, start_date, end_date, report_limit, sub_table_limit)
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
         
-    print(f"Report completed: {html_path}")
+    print(f"CSV saved to: {csv_path}")
+    print(f"HTML saved to: {html_path}")
     return html_path
 
 if __name__ == '__main__':

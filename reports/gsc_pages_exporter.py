@@ -68,13 +68,14 @@ def run_report(service, site_url, start_date, end_date):
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
 
     # 4. Save and Generate
-    df[['page']].to_csv(csv_path, index=False)
+    df[['page']].to_csv(csv_path, index=False, encoding='utf-8')
     
     html_content = create_html_page(pages, f"Google Organic Pages for {slug}", NUM_COLUMNS, start_date, end_date, num_links)
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
         
-    print(f"Report completed: {html_path}")
+    print(f"CSV saved to: {csv_path}")
+    print(f"HTML saved to: {html_path}")
     return html_path
 
 if __name__ == '__main__':

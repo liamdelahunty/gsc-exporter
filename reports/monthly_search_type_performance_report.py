@@ -302,7 +302,7 @@ def run_report(service, site_url, start_date, end_date):
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
     
     # 4. Save CSV
-    merged_df.to_csv(csv_path, index=False)
+    merged_df.to_csv(csv_path, index=False, encoding='utf-8')
     
     # 5. Generate HTML
     report_title = f"Monthly Search Type Performance for {site_url}"
@@ -312,7 +312,8 @@ def run_report(service, site_url, start_date, end_date):
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
         
-    print(f"Report completed: {html_path}")
+    print(f"CSV saved to: {csv_path}")
+    print(f"HTML saved to: {html_path}")
     return html_path
 
 if __name__ == '__main__':
