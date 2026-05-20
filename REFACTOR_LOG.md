@@ -61,6 +61,11 @@
 - **HTML Templating (Phase 4)**:
     - Migrated `performance_analysis.py` to use a dedicated Jinja2 template (`templates/performance-analysis-template.html`).
     - Standardised CSS and layout across migrated reports for visual consistency.
+- **Standardisation & Console Transparency**:
+    - **Uniform Output**: Audited all 24 reports to ensure they generate at least one CSV and one HTML file per run.
+    - **Standard Announcements**: Standardised console output to explicitly list file paths: `CSV saved to: [path]` and `HTML saved to: [path]`.
+    - **Expanded Reporting**: Added HTML generation to previously CSV-only reports (`Query Segmentation`, `URL Inspection`, `Seasonal Spikes`).
+    - **Data Persistence**: Ensured primary data tables in visual reports (`GSC Wrapped`, `Image Performance`) are also exported to CSV for external analysis.
 - **Validation**:
     - Implemented a temporary test suite to verify all 24 reports against a live GSC property.
     - Achieved a 100% pass rate for CSV and HTML generation across the entire modular suite.
