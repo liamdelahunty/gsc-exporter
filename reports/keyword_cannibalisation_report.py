@@ -8,6 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import pandas as pd
 import html
 from datetime import datetime, date, timedelta
+from dateutil.relativedelta import relativedelta
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
 
@@ -84,17 +85,10 @@ def create_html_report(site_url, start_date, end_date, report_df, top_100_cannib
 <footer class="footer mt-auto py-3 bg-light border-top text-center"><p class="text-muted mb-0">Report generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p></footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script></body></html>"""
 
-def run_report(service, site_url, start_date=None, end_date=None):
+def run_report(service, site_url, start_date, end_date):
     """Executes the Keyword Cannibalisation report."""
     print(f"Running Keyword Cannibalisation Report for {site_url}...")
     
-    if not start_date or not end_date:
-        today = date.today()
-        end_date_dt = today.replace(day=1) - timedelta(days=1)
-        start_date_dt = end_date_dt.replace(day=1)
-        start_date = start_date_dt.strftime('%Y-%m-%d')
-        end_date = end_date_dt.strftime('%Y-%m-%d')
-
     df = fetch_with_cache(service, site_url, start_date, end_date, ['query', 'page'])
     
     if df.empty:
@@ -142,7 +136,20 @@ if __name__ == '__main__':
     parser.add_argument('site_url', help='The site URL.')
     parser.add_argument('--start-date', help='Start date.')
     parser.add_argument('--end-date', help='End date.')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     args = parser.parse_args()
+    
+    if args.last_month:
+        today = date.today()
+        # Last month
+        end_date_dt = today.replace(day=1) - relativedelta(days=1)
+        start_date_dt = end_date_dt.replace(day=1)
+        start_date = start_date_dt.strftime('%Y-%m-%d')
+        end_date = end_date_dt.strftime('%Y-%m-%d')
+    else:
+        start_date = args.start_date
+        end_date = args.end_date
+
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url, args.start_date, args.end_date)
+        run_report(service, args.site_url, start_date, end_date)

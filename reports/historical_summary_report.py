@@ -1,7 +1,3 @@
-"""
-Generates a historical summary report from existing monthly data.
-Refactored for modular GSC Exporter.
-"""
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -10,31 +6,11 @@ import glob
 import json
 from datetime import datetime
 from core.naming import get_output_dir, get_filename_slug
+from jinja2 import Environment, FileSystemLoader
 
-def create_historical_report(df, report_title, site_url, template_path='resources/report-blank.html'):
+def create_historical_report(df, report_title, site_url):
     """Generates a historical HTML report."""
-    if not os.path.exists(template_path):
-        # Fallback to a basic template if resources/report-blank.html is missing
-        template_html = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8"><title>{{ title }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container py-4">
-        <h1>{{ title }}</h1>
-        <p class="lead">{{ site_url }}</p>
-        {{ content|safe }}
-    </div>
-</body>
-</html>
-"""
-    else:
-        with open(template_path, 'r', encoding='utf-8') as f:
-            template_html = f.read()
-
+    
     # --- Data Preparation ---
     report_df = df.copy()
     report_df['clicks'] = report_df['clicks'].apply(lambda x: f"{x:,.0f}")
@@ -70,7 +46,7 @@ def create_historical_report(df, report_title, site_url, template_path='resource
         'pages': json.dumps(df['pages'].tolist()),
     }
 
-    chart_html = f"""
+    chart_html_content = f"""
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <div class="row">
         <div class="col-md-6"><canvas id="clicksImpressionsChart"></canvas></div>
@@ -142,23 +118,17 @@ def create_historical_report(df, report_title, site_url, template_path='resource
     </script>
     """
 
-    # Inject content
-    if 'This Report Name' in template_html:
-        html_output = template_html.replace('This Report Name', report_title)
-        html_output = html_output.replace('<span class="text-muted me-4">Domain name</span>', f'<span class="text-muted me-4">{site_url}</span>')
-        html_output = html_output.replace('<span class="text-muted me-4">Date-range</span>', 'Historical Trend')
-        
-        main_placeholder = """    <main class="container py-4 flex-grow-1">
-        <h1>Hello</h1>""" # Partial match for standard template
-        
-        # More robust replacement for the main block
-        import re
-        html_output = re.sub(r'<main class="container py-4 flex-grow-1">.*?</main>', 
-                            f'<main class="container py-4 flex-grow-1">{chart_html}<div class="table-responsive mt-4">{table_html}</div></main>', 
-                            html_output, flags=re.DOTALL)
-    else:
-        # Fallback template
-        html_output = template_html.replace('{{ title }}', report_title).replace('{{ site_url }}', site_url).replace('{{ content|safe }}', chart_html + table_html)
+    template_loader = FileSystemLoader('resources')
+    env = Environment(loader=template_loader)
+    template = env.get_template('report-blank.html')
+
+    html_output = template.render(
+        title=report_title,
+        report_name=report_title,
+        domain_name=site_url,
+        date_range="Historical Trend",
+        main_content=chart_html_content + f'<div class="table-responsive mt-4">{table_html}</div>'
+    )
     
     return html_output
 

@@ -222,31 +222,39 @@ def run_report(service, site_url, start_date, end_date, search_type='web', limit
 if __name__ == '__main__':
     import argparse
     from core.client import get_gsc_service
+    from datetime import date
+    from dateutil.relativedelta import relativedelta
     
     parser = argparse.ArgumentParser(description='Generate a page-level report.')
     parser.add_argument('site_url', help='The URL of the site to analyse.')
     parser.add_argument('--search-type', default='web', help='The search type (web, discover, etc.).')
     parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
     parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     parser.add_argument('--limit', type=int, default=250, help='Limit for HTML report.')
     parser.add_argument('--strip-query-strings', action='store_true', help='Remove query strings.')
     
     args = parser.parse_args()
     
+    if args.last_month:
+        today = date.today()
+        # Last month
+        end_date_dt = today.replace(day=1) - relativedelta(days=1)
+        start_date_dt = end_date_dt.replace(day=1)
+        start_date = start_date_dt.strftime('%Y-%m-%d')
+        end_date = end_date_dt.strftime('%Y-%m-%d')
+    elif args.start_date and args.end_date:
+        start_date = args.start_date
+        end_date = args.end_date
+    else:
+        # Default to last month if dates not provided
+        today = date.today()
+        end_date_dt = today.replace(day=1) - relativedelta(days=1)
+        start_date_dt = end_date_dt.replace(day=1)
+        start_date = start_date_dt.strftime('%Y-%m-%d')
+        end_date = end_date_dt.strftime('%Y-%m-%d')
+            
     service = get_gsc_service()
     if service:
-        # Default to last month if dates not provided
-        if not args.start_date or not args.end_date:
-            from datetime import date
-            from dateutil.relativedelta import relativedelta
-            today = date.today()
-            end_date_dt = today.replace(day=1) - relativedelta(days=1)
-            start_date_dt = end_date_dt.replace(day=1)
-            start_date = start_date_dt.strftime('%Y-%m-%d')
-            end_date = end_date_dt.strftime('%Y-%m-%d')
-        else:
-            start_date = args.start_date
-            end_date = args.end_date
-            
         run_report(service, args.site_url, start_date, end_date, 
                    args.search_type, args.limit, args.strip_query_strings)

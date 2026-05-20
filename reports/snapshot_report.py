@@ -178,11 +178,28 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Generate a performance snapshot.')
     parser.add_argument('site_url', help='The URL of the site to analyse.')
-    parser.add_argument('--start-date', required=True)
-    parser.add_argument('--end-date', required=True)
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     
     args = parser.parse_args()
     
+    if args.last_month:
+        today = date.today()
+        # Last month
+        end_date_dt = today.replace(day=1) - relativedelta(days=1)
+        start_date_dt = end_date_dt.replace(day=1)
+        
+        start_date = start_date_dt.strftime('%Y-%m-%d')
+        end_date = end_date_dt.strftime('%Y-%m-%d')
+    else:
+        start_date = args.start_date
+        end_date = args.end_date
+    
+    if not start_date or not end_date:
+        print("Error: Either provide --start-date and --end-date, or use --last-month.")
+        sys.exit(1)
+        
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url, args.start_date, args.end_date)
+        run_report(service, args.site_url, start_date, end_date)

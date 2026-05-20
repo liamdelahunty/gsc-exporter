@@ -11,6 +11,7 @@ from dateutil.relativedelta import relativedelta
 from urllib.parse import urlparse
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
+from jinja2 import Environment, FileSystemLoader
 
 def get_sort_key(site_url):
     """Creates a sort key for a site URL."""
@@ -35,22 +36,8 @@ def get_sort_key(site_url):
             subdomain = netloc.split('.')[0]
     return (root_domain, order, subdomain)
 
-def create_summary_report_html(df, report_title, date_range_str, template_path='resources/report-blank.html'):
-    """Generates a summary HTML report from a DataFrame using a template."""
-    if not os.path.exists(template_path):
-        # Fallback to a basic template if the specific one is missing
-        print(f"Warning: Template file not found at {template_path}. Using basic layout.")
-        template_html = """
-        <!DOCTYPE html><html><head><title>{{ title }}</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-        </head><body><div class="container py-4">
-        <h1>{{ title }}</h1><p>{{ date_range }}</p>
-        {{ table|safe }}
-        </div></body></html>
-        """
-    else:
-        with open(template_path, 'r', encoding='utf-8') as f:
-            template_html = f.read()
+def create_summary_report_html(df, report_title, date_range_str, site_url=None):
+    """Generates a summary HTML report from a DataFrame using a Jinja2 template."""
 
     report_df = df.copy()
     report_df['sort_key'] = report_df['site_url'].apply(get_sort_key)
@@ -80,85 +67,30 @@ def create_summary_report_html(df, report_title, date_range_str, template_path='
     if '# Queries' in report_df.columns: cols.append('# Queries')
     if '# Pages' in report_df.columns: cols.append('# Pages')
     report_df = report_df[cols]
-    
+
     table_html = report_df.to_html(classes="table table-striped table-hover", index=False, border=0)
 
-    if '{{' in template_html: # Basic template
-        return template_html.replace('{{ title }}', report_title).replace('{{ date_range }}', date_range_str).replace('{{ table|safe }}', table_html)
+    template_loader = FileSystemLoader('resources')
+    env = Environment(loader=template_loader)
+    template = env.get_template('report-blank.html')
 
-    # Themed template
-    html_output = template_html.replace('This Report Name', report_title)
-    html_output = html_output.replace('<span class="text-muted me-4">Domain name</span>', f'<span class="text-muted me-4">Account Summary</span>')
-    html_output = html_output.replace('<span class="text-muted me-4">Date-range</span>', f'<span class="text-muted me-4">{date_range_str}</span>')
-    html_output = html_output.replace('<a href="index.html">Resources</a>', '<a href="../../resources/index.html">Resources</a>')
-
-    custom_css = """<style>
-        html { height: 100%; }
-        body { display: flex; flex-direction: column; min-height: 100vh; }
-        .table th, .table td { text-align: right; vertical-align: middle; }
-        .table th:first-child, .table td:first-child { text-align: left; }
-    </style>"""
-    html_output = html_output.replace("""<style>
-        html {
-            height: 100%;
-        }
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-    </style>""", custom_css)
-
-    main_placeholder = """    <main class="container py-4 flex-grow-1">
-        <h1>Hello</h1>
-        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-            tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
-            quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-            consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
-            cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
-        proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-        <div class="row">
-            <div class="col">
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-                    tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
-                    quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-                    consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
-                    cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
-                proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-            </div>
-            <div class="col">
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-                    tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
-                    quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-                    consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
-                    cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
-                proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-            </div>
-        </div>
-    </main>"""
-    final_main = f"""    <main class="container py-4 flex-grow-1">
-        <div class="table-responsive">
-            {table_html}
-        </div>
-    </main>"""
-    html_output = html_output.replace(main_placeholder, final_main)
+    html_output = template.render(
+        title=report_title,
+        report_name=report_title,
+        domain_name=site_url if site_url else "Account Summary", # Use site_url if available, else "Account Summary"
+        date_range=date_range_str,
+        main_content=f'<div class="table-responsive">{table_html}</div>'
+    )
 
     return html_output
 
-def run_report(service, sites, start_date=None, end_date=None, report_label=None):
+def run_report(service, sites, start_date, end_date, report_label=None):
     """Executes the monthly summary report for a list of sites."""
     if isinstance(sites, str):
         sites = [sites]
-    
-    if not start_date or not end_date:
-        today = date.today()
-        end_date_dt = today.replace(day=1) - timedelta(days=1)
-        start_date_dt = end_date_dt.replace(day=1)
-        start_date = start_date_dt.strftime('%Y-%m-%d')
-        end_date = end_date_dt.strftime('%Y-%m-%d')
 
     print(f"Running Monthly Summary Report for {len(sites)} sites ({start_date} to {end_date})...")
-    
+
     all_data = []
     for site_url in sites:
         print(f"  - Processing {site_url}...")
@@ -173,58 +105,72 @@ def run_report(service, sites, start_date=None, end_date=None, report_label=None
             row['pages'] = len(df_pages)
             row['site_url'] = site_url
             all_data.append(row)
-            
+
     if not all_data:
         print("No data found for the given sites and period.")
         return None
 
     df = pd.DataFrame(all_data)
-    
+
     # Define Output Paths
     if len(sites) == 1:
         output_dir = get_output_dir(sites[0])
         slug = get_filename_slug(sites[0])
         label = slug
+        report_site_url = sites[0]
     else:
         output_dir = os.path.join('output', 'account')
         label = report_label if report_label else "account-wide"
-    
+        report_site_url = None
+
     os.makedirs(output_dir, exist_ok=True)
     file_prefix = f"monthly-summary-report-{label}-{start_date}-to-{end_date}"
     csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
-    
+
     df.to_csv(csv_path, index=False)
-    
+
     report_title = f"GSC Monthly Summary"
     if len(sites) == 1: report_title += f" for {sites[0]}"
-    
-    html_content = create_summary_report_html(df, report_title, f"{start_date} to {end_date}")
+
+    html_content = create_summary_report_html(df, report_title, f"{start_date} to {end_date}", report_site_url)
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
-        
+
     print(f"Report completed: {html_path}")
     return html_path
 
 if __name__ == '__main__':
     import argparse
     from core.client import get_gsc_service
-    
+
     parser = argparse.ArgumentParser(description='Run a monthly summary report.')
     parser.add_argument('site_url', nargs='?', help='The URL of the site to analyse.')
     parser.add_argument('--sites-file', help='Text file with site URLs.')
     parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
     parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
-    
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
+
     args = parser.parse_args()
-    
+
+    if args.last_month:
+        today = date.today()
+        # Last month
+        end_date_dt = today.replace(day=1) - relativedelta(days=1)
+        start_date_dt = end_date_dt.replace(day=1)
+        start_date = start_date_dt.strftime('%Y-%m-%d')
+        end_date = end_date_dt.strftime('%Y-%m-%d')
+    else:
+        start_date = args.start_date
+        end_date = args.end_date
+
     sites = []
     if args.sites_file:
         with open(args.sites_file, 'r') as f:
             sites = [line.strip() for line in f if line.strip()]
     elif args.site_url:
         sites = [args.site_url]
-    
+
     service = get_gsc_service()
     if service and sites:
-        run_report(service, sites, args.start_date, args.end_date)
+        run_report(service, sites, start_date, end_date)

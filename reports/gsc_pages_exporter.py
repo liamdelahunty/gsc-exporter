@@ -42,19 +42,10 @@ def create_html_page(urls, page_title, num_columns, start_date, end_date, num_li
     html_parts.extend(['</div></div><footer><p><a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p></footer></body></html>'])
     return "".join(html_parts)
 
-def run_report(service, site_url, start_date=None, end_date=None, last_month=False):
+def run_report(service, site_url, start_date, end_date):
     """Executes the pages exporter report."""
     print(f"Running GSC Pages Exporter for {site_url}...")
     
-    # 1. Date Range
-    if not start_date or not end_date:
-        today = date.today()
-        # Default to last month
-        end_date_dt = today.replace(day=1) - timedelta(days=1)
-        start_date_dt = end_date_dt.replace(day=1)
-        start_date = start_date_dt.strftime('%Y-%m-%d')
-        end_date = end_date_dt.strftime('%Y-%m-%d')
-
     # 2. Fetch Data
     # Dimensions: page
     df = fetch_with_cache(service, site_url, start_date, end_date, ['page'])
@@ -94,8 +85,21 @@ if __name__ == '__main__':
     parser.add_argument('site_url', help='The URL of the site.')
     parser.add_argument('--start-date', help='Start date.')
     parser.add_argument('--end-date', help='End date.')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     
     args = parser.parse_args()
+    
+    if args.last_month:
+        today = date.today()
+        # Last month
+        end_date_dt = today.replace(day=1) - relativedelta(days=1)
+        start_date_dt = end_date_dt.replace(day=1)
+        start_date = start_date_dt.strftime('%Y-%m-%d')
+        end_date = end_date_dt.strftime('%Y-%m-%d')
+    else:
+        start_date = args.start_date
+        end_date = args.end_date
+
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url, args.start_date, args.end_date)
+        run_report(service, args.site_url, start_date, end_date)

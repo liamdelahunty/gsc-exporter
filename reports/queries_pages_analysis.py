@@ -1,9 +1,16 @@
-import pandas as pd
 import os
+import sys
+import pandas as pd
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
+import argparse
+
+# Add parent directory to sys.path to allow importing core
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from core.naming import get_output_dir
 from core.cache import fetch_with_cache
+from core.client import get_gsc_service
 
 def run_report(service, site_url, months=16):
     """
@@ -43,10 +50,24 @@ def run_report(service, site_url, months=16):
     if all_monthly_data:
         df_final = pd.DataFrame(all_monthly_data)
         output_dir = get_output_dir(site_url)
-        import os
         os.makedirs(output_dir, exist_ok=True)
-        csv_path = os.path.join(output_dir, f"queries-pages-analysis-{start_of_month.strftime('%Y-%m')}.csv")
+        csv_path = os.path.join(output_dir, "queries-pages-analysis-historical.csv")
         df_final.to_csv(csv_path, index=False)
         print(f"Report saved to {csv_path}")
     else:
         print(f"No data found for {site_url}")
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Run queries and pages analysis.')
+    parser.add_argument('site_url', help='The URL of the site to analyse.')
+    parser.add_argument('--months', type=int, default=16, help='Number of months to analyse.')
+    
+    # Accept but ignore start/end date for compatibility with batch runner
+    parser.add_argument('--start-date', help=argparse.SUPPRESS)
+    parser.add_argument('--end-date', help=argparse.SUPPRESS)
+    
+    args = parser.parse_args()
+    
+    service = get_gsc_service()
+    if service:
+        run_report(service, args.site_url, args.months)

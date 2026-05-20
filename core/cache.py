@@ -85,9 +85,11 @@ def _fetch_from_api(service, site_url, start_date, end_date, dimensions, search_
         return pd.DataFrame()
 
     df = pd.DataFrame(all_data)
-    # Extract dimensions from the 'keys' list
-    df[dimensions] = pd.DataFrame(df['keys'].tolist(), index=df.index)
-    df = df.drop(columns=['keys'])
+    
+    # Extract dimensions from the 'keys' list if dimensions were requested
+    if dimensions:
+        df[dimensions] = pd.DataFrame(df['keys'].tolist(), index=df.index)
+        df = df.drop(columns=['keys'])
     
     # Ensure numeric conversion
     for col in ['clicks', 'impressions', 'ctr', 'position']:
@@ -143,12 +145,19 @@ def fetch_with_cache(service, site_url, start_date, end_date, dimensions, search
     # Aggregate across months
     agg_dict = {
         'clicks': 'sum',
-        'impressions': 'sum',
-        'position': 'mean'
+        'impressions': 'sum'
     }
     
+    # Only include 'position' if it exists in the data (Discover data doesn't have it)
+    if 'position' in combined_df.columns:
+        agg_dict['position'] = 'mean'
+    
     # Keep all dimensions in groupby
-    result_df = combined_df.groupby(dimensions).agg(agg_dict).reset_index()
+    if dimensions:
+        result_df = combined_df.groupby(dimensions).agg(agg_dict).reset_index()
+    else:
+        # If no dimensions, aggregate everything into a single row
+        result_df = pd.DataFrame([combined_df.agg(agg_dict)])
     
     # Recalculate CTR
     result_df['ctr'] = result_df['clicks'] / result_df['impressions']

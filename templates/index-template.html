@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GSC Reports for {{ hostname }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 2rem; }
+        h1, h2 { border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-bottom: 1rem; margin-top: 1.5rem;}
+        .list-group-item a { text-decoration: none; }
+        .list-group-item:hover { background-color: #f8f9fa; }
+        footer{margin-top:3rem;text-align:center;color:#6c757d;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GSC Reports for {{ hostname }}</h1>
+        
+        <h2>Reports</h2>
+        <div class="list-group">
+            {% if html_files %}
+                {% for file in html_files %}
+            <a href="{{ file.name }}" class="list-group-item list-group-item-action">{{ file.stem.replace("-", " ").title() }}</a>
+                {% endfor %}
+            {% else %}
+            <p>No reports found in this directory.</p>
+            {% endif %}
+        </div>
+    </div>
+    <footer><p><a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p></footer>
+</body>
+</html>

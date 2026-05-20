@@ -132,9 +132,39 @@ def main():
         
     selected_report = select_report()
     
-    print("\nEnter any additional flags (e.g., --last-7-days). Press Enter for none.")
+    # Reports that require date arguments
+    DATE_REQUIRING_SCRIPTS = [
+        'reports/snapshot_report.py',
+        'reports/performance_analysis.py',
+        'reports/page_level_report.py',
+        'reports/gsc_pages_queries.py',
+        'reports/discover_key_performance_metrics.py',
+        'reports/keyword_cannibalisation_report.py',
+        'reports/page_performance_over_time.py',
+        'reports/monthly_summary_report.py',
+        'reports/gsc_pages_exporter.py',
+        'reports/monthly_search_type_performance_report.py',
+        'reports/search_type_performance.py'
+    ]
+    
+    # Reports that use --months instead of --start-date/--end-date
+    MONTHS_BASED_SCRIPTS = [
+        'reports/queries_pages_analysis.py',
+        'reports/query_position_analysis.py',
+        'reports/key_performance_metrics.py'
+    ]
+
+    print("\nEnter any additional flags (e.g., --start-date YYYY-MM-DD --end-date YYYY-MM-DD, or --last-month).")
     additional_flags = input("Flags: ")
     
+    # If report needs dates and no date flag was provided, append --last-month
+    if selected_report['file'] in DATE_REQUIRING_SCRIPTS:
+        if not any(f in additional_flags for f in ['--start-date', '--end-date', '--last-month', '--last-7-days', '--last-28-days']):
+            print(f"\n[!] Note: {selected_report['name']} requires date flags. Defaulting to --last-month.")
+            additional_flags = "--last-month " + additional_flags
+    # If report needs --months, do nothing as it's not a date flag report
+    elif selected_report['file'] in MONTHS_BASED_SCRIPTS:
+        pass    
     command = ["python", selected_report['file'], selected_site]
     
     if additional_flags:
