@@ -154,6 +154,11 @@ def run_report(service, site_url, start_date, end_date):
     
     base_file_prefix = f"snapshot-{slug}-{start_date}-to-{end_date}"
     html_path = os.path.join(output_dir, f"{base_file_prefix}-report.html")
+    
+    # Save CSVs
+    df_pages.to_csv(os.path.join(output_dir, f"{base_file_prefix}-pages.csv"), index=False)
+    df_devices.to_csv(os.path.join(output_dir, f"{base_file_prefix}-devices.csv"), index=False)
+    df_countries.to_csv(os.path.join(output_dir, f"{base_file_prefix}-countries.csv"), index=False)
 
     # Generate and save HTML
     html_content = create_snapshot_html_report(
