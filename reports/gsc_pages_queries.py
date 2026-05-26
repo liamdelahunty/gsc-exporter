@@ -112,33 +112,33 @@ def create_html_report(data_df, site_url, start_date, end_date, report_limit, su
                     <thead class="table-light">
                         <tr>
                             <th>Segment</th>
-                            <th class="text-end">Clicks</th>
-                            <th class="text-end">Impressions</th>
-                            <th class="text-end">CTR</th>
-                            <th class="text-end">Unique Queries</th>
+                            <th>Clicks</th>
+                            <th>Impressions</th>
+                            <th>CTR</th>
+                            <th>Unique Queries</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td><strong>Non-Brand</strong></td>
-                            <td class="text-end">{non_brand_df['clicks'].sum():,}</td>
-                            <td class="text-end">{non_brand_df['impressions'].sum():,}</td>
-                            <td class="text-end">{format_ctr(non_brand_df['clicks'].sum(), non_brand_df['impressions'].sum())}</td>
-                            <td class="text-end">{non_brand_df['query'].nunique():,}</td>
+                            <td>{non_brand_df['clicks'].sum():,}</td>
+                            <td>{non_brand_df['impressions'].sum():,}</td>
+                            <td>{format_ctr(non_brand_df['clicks'].sum(), non_brand_df['impressions'].sum())}</td>
+                            <td>{non_brand_df['query'].nunique():,}</td>
                         </tr>
                         <tr>
                             <td><strong>Brand</strong></td>
-                            <td class="text-end">{brand_df['clicks'].sum():,}</td>
-                            <td class="text-end">{brand_df['impressions'].sum():,}</td>
-                            <td class="text-end">{format_ctr(brand_df['clicks'].sum(), brand_df['impressions'].sum())}</td>
-                            <td class="text-end">{brand_df['query'].nunique():,}</td>
+                            <td>{brand_df['clicks'].sum():,}</td>
+                            <td>{brand_df['impressions'].sum():,}</td>
+                            <td>{format_ctr(brand_df['clicks'].sum(), brand_df['impressions'].sum())}</td>
+                            <td>{brand_df['query'].nunique():,}</td>
                         </tr>
                         <tr class="table-group-divider fw-bold">
                             <td>Total</td>
-                            <td class="text-end">{data_df['clicks'].sum():,}</td>
-                            <td class="text-end">{data_df['impressions'].sum():,}</td>
-                            <td class="text-end">{format_ctr(data_df['clicks'].sum(), data_df['impressions'].sum())}</td>
-                            <td class="text-end">{data_df['query'].nunique():,}</td>
+                            <td>{data_df['clicks'].sum():,}</td>
+                            <td>{data_df['impressions'].sum():,}</td>
+                            <td>{format_ctr(data_df['clicks'].sum(), data_df['impressions'].sum())}</td>
+                            <td>{data_df['query'].nunique():,}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -197,8 +197,10 @@ def create_html_report(data_df, site_url, start_date, end_date, report_limit, su
         h1 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; }}
         .table td {{ word-wrap: break-word; max-width: 500px; }}
         .text-break {{ word-break: break-all !important; }}
-        .accordion-button:not(.collapsed) {{ background-color: #e7f1ff; }}
-    </style>
+        .accordion-button:not(.collapsed) { background-color: #e7f1ff; }
+        table th, table td { text-align: left !important; }
+        </style>
+
 </head>
 <body>
     <div class="container-fluid">
