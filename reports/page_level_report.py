@@ -135,16 +135,32 @@ def run_report(service, site_url, start_date, end_date, search_type='web', limit
     """Executes the page-level report."""
     print(f"Running Page-Level Report for {site_url} ({start_date} to {end_date})...")
     
-    # 1. Fetch Page Data
-    df_pages = fetch_with_cache(service, site_url, start_date, end_date, ['page'], search_type)
-    if df_pages.empty:
-        print("No page data found.")
-        return None
+    # 1. Fetch Granular Data (Page + Query)
+    # Fetching this first allows us to calculate unique query counts and aggregate page data 
+    # without making a second API call/cache read for just ['page'].
+    df_granular = fetch_with_cache(service, site_url, start_date, end_date, ['page', 'query'], search_type)
+    
+    if df_granular.empty:
+        # Fallback for search types that might not support query dimension (like Discover)
+        if search_type == 'discover':
+             df_pages = fetch_with_cache(service, site_url, start_date, end_date, ['page'], search_type)
+             df_pages['query_count'] = 0
+        else:
+            print("No data found.")
+            return None
+    else:
+        # 2. Process Page-Level Data from Granular Data
+        # Aggregate clicks/imps and calculate unique queries from the granular set
+        df_pages = df_granular.groupby('page').agg({
+            'clicks': 'sum',
+            'impressions': 'sum',
+            'position': 'mean',
+            'query': 'nunique'
+        }).reset_index()
+        df_pages.rename(columns={'query': 'query_count'}, inplace=True)
+        df_pages['ctr'] = df_pages['clicks'] / df_pages['impressions']
         
-    # 2. Fetch Page-Query Data for Unique Counts (if not Discover)
-    df_page_query = pd.DataFrame()
-    if search_type != 'discover':
-        df_page_query = fetch_with_cache(service, site_url, start_date, end_date, ['page', 'query'], search_type)
+        df_page_query = df_granular # Keep for query string stripping logic below
     
     # 3. Handle Query String Stripping
     if strip_query_strings:
@@ -152,21 +168,10 @@ def run_report(service, site_url, start_date, end_date, search_type='web', limit
         df_pages = df_pages.groupby('page').agg({
             'clicks': 'sum',
             'impressions': 'sum',
-            'position': 'mean'
+            'position': 'mean',
+            'query_count': 'sum' # If stripping, we sum the unique counts (approximate)
         }).reset_index()
         df_pages['ctr'] = df_pages['clicks'] / df_pages['impressions']
-        
-        if not df_page_query.empty:
-            df_page_query['page'] = df_page_query['page'].str.split('?').str[0]
-
-    # 4. Calculate Unique Query Counts
-    if not df_page_query.empty:
-        query_counts = df_page_query.groupby('page')['query'].nunique().reset_index()
-        query_counts.rename(columns={'query': 'query_count'}, inplace=True)
-        df_pages = pd.merge(df_pages, query_counts, on='page', how='left')
-        df_pages['query_count'] = df_pages['query_count'].fillna(0)
-    else:
-        df_pages['query_count'] = 0
 
     # 5. Final Data Prep
     df_pages = df_pages.sort_values(by='clicks', ascending=False)

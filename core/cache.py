@@ -106,9 +106,11 @@ def fetch_with_cache(service, site_url, start_date, end_date, dimensions, search
     chunks = _get_monthly_chunks(start_date, end_date)
     all_dfs = []
     
-    for chunk_start, chunk_end in chunks:
+    total_chunks = len(chunks)
+    for i, (chunk_start, chunk_end) in enumerate(chunks):
         s_str = chunk_start.strftime('%Y-%m-%d')
         e_str = chunk_end.strftime('%Y-%m-%d')
+        month_label = chunk_start.strftime('%B %Y')
         
         # Create a unique key for this specific month/request
         dims = sorted(dimensions)
@@ -118,9 +120,11 @@ def fetch_with_cache(service, site_url, start_date, end_date, dimensions, search
         csv_path, json_path = _get_cache_paths(cache_key)
         
         if os.path.exists(csv_path):
+            print(f"  - [{i+1}/{total_chunks}] {month_label}: Using cached data...")
             chunk_df = pd.read_csv(csv_path)
             all_dfs.append(chunk_df)
         else:
+            print(f"  - [{i+1}/{total_chunks}] {month_label}: Fetching from GSC API...")
             chunk_df = _fetch_from_api(service, site_url, s_str, e_str, dimensions, search_type)
             if not chunk_df.empty:
                 chunk_df.to_csv(csv_path, index=False)
