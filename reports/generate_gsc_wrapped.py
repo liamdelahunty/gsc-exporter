@@ -12,38 +12,7 @@ from dateutil.relativedelta import relativedelta
 from jinja2 import Environment, FileSystemLoader
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
-
-def get_brand_terms(site_url):
-    """Automatically extracts a set of likely brand terms from a site URL."""
-    if not site_url:
-        return set()
-        
-    from urllib.parse import urlparse
-    hostname = urlparse(site_url).hostname
-    if not hostname:
-        if site_url.startswith('sc-domain:'):
-            hostname = site_url.replace('sc-domain:', '')
-        else:
-            return set()
-
-    suffixes_to_remove = ['.com', '.co.uk', '.org', '.net', '.gov', '.edu', '.io', '.co']
-    if hostname.startswith('www.'):
-        hostname = hostname[4:]
-        
-    for suffix in sorted(suffixes_to_remove, key=len, reverse=True):
-        if hostname.endswith(suffix):
-            hostname = hostname[:-len(suffix)]
-            break
-            
-    if not hostname:
-        return set()
-
-    terms = {hostname}
-    if '-' in hostname:
-        terms.add(hostname.replace('-', ' '))
-        terms.add(hostname.replace('-', ''))
-        
-    return terms
+from core.brand import get_brand_terms, classify_query
 
 def generate_wrapped_narrative(wrapped_data):
     """Generates human-readable narrative strings."""
@@ -127,8 +96,7 @@ def run_report(service, site_url, start_date=None, end_date=None, last_12_months
         brand_terms = get_brand_terms(site_url)
     
     if brand_terms:
-        pattern = r'\b(?:' + '|'.join(re.escape(term) for term in brand_terms) + r')\b'
-        df_queries['is_brand'] = df_queries['query'].str.contains(pattern, case=False, regex=True)
+        df_queries['is_brand'] = df_queries['query'].apply(lambda x: classify_query(x, brand_terms))
         
         top_brand = df_queries[df_queries['is_brand']].head(5)
         top_non_brand = df_queries[~df_queries['is_brand']].head(5)

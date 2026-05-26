@@ -11,10 +11,11 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
+from core.brand import get_brand_terms, classify_query
 
-def generate_accordion_html(df, primary_dim, secondary_dim, report_limit, sub_table_limit):
+def generate_accordion_html(df, primary_dim, secondary_dim, report_limit, sub_table_limit, accordion_suffix=""):
     """Generates the accordion HTML for the report."""
-    accordion_id = f"accordion-{primary_dim}"
+    accordion_id = f"accordion-{primary_dim}{accordion_suffix}"
     html_parts = [f'<div class="accordion mt-3" id="{accordion_id}">']
 
     primary_totals = df.groupby(primary_dim).agg(
@@ -41,7 +42,7 @@ def generate_accordion_html(df, primary_dim, secondary_dim, report_limit, sub_ta
         html_parts.append(f"""
         <div class="accordion-item">
             <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{primary_dim}-{i}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{primary_dim}{accordion_suffix}-{i}">
                     <div class="d-flex w-100 align-items-center">
                         <span class="text-truncate" style="max-width: 70%;">{primary_val}</span>
                         <div class="ms-auto">
@@ -51,7 +52,7 @@ def generate_accordion_html(df, primary_dim, secondary_dim, report_limit, sub_ta
                     </div>
                 </button>
             </h2>
-            <div id="collapse-{primary_dim}-{i}" class="accordion-collapse collapse" data-bs-parent="#{accordion_id}">
+            <div id="collapse-{primary_dim}{accordion_suffix}-{i}" class="accordion-collapse collapse" data-bs-parent="#{accordion_id}">
                 <div class="accordion-body">
                     {table_html}
                 </div>
@@ -62,9 +63,53 @@ def generate_accordion_html(df, primary_dim, secondary_dim, report_limit, sub_ta
     html_parts.append('</div>')
     return "".join(html_parts)
 
-def create_html_report(data_df, site_url, start_date, end_date, report_limit, sub_table_limit):
+def create_html_report(data_df, site_url, start_date, end_date, report_limit, sub_table_limit, brand_terms=None):
     """Generates the interactive HTML report."""
     
+    has_brands = brand_terms is not None and len(brand_terms) > 0
+    
+    if has_brands:
+        data_df['is_brand'] = data_df['query'].apply(lambda x: classify_query(x, brand_terms))
+        brand_df = data_df[data_df['is_brand']].copy()
+        non_brand_df = data_df[~data_df['is_brand']].copy()
+        
+        brand_tab_html = generate_accordion_html(brand_df, 'query', 'page', report_limit, sub_table_limit, "-brand")
+        non_brand_tab_html = generate_accordion_html(non_brand_df, 'query', 'page', report_limit, sub_table_limit, "-non-brand")
+        
+        tabs_header = """
+            <li class="nav-item">
+                <button class="nav-link active" id="non-brand-tab" data-bs-toggle="tab" data-bs-target="#non-brand" type="button">Non-Brand Queries</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="brand-tab" data-bs-toggle="tab" data-bs-target="#brand" type="button">Brand Queries</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="queries-tab" data-bs-toggle="tab" data-bs-target="#queries" type="button">All Queries</button>
+            </li>
+        """
+        tabs_content = f"""
+            <div class="tab-pane fade show active" id="non-brand" role="tabpanel">
+                {non_brand_tab_html}
+            </div>
+            <div class="tab-pane fade" id="brand" role="tabpanel">
+                {brand_tab_html}
+            </div>
+            <div class="tab-pane fade" id="queries" role="tabpanel">
+                {generate_accordion_html(data_df, 'query', 'page', report_limit, sub_table_limit, "-all")}
+            </div>
+        """
+    else:
+        tabs_header = """
+            <li class="nav-item">
+                <button class="nav-link active" id="queries-tab" data-bs-toggle="tab" data-bs-target="#queries" type="button">Queries to Pages</button>
+            </li>
+        """
+        tabs_content = f"""
+            <div class="tab-pane fade show active" id="queries" role="tabpanel">
+                {generate_accordion_html(data_df, 'query', 'page', report_limit, sub_table_limit)}
+            </div>
+        """
+
     html_content = f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -88,18 +133,14 @@ def create_html_report(data_df, site_url, start_date, end_date, report_limit, su
         <p class="lead">{site_url} ({start_date} to {end_date})</p>
 
         <ul class="nav nav-tabs" id="myTab" role="tablist">
-            <li class="nav-item">
-                <button class="nav-link active" id="queries-tab" data-bs-toggle="tab" data-bs-target="#queries" type="button">Queries to Pages</button>
-            </li>
+            {tabs_header}
             <li class="nav-item">
                 <button class="nav-link" id="pages-tab" data-bs-toggle="tab" data-bs-target="#pages" type="button">Pages to Queries</button>
             </li>
         </ul>
 
         <div class="tab-content" id="myTabContent">
-            <div class="tab-pane fade show active" id="queries" role="tabpanel">
-                {generate_accordion_html(data_df, 'query', 'page', report_limit, sub_table_limit)}
-            </div>
+            {tabs_content}
             <div class="tab-pane fade" id="pages" role="tabpanel">
                 {generate_accordion_html(data_df, 'page', 'query', report_limit, sub_table_limit)}
             </div>
@@ -113,9 +154,14 @@ def create_html_report(data_df, site_url, start_date, end_date, report_limit, su
     """
     return html_content
 
-def run_report(service, site_url, start_date, end_date, report_limit=250, sub_table_limit=100):
+def run_report(service, site_url, start_date, end_date, report_limit=250, sub_table_limit=100, brand_terms=None, brand_terms_file=None, no_brand_detection=False):
     """Executes the Pages & Queries Detailed report."""
     print(f"Running GSC Pages & Queries Detailed for {site_url}...")
+    
+    # 1. Determine Brand Terms
+    brand_terms_set = get_brand_terms(site_url, brand_terms, brand_terms_file, no_brand_detection)
+    if brand_terms_set:
+        print(f"  - Brand detection active. Terms: {', '.join(sorted(list(brand_terms_set))[:5])}{'...' if len(brand_terms_set) > 5 else ''}")
     
     # 2. Fetch Data
     # Dimensions: query, page
@@ -138,7 +184,7 @@ def run_report(service, site_url, start_date, end_date, report_limit=250, sub_ta
     df.to_csv(csv_path, index=False, encoding='utf-8')
     
     # 5. Generate HTML
-    html_content = create_html_report(df, site_url, start_date, end_date, report_limit, sub_table_limit)
+    html_content = create_html_report(df, site_url, start_date, end_date, report_limit, sub_table_limit, brand_terms_set)
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
         
@@ -158,6 +204,11 @@ if __name__ == '__main__':
     parser.add_argument('--report-limit', type=int, default=250)
     parser.add_argument('--sub-table-limit', type=int, default=100)
     
+    # Brand arguments
+    parser.add_argument('--brand-terms', nargs='+', help='Custom brand terms.')
+    parser.add_argument('--brand-terms-file', help='Path to a file containing brand terms.')
+    parser.add_argument('--no-brand-detection', action='store_true', help='Disable brand detection.')
+    
     args = parser.parse_args()
     
     if args.last_month:
@@ -173,4 +224,5 @@ if __name__ == '__main__':
 
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url, start_date, end_date, args.report_limit, args.sub_table_limit)
+        run_report(service, args.site_url, start_date, end_date, args.report_limit, args.sub_table_limit, args.brand_terms, args.brand_terms_file, args.no_brand_detection)
+
