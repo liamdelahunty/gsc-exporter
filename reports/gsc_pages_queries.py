@@ -99,6 +99,11 @@ def create_html_report(data_df, site_url, start_date, end_date, report_limit, su
         brand_df = data_df[data_df['is_brand']].copy()
         non_brand_df = data_df[~data_df['is_brand']].copy()
         
+        def format_ctr(clicks, impressions):
+            if impressions > 0:
+                return f"{clicks / impressions:.2%}"
+            return "0.00%"
+        
         brand_summary_html = f"""
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">Brand vs. Non-Brand Performance</div>
@@ -118,21 +123,21 @@ def create_html_report(data_df, site_url, start_date, end_date, report_limit, su
                             <td><strong>Non-Brand</strong></td>
                             <td class="text-end">{non_brand_df['clicks'].sum():,}</td>
                             <td class="text-end">{non_brand_df['impressions'].sum():,}</td>
-                            <td class="text-end">{non_brand_df['clicks'].sum() / non_brand_df['impressions'].sum():.2% if non_brand_df['impressions'].sum() > 0 else '0.00%'}</td>
+                            <td class="text-end">{format_ctr(non_brand_df['clicks'].sum(), non_brand_df['impressions'].sum())}</td>
                             <td class="text-end">{non_brand_df['query'].nunique():,}</td>
                         </tr>
                         <tr>
                             <td><strong>Brand</strong></td>
                             <td class="text-end">{brand_df['clicks'].sum():,}</td>
                             <td class="text-end">{brand_df['impressions'].sum():,}</td>
-                            <td class="text-end">{brand_df['clicks'].sum() / brand_df['impressions'].sum():.2% if brand_df['impressions'].sum() > 0 else '0.00%'}</td>
+                            <td class="text-end">{format_ctr(brand_df['clicks'].sum(), brand_df['impressions'].sum())}</td>
                             <td class="text-end">{brand_df['query'].nunique():,}</td>
                         </tr>
                         <tr class="table-group-divider fw-bold">
                             <td>Total</td>
                             <td class="text-end">{data_df['clicks'].sum():,}</td>
                             <td class="text-end">{data_df['impressions'].sum():,}</td>
-                            <td class="text-end">{data_df['clicks'].sum() / data_df['impressions'].sum():.2% if data_df['impressions'].sum() > 0 else '0.00%'}</td>
+                            <td class="text-end">{format_ctr(data_df['clicks'].sum(), data_df['impressions'].sum())}</td>
                             <td class="text-end">{data_df['query'].nunique():,}</td>
                         </tr>
                     </tbody>
