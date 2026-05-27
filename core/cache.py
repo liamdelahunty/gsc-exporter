@@ -147,15 +147,19 @@ def fetch_with_cache(service, site_url, start_date, end_date, dimensions, search
     combined_df = pd.concat(all_dfs, ignore_index=True)
     
     # Aggregate across months
-    agg_dict = {
-        'clicks': 'sum',
-        'impressions': 'sum'
-    }
+    agg_dict = {}
+    if 'clicks' in combined_df.columns:
+        agg_dict['clicks'] = 'sum'
+    if 'impressions' in combined_df.columns:
+        agg_dict['impressions'] = 'sum'
     
     # Only include 'position' if it exists in the data (Discover data doesn't have it)
     if 'position' in combined_df.columns:
         agg_dict['position'] = 'mean'
     
+    if not agg_dict:
+        return pd.DataFrame()
+
     # Keep all dimensions in groupby
     if dimensions:
         result_df = combined_df.groupby(dimensions).agg(agg_dict).reset_index()
@@ -163,10 +167,10 @@ def fetch_with_cache(service, site_url, start_date, end_date, dimensions, search
         # If no dimensions, aggregate everything into a single row
         result_df = pd.DataFrame([combined_df.agg(agg_dict)])
     
-    # Recalculate CTR
-    result_df['ctr'] = result_df['clicks'] / result_df['impressions']
-    
-    # Sort by clicks as a sensible default
-    result_df = result_df.sort_values('clicks', ascending=False)
+    # Recalculate CTR if possible
+    if 'clicks' in result_df.columns and 'impressions' in result_df.columns:
+        result_df['ctr'] = result_df['clicks'] / result_df['impressions']
+        # Sort by clicks as a sensible default
+        result_df = result_df.sort_values('clicks', ascending=False)
     
     return result_df

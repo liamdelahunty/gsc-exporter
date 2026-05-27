@@ -238,8 +238,9 @@ if __name__ == '__main__':
     from core.client import get_gsc_service
     
     parser = argparse.ArgumentParser(description='Performance of a single page over time.')
+    parser.add_argument('site_url', nargs='?', help='The GSC property URL.')
     parser.add_argument('page_url', help='The URL of the page to analyse.')
-    parser.add_argument('--site-url', help='The GSC property URL (optional).')
+    parser.add_argument('--site-url', dest='site_url_opt', help='The GSC property URL (optional flag).')
     
     # Accept but ignore start/end date for compatibility with batch runner
     parser.add_argument('--start-date', help=argparse.SUPPRESS)
@@ -248,8 +249,10 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
+    # Determine the actual site_url and page_url from both positional and optional args
+    final_site_url = args.site_url_opt if args.site_url_opt else args.site_url
+    final_page_url = args.page_url
+
     service = get_gsc_service()
     if service:
-        # If site_url is provided, we can skip find_covering_site inside run_report
-        # or just pass it in. Let's update run_report to take it.
-        run_report(service, args.page_url, site_url=args.site_url)
+        run_report(service, final_page_url, site_url=final_site_url)

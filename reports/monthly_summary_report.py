@@ -104,6 +104,7 @@ def run_report(service, sites, start_date, end_date, report_label=None):
             row['queries'] = len(df_queries)
             row['pages'] = len(df_pages)
             row['site_url'] = site_url
+            row['month'] = start_date[:7] # Add month column for historical report
             all_data.append(row)
 
     if not all_data:
@@ -154,7 +155,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.last_month:
+    if args.last_month or (not args.start_date and not args.end_date):
         today = date.today()
         # Last month
         end_date_dt = today.replace(day=1) - relativedelta(days=1)
