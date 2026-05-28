@@ -11,6 +11,7 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
+from core.date_utils import parse_standard_date_args
 
 def create_snapshot_html_report(page_title, period_str, summary_df, df_top_clicks, df_top_impressions, df_low_ctr, df_devices, df_countries):
     """Generates an HTML report from the snapshot analysis dataframes."""
@@ -195,23 +196,8 @@ if __name__ == '__main__':
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     
     args = parser.parse_args()
+    start_date, end_date = parse_standard_date_args(args)
     
-    if args.last_month:
-        today = date.today()
-        # Last month
-        end_date_dt = today.replace(day=1) - relativedelta(days=1)
-        start_date_dt = end_date_dt.replace(day=1)
-        
-        start_date = start_date_dt.strftime('%Y-%m-%d')
-        end_date = end_date_dt.strftime('%Y-%m-%d')
-    else:
-        start_date = args.start_date
-        end_date = args.end_date
-    
-    if not start_date or not end_date:
-        print("Error: Either provide --start-date and --end-date, or use --last-month.")
-        sys.exit(1)
-        
     service = get_gsc_service()
     if service:
         run_report(service, args.site_url, start_date, end_date)

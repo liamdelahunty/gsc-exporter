@@ -10,6 +10,7 @@ import pandas as pd
 from datetime import datetime
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
+from core.date_utils import parse_standard_date_args
 
 def create_html_report(df, report_title, period_str, summary_data, limit=None, total_rows=None, search_type='web'):
     """Generates an HTML report from the DataFrame."""
@@ -241,24 +242,7 @@ if __name__ == '__main__':
     parser.add_argument('--strip-query-strings', action='store_true', help='Remove query strings.')
     
     args = parser.parse_args()
-    
-    if args.last_month:
-        today = date.today()
-        # Last month
-        end_date_dt = today.replace(day=1) - relativedelta(days=1)
-        start_date_dt = end_date_dt.replace(day=1)
-        start_date = start_date_dt.strftime('%Y-%m-%d')
-        end_date = end_date_dt.strftime('%Y-%m-%d')
-    elif args.start_date and args.end_date:
-        start_date = args.start_date
-        end_date = args.end_date
-    else:
-        # Default to last month if dates not provided
-        today = date.today()
-        end_date_dt = today.replace(day=1) - relativedelta(days=1)
-        start_date_dt = end_date_dt.replace(day=1)
-        start_date = start_date_dt.strftime('%Y-%m-%d')
-        end_date = end_date_dt.strftime('%Y-%m-%d')
+    start_date, end_date = parse_standard_date_args(args)
             
     service = get_gsc_service()
     if service:

@@ -11,6 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
 from core.client import get_gsc_service
+from core.date_utils import parse_standard_date_args
 
 SEARCH_TYPES = ['web', 'image', 'video', 'news', 'discover', 'googleNews']
 
@@ -121,20 +122,7 @@ if __name__ == '__main__':
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     
     args = parser.parse_args()
-    
-    if args.last_month:
-        today = date.today()
-        first_day_current_month = today.replace(day=1)
-        last_day_last_month = first_day_current_month - timedelta(days=1)
-        start_date = last_day_last_month.replace(day=1).strftime('%Y-%m-%d')
-        end_date = last_day_last_month.strftime('%Y-%m-%d')
-    else:
-        start_date = args.start_date
-        end_date = args.end_date
-        
-    if not start_date or not end_date:
-        print("Error: Either provide --start-date and --end-date, or use --last-month.")
-        sys.exit(1)
+    start_date, end_date = parse_standard_date_args(args)
         
     service = get_gsc_service()
     if service:
