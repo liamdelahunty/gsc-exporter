@@ -12,6 +12,7 @@ from dateutil.relativedelta import relativedelta
 from urllib.parse import urlparse
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
+from core.date_utils import parse_standard_date_args
 
 def find_covering_site(service, page_url):
     """
@@ -152,7 +153,7 @@ footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
         chart_data_json, table_html, datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     )
 
-def run_report(service, page_url, site_url=None):
+def run_report(service, page_url, site_url=None, start_date=None, end_date=None, months=16):
     """Executes the single page performance report."""
     if not site_url:
         print(f"Finding GSC property for {page_url}...")
@@ -162,36 +163,24 @@ def run_report(service, page_url, site_url=None):
         print(f"Could not find a property for {page_url}")
         return None
         
-    print(f"Running Single Page Report for {page_url} (Site: {site_url})...")
+    print(f"Running Single Page Report for {page_url} (Site: {site_url}, {months} months ending {end_date})...")
     
-    # 1. Determine Date Range (last 16 months)
-    today = date.today()
-    end_date_dt = today.replace(day=1) - timedelta(days=1)
-    start_date_dt = end_date_dt.replace(day=1) - relativedelta(months=15)
-    start_date = start_date_dt.strftime('%Y-%m-%d')
-    end_date = end_date_dt.strftime('%Y-%m-%d')
-
     # 2. Fetch Historical Data
     all_monthly_data = []
-    for i in range(16):
-        m_start_dt = start_date_dt + relativedelta(months=i)
-        m_end_dt = (m_start_dt + relativedelta(months=1) - timedelta(days=1))
-        m_start = m_start_dt.strftime('%Y-%m-%d')
-        m_end = m_end_dt.strftime('%Y-%m-%d')
+    base_end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+
+    for i in range(months):
+        month_dt = base_end_dt - relativedelta(months=i)
+        m_start = month_dt.strftime('%Y-%m-01')
+        m_end = (month_dt + relativedelta(months=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+        if i == 0:
+            m_end = end_date # Respect exact end_date for the target month
         
-        # We fetch only for this page. fetch_with_cache aggregates.
-        # But wait, fetch_with_cache doesn't support filters.
-        # The modular refactor plan says "core library for caching... ensuring cross-report cache reusability".
-        # If I want to reuse cache, I should fetch at a level that other reports might use.
-        # But this is a single page report. If I fetch ALL pages for 16 months, it's huge.
-        # For now, I'll follow the pattern of fetching for the specific page.
-        # Wait, fetch_with_cache fetches whatever dimensions I ask for.
-        # If I want it to be "reusable", it should probably be 'page' dimension.
         df_month = fetch_with_cache(service, site_url, m_start, m_end, ['page'])
         if not df_month.empty:
             df_page = df_month[df_month['page'] == page_url].copy()
             if not df_page.empty:
-                df_page['month'] = m_start_dt.strftime('%Y-%m')
+                df_page['month'] = month_dt.strftime('%Y-%m')
                 all_monthly_data.append(df_page)
 
     if not all_monthly_data:
@@ -218,7 +207,7 @@ def run_report(service, page_url, site_url=None):
     page_slug = re.sub(r'[^a-zA-Z0-9_-]', '-', page_path) if page_path else 'index'
     page_slug = re.sub(r'-+', '-', page_slug).strip('-')
     
-    file_prefix = f"page-performance-single-{page_slug}"
+    file_prefix = f"page-performance-single-{page_slug}-{end_date}"
     csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
     
@@ -242,12 +231,13 @@ if __name__ == '__main__':
     parser.add_argument('page_url', help='The URL of the page to analyse.')
     parser.add_argument('--site-url', dest='site_url_opt', help='The GSC property URL (optional flag).')
     
-    # Accept but ignore start/end date for compatibility with batch runner
-    parser.add_argument('--start-date', help=argparse.SUPPRESS)
-    parser.add_argument('--end-date', help=argparse.SUPPRESS)
-    parser.add_argument('--last-month', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
+    parser.add_argument('--months', type=int, default=16, help='Number of months for historical lookback.')
     
     args = parser.parse_args()
+    start_date, end_date = parse_standard_date_args(args)
     
     # Determine the actual site_url and page_url from both positional and optional args
     final_site_url = args.site_url_opt if args.site_url_opt else args.site_url
@@ -255,4 +245,6 @@ if __name__ == '__main__':
 
     service = get_gsc_service()
     if service:
-        run_report(service, final_page_url, site_url=final_site_url)
+        run_report(service, final_page_url, site_url=final_site_url, 
+                   start_date=start_date, end_date=end_date, months=args.months)
+

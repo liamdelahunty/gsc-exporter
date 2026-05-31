@@ -11,6 +11,7 @@ from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
+from core.date_utils import parse_standard_date_args, get_month_range_lookback
 
 def create_html_report(df, report_title, period_str):
     """Generates an HTML report from the DataFrame."""
@@ -69,22 +70,25 @@ def create_html_report(df, report_title, period_str):
 </html>
 """
 
-def run_report(service, site_url, months=24, threshold=2.0, search_type='web'):
+def run_report(service, site_url, start_date, end_date, threshold=2.0, search_type='web'):
     """Executes the seasonal page spike report."""
-    print(f"Running Seasonal Page Spike Report for {site_url} ({months} months, threshold {threshold})...")
+    print(f"Running Seasonal Page Spike Report for {site_url} (target: {end_date}, threshold {threshold})...")
     
-    today = date.today()
-    # End of last full month
-    end_date_dt = today.replace(day=1) - relativedelta(days=1)
+    # Calculate how many months we want to look back. 
+    # Default is 24, but we'll infer it from the range provided or default.
+    # For simplicity in this standardised version, we'll look back 24 months from end_date.
     
     monthly_data = []
+    end_dt = datetime.strptime(end_date, '%Y-%m-%d')
     
-    for i in range(months):
-        chunk_end = end_date_dt - relativedelta(months=i)
+    for i in range(24):
+        chunk_end = end_dt - relativedelta(months=i)
         chunk_start = chunk_end.replace(day=1)
         
         s_str = chunk_start.strftime('%Y-%m-%d')
         e_str = chunk_end.strftime('%Y-%m-%d')
+        if i == 0:
+            e_str = end_date # Ensure we respect the exact end_date for the target month
         
         print(f"  - Processing {chunk_start.strftime('%Y-%m')}...")
         df = fetch_with_cache(service, site_url, s_str, e_str, ['page'], search_type)
@@ -98,8 +102,8 @@ def run_report(service, site_url, months=24, threshold=2.0, search_type='web'):
         
     full_df = pd.concat(monthly_data, ignore_index=True)
     
-    # Identify spikes for the most recent month
-    latest_month = end_date_dt.strftime('%Y-%m')
+    # Identify spikes for the most recent month (target month)
+    latest_month = end_dt.strftime('%Y-%m')
     latest_df = full_df[full_df['month'] == latest_month].copy()
     historical_df = full_df[full_df['month'] != latest_month]
     
@@ -131,8 +135,7 @@ def run_report(service, site_url, months=24, threshold=2.0, search_type='web'):
     os.makedirs(output_dir, exist_ok=True)
     slug = get_filename_slug(site_url)
     
-    run_date_str = date.today().strftime('%Y-%m-%d')
-    file_prefix = f"seasonal-page-spike-{slug}-{run_date_str}"
+    file_prefix = f"seasonal-page-spike-{slug}-{start_date}-to-{end_date}"
     csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
     
@@ -143,7 +146,7 @@ def run_report(service, site_url, months=24, threshold=2.0, search_type='web'):
     html_content = create_html_report(
         spikes, 
         f"Seasonal Page Spike Report: {site_url}",
-        f"Last {months} months (Threshold: {threshold})"
+        f"Target Month: {latest_month} (Threshold: {threshold})"
     )
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
@@ -151,7 +154,7 @@ def run_report(service, site_url, months=24, threshold=2.0, search_type='web'):
     print(f"CSV saved to: {csv_path}")
     print(f"HTML saved to: {html_path}")
     
-    return csv_path
+    return html_path
 
 if __name__ == '__main__':
     import argparse
@@ -159,12 +162,15 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Identify traffic spikes.')
     parser.add_argument('site_url', help='The URL of the site to analyse.')
-    parser.add_argument('--months', type=int, default=24, help='Number of months to analyse.')
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     parser.add_argument('--threshold', type=float, default=2.0, help='Z-score threshold.')
     parser.add_argument('--search-type', default='web', help='The search type.')
     
     args = parser.parse_args()
+    start_date, end_date = parse_standard_date_args(args)
     
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url, args.months, args.threshold, args.search_type)
+        run_report(service, args.site_url, start_date, end_date, args.threshold, args.search_type)

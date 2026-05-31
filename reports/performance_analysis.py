@@ -24,6 +24,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
 from core.client import get_gsc_service
+from core.date_utils import parse_standard_date_args
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -182,40 +183,17 @@ if __name__ == '__main__':
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     
     args = parser.parse_args()
+    start_date, end_date = parse_standard_date_args(args)
     
-    comparison_start_date = None
-    comparison_end_date = None
-
-    if args.last_month:
-        today = date.today()
-        # Current = Last month
-        end_date_dt = today.replace(day=1) - timedelta(days=1)
-        start_date_dt = end_date_dt.replace(day=1)
-        
-        # Previous = Month before last month
-        comparison_end_date_dt = start_date_dt - timedelta(days=1)
-        comparison_start_date_dt = comparison_end_date_dt.replace(day=1)
-        
-        start_date = start_date_dt.strftime('%Y-%m-%d')
-        end_date = end_date_dt.strftime('%Y-%m-%d')
-        comparison_start_date = comparison_start_date_dt.strftime('%Y-%m-%d')
-        comparison_end_date = comparison_end_date_dt.strftime('%Y-%m-%d')
-    else:
-        start_date = args.start_date
-        end_date = args.end_date
-        # Default comparison is previous period of same length
-        if start_date and end_date:
-            s_dt = datetime.strptime(start_date, '%Y-%m-%d')
-            e_dt = datetime.strptime(end_date, '%Y-%m-%d')
-            delta = e_dt - s_dt
-            comparison_end_date_dt = s_dt - timedelta(days=1)
-            comparison_start_date_dt = comparison_end_date_dt - delta
-            comparison_start_date = comparison_start_date_dt.strftime('%Y-%m-%d')
-            comparison_end_date = comparison_end_date_dt.strftime('%Y-%m-%d')
-        
-    if not start_date or not end_date:
-        print("Error: Either provide --start-date and --end-date, or use --last-month.")
-        sys.exit(1)
+    # Calculate comparison period (previous period of same length)
+    s_dt = datetime.strptime(start_date, '%Y-%m-%d')
+    e_dt = datetime.strptime(end_date, '%Y-%m-%d')
+    delta = e_dt - s_dt + timedelta(days=1)
+    comparison_end_date_dt = s_dt - timedelta(days=1)
+    comparison_start_date_dt = comparison_end_date_dt - delta + timedelta(days=1)
+    
+    comparison_start_date = comparison_start_date_dt.strftime('%Y-%m-%d')
+    comparison_end_date = comparison_end_date_dt.strftime('%Y-%m-%d')
         
     service = get_gsc_service()
     if service:

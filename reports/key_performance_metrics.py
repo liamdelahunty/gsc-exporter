@@ -10,6 +10,7 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
+from core.date_utils import parse_standard_date_args
 
 def create_single_site_html_report(df, report_title, full_period_str):
     """Generates a simplified HTML report for a single site, including a chart."""
@@ -81,13 +82,17 @@ def create_single_site_html_report(df, report_title, full_period_str):
 </script>
 </body></html>"""
 
-def run_report(service, site_url, months=16):
+def run_report(service, site_url, months=16, anchor_end_date=None):
     """Executes the Key Performance Metrics report."""
     print(f"Running Key Performance Metrics for {site_url} ({months} months)...")
     
     # 1. Date Range
-    today = date.today()
-    end_date_dt = today.replace(day=1) - timedelta(days=1)
+    if anchor_end_date:
+        end_date_dt = datetime.strptime(anchor_end_date, '%Y-%m-%d').date()
+    else:
+        today = date.today()
+        end_date_dt = today.replace(day=1) - timedelta(days=1)
+        
     start_date_dt = (end_date_dt.replace(day=1) - relativedelta(months=months-1))
     
     start_date = start_date_dt.strftime('%Y-%m-%d')
@@ -145,8 +150,16 @@ if __name__ == '__main__':
     from core.client import get_gsc_service
     parser = argparse.ArgumentParser(description='Key performance metrics.')
     parser.add_argument('site_url', help='The site URL.')
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     parser.add_argument('--months', type=int, default=16)
     args = parser.parse_args()
+    
+    # Standardise date args
+    start_date, end_date = parse_standard_date_args(args)
+    
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url, args.months)
+        # We use end_date as the anchor for the 16-month lookback
+        run_report(service, args.site_url, args.months, anchor_end_date=end_date)

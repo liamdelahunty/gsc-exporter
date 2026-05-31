@@ -11,6 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
 from core.client import get_gsc_service
+from core.date_utils import parse_standard_date_args, get_month_range_lookback
 
 def create_html_report(df, report_title, period_str):
     """Generates an HTML report with Chart.js visualizations."""
@@ -120,31 +121,36 @@ def _process_df_into_distribution(df):
             
     return distribution
 
-def run_report(service, site_url, months=16):
+def run_report(service, site_url, start_date, end_date):
     """
     Runs the query position analysis report.
     """
-    print(f"Running query position analysis for {site_url}")
+    print(f"Running query position analysis for {site_url} ({start_date} to {end_date})")
     
-    today = date.today()
     all_monthly_data = []
 
-    # Fetch data for each of the last N months
-    for i in range(1, months + 1):
-        end_of_month = today.replace(day=1) - relativedelta(months=i - 1) - timedelta(days=1)
-        start_of_month = end_of_month.replace(day=1)
-        start_date = start_of_month.strftime('%Y-%m-%d')
-        end_date = end_of_month.strftime('%Y-%m-%d')
+    # Fetch data month by month within the range
+    start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+    end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+    
+    current_dt = start_dt.replace(day=1)
+    while current_dt <= end_dt:
+        m_start = current_dt.strftime('%Y-%m-%d')
+        # End of this month
+        m_end_dt = (current_dt + relativedelta(months=1) - timedelta(days=1))
+        if m_end_dt > end_dt:
+            m_end_dt = end_dt
+        m_end = m_end_dt.strftime('%Y-%m-%d')
         
-        print(f"  - Fetching data for {start_of_month.strftime('%Y-%m')}...")
-        
-        # Use core.cache.fetch_with_cache grouped by query
-        df = fetch_with_cache(service, site_url, start_date, end_date, dimensions=['query'])
+        print(f"  - Fetching data for {current_dt.strftime('%Y-%m')}...")
+        df = fetch_with_cache(service, site_url, m_start, m_end, dimensions=['query'])
         
         if not df.empty:
             distribution = _process_df_into_distribution(df)
-            distribution['month'] = start_of_month.strftime('%Y-%m')
+            distribution['month'] = current_dt.strftime('%Y-%m')
             all_monthly_data.append(distribution)
+        
+        current_dt += relativedelta(months=1)
     
     # Save output
     if all_monthly_data:
@@ -153,33 +159,38 @@ def run_report(service, site_url, months=16):
         os.makedirs(output_dir, exist_ok=True)
         slug = get_filename_slug(site_url)
         
-        csv_path = os.path.join(output_dir, f"query-position-analysis-{slug}-historical.csv")
-        html_path = os.path.join(output_dir, f"query-position-analysis-{slug}-historical.html")
+        csv_path = os.path.join(output_dir, f"query-position-analysis-{slug}-{start_date}-to-{end_date}.csv")
+        html_path = os.path.join(output_dir, f"query-position-analysis-{slug}-{start_date}-to-{end_date}.html")
         df_final.to_csv(csv_path, index=False, encoding='utf-8')
         
         # Generate HTML
-        start_month = df_final['month'].min()
-        end_month = df_final['month'].max()
-        html_content = create_html_report(df_final, site_url, f"{start_month} to {end_month}")
+        html_content = create_html_report(df_final, site_url, f"{start_date} to {end_date}")
         with open(html_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
             
         print(f"CSV saved to: {csv_path}")
         print(f"HTML saved to: {html_path}")
+        return html_path
     else:
         print(f"No data found for {site_url}")
+        return None
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run query position analysis.')
     parser.add_argument('site_url', help='The URL of the site to analyse.')
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     parser.add_argument('--months', type=int, default=16, help='Number of months to analyse.')
-    
-    # Accept but ignore start/end date for compatibility with batch runner
-    parser.add_argument('--start-date', help=argparse.SUPPRESS)
-    parser.add_argument('--end-date', help=argparse.SUPPRESS)
     
     args = parser.parse_args()
     
+    if args.start_date and args.end_date:
+        start_date, end_date = args.start_date, args.end_date
+    else:
+        _, end_date = parse_standard_date_args(args)
+        start_date, end_date = get_month_range_lookback(end_date, months=args.months)
+    
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url, args.months)
+        run_report(service, args.site_url, start_date, end_date)

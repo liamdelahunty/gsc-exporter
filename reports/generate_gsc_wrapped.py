@@ -13,6 +13,7 @@ from jinja2 import Environment, FileSystemLoader
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
 from core.brand import get_brand_terms, classify_query
+from core.date_utils import parse_standard_date_args, get_month_range_lookback
 
 def generate_wrapped_narrative(wrapped_data):
     """Generates human-readable narrative strings."""
@@ -49,24 +50,10 @@ def generate_wrapped_narrative(wrapped_data):
         narratives['busiest_month'] = "No busiest month could be identified."
     return narratives
 
-def run_report(service, site_url, start_date=None, end_date=None, last_12_months=False, year_to_date=True, brand_terms=None):
+def run_report(service, site_url, start_date, end_date, brand_terms=None):
     """Executes the GSC Wrapped report."""
-    print(f"Running GSC Wrapped Report for {site_url}...")
+    print(f"Running GSC Wrapped Report for {site_url} ({start_date} to {end_date})...")
     
-    # 1. Date Range Handling
-    today = date.today()
-    if start_date and end_date:
-        pass
-    elif last_12_months:
-        end_of_last_month = today.replace(day=1) - timedelta(days=1)
-        start_of_12_months_ago = (end_of_last_month - relativedelta(months=11)).replace(day=1)
-        start_date = start_of_12_months_ago.strftime('%Y-%m-%d')
-        end_date = end_of_last_month.strftime('%Y-%m-%d')
-    else: # Default YTD
-        end_of_last_month = today.replace(day=1) - timedelta(days=1)
-        start_date = f"{today.year}-01-01"
-        end_date = end_of_last_month.strftime('%Y-%m-%d')
-        
     date_range_label = f"{start_date} to {end_date}"
 
     # 2. Fetch Data
@@ -218,10 +205,25 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Generate GSC Wrapped report.')
     parser.add_argument('site_url', help='The URL of the site.')
-    parser.add_argument('--last-12-months', action='store_true')
-    parser.add_argument('--year-to-date', action='store_true', default=True)
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
+    parser.add_argument('--last-12-months', action='store_true', help='Run for the last 12 months.')
     
     args = parser.parse_args()
+    
+    if args.start_date and args.end_date:
+        start_date, end_date = args.start_date, args.end_date
+    elif args.last_12_months:
+        _, end_date = parse_standard_date_args(args)
+        start_date, end_date = get_month_range_lookback(end_date, months=12)
+    else:
+        # For GSC Wrapped, default to YTD if no specific dates provided
+        start_date, end_date = parse_standard_date_args(args)
+        if not args.start_date and not args.last_month:
+            today = date.today()
+            start_date = f"{today.year}-01-01"
+
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url, last_12_months=args.last_12_months, year_to_date=args.year_to_date)
+        run_report(service, args.site_url, start_date, end_date)

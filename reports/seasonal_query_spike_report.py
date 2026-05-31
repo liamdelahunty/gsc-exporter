@@ -10,8 +10,9 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
-from core.naming import get_output_dir
+from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
+from core.date_utils import parse_standard_date_args, get_month_range_lookback
 
 def create_report_html(spikes_df, report_title, site_url, months_count):
     """Generates the HTML report for spikes."""
@@ -57,25 +58,25 @@ def create_report_html(spikes_df, report_title, site_url, months_count):
 </html>
 """
 
-def run_report(service, site_url, months=16, threshold=2.0, min_clicks=10):
+def run_report(service, site_url, start_date, end_date, threshold=2.0, min_clicks=10):
     """Executes the seasonal query spike report."""
-    print(f"Running Seasonal Query Spike Report for {site_url} (last {months} months)...")
-    
-    today = date.today()
-    target_month_date = today.replace(day=1) - timedelta(days=1)
+    print(f"Running Seasonal Query Spike Report for {site_url} (target: {end_date}, threshold {threshold})...")
     
     all_data_frames = []
+    end_dt = datetime.strptime(end_date, '%Y-%m-%d')
     
-    for i in range(months):
-        month_dt = target_month_date - relativedelta(months=i)
+    for i in range(16):
+        month_dt = end_dt - relativedelta(months=i)
         month_str = month_dt.strftime('%Y-%m')
         
         # Calculate start and end date for the month
-        start_date = month_dt.replace(day=1).strftime('%Y-%m-%d')
-        end_date = (month_dt + relativedelta(months=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+        m_start = month_dt.replace(day=1).strftime('%Y-%m-%d')
+        m_end = (month_dt + relativedelta(months=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+        if i == 0:
+            m_end = end_date
         
         # Use core cache
-        df_month = fetch_with_cache(service, site_url, start_date, end_date, ['query'], 'web')
+        df_month = fetch_with_cache(service, site_url, m_start, m_end, ['query'], 'web')
         
         if df_month is not None and not df_month.empty:
             df_month['month'] = month_str
@@ -119,18 +120,18 @@ def run_report(service, site_url, months=16, threshold=2.0, min_clicks=10):
     })
 
     # Paths
-    output_dir = os.path.join(get_output_dir(site_url), 'seasonal')
+    output_dir = get_output_dir(site_url)
     os.makedirs(output_dir, exist_ok=True)
+    slug = get_filename_slug(site_url)
     
-    date_suffix = datetime.now().strftime("%Y-%m-%d")
-    file_prefix = f"seasonal-query-spikes-{date_suffix}"
+    file_prefix = f"seasonal-query-spikes-{slug}-{start_date}-to-{end_date}"
     csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
     
     report_df.to_csv(csv_path, index=False, encoding='utf-8')
     
     report_title = f"Seasonal Query Spikes Report: {site_url}"
-    html_content = create_report_html(report_df, report_title, site_url, months)
+    html_content = create_report_html(report_df, report_title, site_url, 16)
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
         
@@ -144,12 +145,15 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Identify seasonal queries with traffic spikes.')
     parser.add_argument('site_url', help='The GSC site URL')
-    parser.add_argument('--months', type=int, default=16, help='Number of months to analyze.')
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     parser.add_argument('--threshold', type=float, default=2.0, help='Z-score threshold.')
     parser.add_argument('--min-clicks', type=int, default=10, help='Minimum clicks.')
     
     args = parser.parse_args()
+    start_date, end_date = parse_standard_date_args(args)
     
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url, args.months, args.threshold, args.min_clicks)
+        run_report(service, args.site_url, start_date, end_date, args.threshold, args.min_clicks)

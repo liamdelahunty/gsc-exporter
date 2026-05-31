@@ -11,6 +11,7 @@ from dateutil.relativedelta import relativedelta
 from urllib.parse import urlparse
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
+from core.date_utils import parse_standard_date_args
 from jinja2 import Environment, FileSystemLoader
 
 def get_sort_key(site_url):
@@ -154,17 +155,7 @@ if __name__ == '__main__':
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
 
     args = parser.parse_args()
-
-    if args.last_month or (not args.start_date and not args.end_date):
-        today = date.today()
-        # Last month
-        end_date_dt = today.replace(day=1) - relativedelta(days=1)
-        start_date_dt = end_date_dt.replace(day=1)
-        start_date = start_date_dt.strftime('%Y-%m-%d')
-        end_date = end_date_dt.strftime('%Y-%m-%d')
-    else:
-        start_date = args.start_date
-        end_date = args.end_date
+    start_date, end_date = parse_standard_date_args(args)
 
     sites = []
     if args.sites_file:

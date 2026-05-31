@@ -17,42 +17,21 @@ import sys
 import subprocess
 import argparse
 
-# List of reports that support the --last-month flag. 
-# These will have --last-month appended if no other date flag is provided.
-MONTHLY_SUPPORTED_SCRIPTS = [
-    "reports/snapshot_report.py",
-    "reports/performance_analysis.py",
-    "reports/page_level_report.py",
-    "reports/query_segmentation_report.py",
-    "reports/keyword_cannibalisation_report.py",
-    "reports/gsc_pages_exporter.py",
-    "reports/generate_gsc_wrapped.py",
-    "reports/seasonal_performance_report.py",
-    "reports/seasonal_page_spike_report.py",
-    "reports/seasonal_query_spike_report.py"
+# Scripts to exclude from automated runs (usually require manual input or specific URLs)
+EXCLUDE_FROM_AUTO = [
+    "reports/page_performance_single_page.py",
+    "reports/url_inspection_report.py",
+    "reports/__init__.py"
 ]
 
-# Default list of reports to run.
-DEFAULT_REPORTS = [
-    "reports/snapshot_report.py",
-    "reports/performance_analysis.py",
-    "reports/page_level_report.py",
-    "reports/gsc_pages_queries.py",
-    "reports/key_performance_metrics.py",
-    "reports/discover_key_performance_metrics.py",
-    "reports/queries_pages_analysis.py",
-    "reports/query_position_analysis.py",
-    "reports/query_segmentation_report.py",
-    "reports/keyword_cannibalisation_report.py",
-    "reports/page_performance_over_time.py",
-    "reports/monthly_summary_report.py",
-    "reports/gsc_pages_exporter.py",
-    "reports/generate_gsc_wrapped.py",
-    "reports/monthly_search_type_performance_report.py",
-    "reports/seasonal_performance_report.py",
-    "reports/seasonal_page_spike_report.py",
-    "reports/seasonal_query_spike_report.py"
-]
+def get_default_reports():
+    """Dynamically finds all reports in the reports/ directory."""
+    reports_dir = 'reports'
+    if not os.path.isdir(reports_dir):
+        return []
+    
+    all_scripts = [os.path.join(reports_dir, f) for f in os.listdir(reports_dir) if f.endswith('.py')]
+    return sorted([s for s in all_scripts if s not in EXCLUDE_FROM_AUTO])
 
 def main():
     parser = argparse.ArgumentParser(
@@ -88,7 +67,6 @@ Example Usage:
         return
 
     # 2. Load reports
-    reports_to_run = DEFAULT_REPORTS
     if args.reports_file:
         if not os.path.exists(args.reports_file):
             print(f"Error: Reports file '{args.reports_file}' not found.")
@@ -99,6 +77,8 @@ Example Usage:
         except Exception as e:
             print(f"Error reading reports file: {e}")
             return
+    else:
+        reports_to_run = get_default_reports()
     
     if not reports_to_run:
         print("Error: No reports to run.")
@@ -129,15 +109,14 @@ Example Usage:
             
             command = [sys.executable, report, site]
             
-            # Add --last-month if supported and not overridden by other date flags
-            date_flags = ['--last-7-days', '--last-28-days', '--last-month', '--last-quarter', 
-                          '--last-3-months', '--last-6-months', '--last-12-months', '--last-16-months',
-                          '--start-date']
+            # Since all reports are now standardised, we default to --last-month
+            # if no other date-related flag was provided by the user.
+            date_flags = ['--last-month', '--start-date', '--end-date']
             
             # Check if any date-related flag is already in other_args
             has_date_flag = any(flag in other_args for flag in date_flags)
             
-            if report in MONTHLY_SUPPORTED_SCRIPTS and not has_date_flag:
+            if not has_date_flag:
                 command.append('--last-month')
             
             # Add any other flags provided by the user

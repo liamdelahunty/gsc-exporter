@@ -7,6 +7,7 @@ from dateutil.relativedelta import relativedelta
 from jinja2 import Environment, FileSystemLoader
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
+from core.date_utils import parse_standard_date_args, get_month_range_lookback
 
 def generate_html_report(df, site_url, html_output_path):
     """Generates the HTML report."""
@@ -86,20 +87,11 @@ def generate_html_report(df, site_url, html_output_path):
     with open(html_output_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
 
-def run_report(service, site_url, months=16):
+def run_report(service, site_url, start_date, end_date):
     """Executes the consolidated traffic report."""
-    print(f"Running Consolidated Traffic Report for {site_url} ({months} months)...")
+    print(f"Running Consolidated Traffic Report for {site_url} ({start_date} to {end_date})...")
     
-    # 1. Determine Date Range
-    today = date.today()
-    # Go back to the last complete month
-    end_date_dt = today.replace(day=1) - timedelta(days=1)
-    start_date_dt = (end_date_dt.replace(day=1) - relativedelta(months=months-1))
-    
-    start_date = start_date_dt.strftime('%Y-%m-%d')
-    end_date = end_date_dt.strftime('%Y-%m-%d')
-
-    # 2. Fetch Data with Cache (Daily data, will aggregate by month)
+    # Fetch Data with Cache (Daily data, will aggregate by month)
     web_df = fetch_with_cache(service, site_url, start_date, end_date, ['date'], 'web')
     discover_df = fetch_with_cache(service, site_url, start_date, end_date, ['date'], 'discover')
     news_df = fetch_with_cache(service, site_url, start_date, end_date, ['date'], 'googleNews')
@@ -158,9 +150,21 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Generate a consolidated performance report.')
     parser.add_argument('site_url', help='The URL of the site to analyse.')
-    parser.add_argument('--months', type=int, default=16, help='Number of months to include.')
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
+    parser.add_argument('--months', type=int, default=16, help='Number of months to look back (default 16).')
     
     args = parser.parse_args()
+    
+    # Standardise dates
+    if args.start_date and args.end_date:
+        start_date, end_date = args.start_date, args.end_date
+    else:
+        # If we are using --last-month or default, we want a lookback
+        _, end_date = parse_standard_date_args(args)
+        start_date, end_date = get_month_range_lookback(end_date, months=args.months)
+
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url, args.months)
+        run_report(service, args.site_url, start_date, end_date)

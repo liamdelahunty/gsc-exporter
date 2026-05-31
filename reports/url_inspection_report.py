@@ -10,6 +10,7 @@ import pandas as pd
 from datetime import datetime
 from urllib.parse import urlparse
 from core.naming import get_output_dir, get_filename_slug
+from core.date_utils import parse_standard_date_args
 
 def get_url_inspection_data(service, site_url, inspect_url):
     """Fetches URL inspection data for a given URL."""
@@ -91,8 +92,11 @@ def create_html_report(df, report_title, timestamp):
 </html>
 """
 
-def run_report(service, site_url, urls, site_list_name="report"):
+def run_report(service, site_url, start_date=None, end_date=None, urls=None, site_list_name="report"):
     """Executes the URL inspection report for a list of URLs."""
+    if not urls:
+        urls = [site_url] if site_url.startswith('http') else []
+    
     print(f"Running URL Inspection Report for {len(urls)} URLs on {site_url}...")
     
     request_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -108,10 +112,10 @@ def run_report(service, site_url, urls, site_list_name="report"):
     
     # Paths
     slug = get_filename_slug(site_url)
-    output_dir = os.path.join(get_output_dir(site_url), 'url-inspection')
+    output_dir = get_output_dir(site_url)
     os.makedirs(output_dir, exist_ok=True)
     
-    base_filename = f"inspection-{site_list_name}-{current_date_str}"
+    base_filename = f"url-inspection-{slug}-{current_date_str}"
     csv_path = os.path.join(output_dir, f"{base_filename}.csv")
     html_path = os.path.join(output_dir, f"{base_filename}.html")
     
@@ -131,7 +135,7 @@ def run_report(service, site_url, urls, site_list_name="report"):
 
     print(f"CSV saved to: {csv_path}")
     print(f"HTML saved to: {html_path}")
-    return csv_path
+    return html_path
 
 if __name__ == '__main__':
     import argparse
@@ -141,18 +145,18 @@ if __name__ == '__main__':
     parser.add_argument('site_url', help='The GSC property URL.')
     parser.add_argument('--url', help='Single URL to inspect.')
     parser.add_argument('--sites-file', help='File with URLs.')
-    
-    # Compatibility flags
-    parser.add_argument('--start-date', help=argparse.SUPPRESS)
-    parser.add_argument('--end-date', help=argparse.SUPPRESS)
-    parser.add_argument('--last-month', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     
     args = parser.parse_args()
+    start_date, end_date = parse_standard_date_args(args)
     
     service = get_gsc_service() 
     
     if service:
         urls = []
+        name = "report"
         if args.url:
             urls = [args.url]
             name = "single"
@@ -161,11 +165,10 @@ if __name__ == '__main__':
                 urls = [line.strip() for line in f if line.strip()]
             name = os.path.splitext(os.path.basename(args.sites_file))[0]
         else:
-            # Default to inspecting the site_url itself if no list provided
             urls = [args.site_url] if args.site_url.startswith('http') else []
             name = "site-root"
             
         if urls:
-            run_report(service, args.site_url, urls, name)
+            run_report(service, args.site_url, start_date, end_date, urls, name)
         else:
             print("No URLs provided for inspection.")

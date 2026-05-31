@@ -12,6 +12,7 @@ from dateutil.relativedelta import relativedelta
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
 from core.brand import get_brand_terms, classify_query
+from core.date_utils import parse_standard_date_args
 
 def generate_accordion_html(df, primary_dim, secondary_dim, report_limit, sub_table_limit, accordion_suffix=""):
     """Generates the accordion HTML for the report."""
@@ -279,8 +280,8 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Export GSC pages and queries.')
     parser.add_argument('site_url', help='The URL of the site.')
-    parser.add_argument('--start-date', help='Start date.')
-    parser.add_argument('--end-date', help='End date.')
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     parser.add_argument('--report-limit', type=int, default=250)
     parser.add_argument('--sub-table-limit', type=int, default=100)
@@ -291,17 +292,7 @@ if __name__ == '__main__':
     parser.add_argument('--no-brand-detection', action='store_true', help='Disable brand detection.')
     
     args = parser.parse_args()
-    
-    if args.last_month:
-        today = date.today()
-        # Last month
-        end_date_dt = today.replace(day=1) - relativedelta(days=1)
-        start_date_dt = end_date_dt.replace(day=1)
-        start_date = start_date_dt.strftime('%Y-%m-%d')
-        end_date = end_date_dt.strftime('%Y-%m-%d')
-    else:
-        start_date = args.start_date
-        end_date = args.end_date
+    start_date, end_date = parse_standard_date_args(args)
 
     service = get_gsc_service()
     if service:

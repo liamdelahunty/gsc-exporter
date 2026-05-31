@@ -11,6 +11,7 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
+from core.date_utils import parse_standard_date_args, get_month_range_lookback
 
 def create_html_report(site_url, df, top_pages_list):
     """Generates the HTML report with Chart.js line charts."""
@@ -110,22 +111,11 @@ def create_html_report(site_url, df, top_pages_list):
 """
     return html_template
 
-def run_report(service, site_url, start_date=None, end_date=None, limit=25):
+def run_report(service, site_url, start_date, end_date, limit=25, months=16):
     """Executes the page performance over time report."""
-    print(f"Running Page Performance Over Time Report for {site_url}...")
+    print(f"Running Page Performance Over Time Report for {site_url} ({months} months ending {end_date})...")
     
-    # 1. Determine Date Range
-    if not start_date or not end_date:
-        today = date.today()
-        last_month_end = today.replace(day=1) - timedelta(days=1)
-        last_month_start = last_month_end.replace(day=1)
-        start_date = last_month_start.strftime('%Y-%m-%d')
-        end_date = last_month_end.strftime('%Y-%m-%d')
-    else:
-        last_month_start = datetime.strptime(start_date, '%Y-%m-%d')
-        last_month_end = datetime.strptime(end_date, '%Y-%m-%d')
-    
-    # 2. Fetch Top Pages for the provided period
+    # 1. Fetch Top Pages for the provided period
     df_top = fetch_with_cache(service, site_url, start_date, end_date, ['page'])
     if df_top.empty:
         print(f"No page data found for {start_date} to {end_date}.")
@@ -133,12 +123,15 @@ def run_report(service, site_url, start_date=None, end_date=None, limit=25):
         
     top_pages = df_top.sort_values(by='clicks', ascending=False).head(limit)['page'].tolist()
     
-    # 3. Fetch 16 Months of Historical Data
+    # 2. Fetch Historical Data (lookback from end_date)
     all_month_data = []
-    for i in range(16):
-        month_dt = last_month_start - relativedelta(months=i)
+    base_end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+    for i in range(months):
+        month_dt = base_end_dt - relativedelta(months=i)
         m_start = month_dt.strftime('%Y-%m-01')
         m_end = (month_dt + relativedelta(months=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+        if i == 0:
+            m_end = end_date # Ensure we don't go past the requested end_date
         
         df_m = fetch_with_cache(service, site_url, m_start, m_end, ['page'])
         if not df_m.empty:
@@ -157,7 +150,7 @@ def run_report(service, site_url, start_date=None, end_date=None, limit=25):
     os.makedirs(output_dir, exist_ok=True)
     slug = get_filename_slug(site_url)
     
-    file_prefix = f"page-performance-over-time-{slug}-{start_date}-to-{end_date}"
+    file_prefix = f"page-performance-over-time-{slug}-{end_date}"
     csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
     
@@ -185,19 +178,12 @@ if __name__ == '__main__':
     parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     parser.add_argument('--limit', type=int, default=25, help='Number of top pages to track.')
+    parser.add_argument('--months', type=int, default=16, help='Number of months for historical lookback.')
     
     args = parser.parse_args()
+    start_date, end_date = parse_standard_date_args(args)
     
-    start_date = args.start_date
-    end_date = args.end_date
-    
-    if args.last_month:
-        today = date.today()
-        end_date_dt = today.replace(day=1) - timedelta(days=1)
-        start_date_dt = end_date_dt.replace(day=1)
-        start_date = start_date_dt.strftime('%Y-%m-%d')
-        end_date = end_date_dt.strftime('%Y-%m-%d')
-        
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url, start_date, end_date, args.limit)
+        run_report(service, args.site_url, start_date, end_date, args.limit, args.months)
+

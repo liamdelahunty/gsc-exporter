@@ -6,6 +6,7 @@ import glob
 import json
 from datetime import datetime
 from core.naming import get_output_dir, get_filename_slug
+from core.date_utils import parse_standard_date_args
 from jinja2 import Environment, FileSystemLoader
 
 def create_historical_report(df, report_title, site_url):
@@ -200,5 +201,12 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Historical summary report.')
     parser.add_argument('site_url', help='The URL of the site.')
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
+    
     args = parser.parse_args()
+    # Parse dates for compatibility, even if not used for filtering yet
+    parse_standard_date_args(args)
+    
     run_report(args.site_url)

@@ -12,6 +12,7 @@ from functools import reduce
 from jinja2 import Environment
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
+from core.date_utils import parse_standard_date_args
 
 SEARCH_TYPES = ['web', 'image', 'video', 'news', 'discover', 'googleNews']
 
@@ -327,14 +328,13 @@ if __name__ == '__main__':
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     
     args = parser.parse_args()
+    start_date_anchor, end_date = parse_standard_date_args(args)
     
-    if args.last_month:
-        today = date.today()
-        # Last month
-        end_date_dt = today.replace(day=1) - relativedelta(days=1)
+    if args.last_month or (not args.start_date and not args.end_date):
+        # Anchor the 16-month lookback to end_date
+        end_date_dt = datetime.strptime(end_date, '%Y-%m-%d').date()
         start_date_dt = end_date_dt.replace(day=1) - relativedelta(months=15)
         start_date = start_date_dt.strftime('%Y-%m-%d')
-        end_date = end_date_dt.strftime('%Y-%m-%d')
     else:
         start_date = args.start_date
         end_date = args.end_date

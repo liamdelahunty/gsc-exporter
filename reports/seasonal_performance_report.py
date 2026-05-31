@@ -11,6 +11,7 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
+from core.date_utils import parse_standard_date_args
 
 def create_seasonal_report_html(df, report_title, years_list):
     """Generates the HTML report for seasonal comparison."""
@@ -53,35 +54,32 @@ def create_seasonal_report_html(df, report_title, years_list):
 </html>
 """
 
-def run_report(service, site_url, month=None, years=3):
+def run_report(service, site_url, start_date, end_date, years=3):
     """Executes the seasonal performance report."""
-    if not month:
-        # Default to last month
-        today = date.today()
-        target_month_date = today.replace(day=1) - timedelta(days=1)
-        month = target_month_date.strftime('%Y-%m')
+    target_dt = datetime.strptime(end_date, '%Y-%m-%d')
+    month_str = target_dt.strftime('%Y-%m')
 
-    print(f"Running Seasonal Performance Report for {site_url} for month {month} over {years} years...")
+    print(f"Running Seasonal Performance Report for {site_url} for month {month_str} over {years} years...")
 
-    target_dt = datetime.strptime(month, '%Y-%m')
     years_list = []
     all_years_data = []
 
     for i in range(years):
         year_dt = target_dt - relativedelta(years=i)
-        year_str = year_dt.strftime('%Y-%m')
         
         # Calculate start and end date for the month
-        start_date = year_dt.replace(day=1).strftime('%Y-%m-%d')
-        end_date = (year_dt + relativedelta(months=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+        m_start = year_dt.replace(day=1).strftime('%Y-%m-%d')
+        m_end = (year_dt + relativedelta(months=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+        if i == 0:
+            m_end = end_date # Respect exact end_date for the target year
         
         # Use core cache
-        df_year = fetch_with_cache(service, site_url, start_date, end_date, ['page'], 'web')
+        df_year = fetch_with_cache(service, site_url, m_start, m_end, ['page'], 'web')
         
         if df_year is not None and not df_year.empty:
             years_list.append(year_dt.year)
             cols_to_keep = ['page', 'clicks', 'impressions', 'ctr', 'position']
-            df_year = df_year[[c for c in cols_to_keep if c in df_year.columns]]
+            df_year = df_year[[c for c in cols_to_keep if c in df_year.columns]].copy()
             
             df_year = df_year.rename(columns={
                 'clicks': f'clicks_{year_dt.year}',
@@ -113,10 +111,11 @@ def run_report(service, site_url, month=None, years=3):
             merged_df = merged_df.sort_values(by='clicks_diff', ascending=False)
 
     # Paths
-    output_dir = os.path.join(get_output_dir(site_url), 'seasonal')
+    output_dir = get_output_dir(site_url)
     os.makedirs(output_dir, exist_ok=True)
+    slug = get_filename_slug(site_url)
     
-    file_prefix = f"seasonal-performance-report-{month}"
+    file_prefix = f"seasonal-performance-{slug}-{month_str}-over-{years}y"
     csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
     
@@ -137,11 +136,14 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Generate a seasonal performance report.')
     parser.add_argument('site_url', help='The URL of the site to analyse.')
-    parser.add_argument('--month', help='The month to analyze in YYYY-MM format.')
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     parser.add_argument('--years', type=int, default=3, help='Number of years to look back.')
     
     args = parser.parse_args()
+    start_date, end_date = parse_standard_date_args(args)
     
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url, args.month, args.years)
+        run_report(service, args.site_url, start_date, end_date, args.years)

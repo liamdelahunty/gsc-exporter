@@ -10,6 +10,7 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
+from core.date_utils import parse_standard_date_args
 
 def create_single_site_html_report(df, report_title, full_period_str):
     """Generates a simplified HTML report for a single site, including a chart."""
@@ -127,19 +128,11 @@ def create_single_site_html_report(df, report_title, full_period_str):
 </html>
 """
 
-def run_report(service, site_url, start_date=None, end_date=None, months=16):
+def run_report(service, site_url, start_date, end_date, months=16):
     """Executes the Discover performance metrics report."""
-    print(f"Running Discover Performance Report for {site_url}...")
+    print(f"Running Discover Performance Report for {site_url} ({start_date} to {end_date})...")
     
-    # 1. Determine Date Range
-    if not start_date or not end_date:
-        today = date.today()
-        end_date_dt = today.replace(day=1) - timedelta(days=1)
-        start_date_dt = (end_date_dt.replace(day=1) - relativedelta(months=months-1))
-        start_date = start_date_dt.strftime('%Y-%m-%d')
-        end_date = end_date_dt.strftime('%Y-%m-%d')
-
-    # 2. Fetch Data (will aggregate by month using cache fragmentation)
+    # Fetch Data (will aggregate by month using cache fragmentation)
     df = fetch_with_cache(service, site_url, start_date, end_date, ['date'], 'discover')
     
     if df.empty:
@@ -198,15 +191,7 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    start_date = args.start_date
-    end_date = args.end_date
-    
-    if args.last_month:
-        today = date.today()
-        end_date_dt = today.replace(day=1) - timedelta(days=1)
-        start_date_dt = end_date_dt.replace(day=1)
-        start_date = start_date_dt.strftime('%Y-%m-%d')
-        end_date = end_date_dt.strftime('%Y-%m-%d')
+    start_date, end_date = parse_standard_date_args(args)
 
     service = get_gsc_service()
     if service:

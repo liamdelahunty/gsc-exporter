@@ -11,6 +11,7 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
+from core.date_utils import parse_standard_date_args, get_month_range_lookback
 
 def create_html_report(site_url, start_date, end_date, data_payload):
     """Generates the Image Success Report HTML."""
@@ -140,30 +141,20 @@ def create_html_report(site_url, start_date, end_date, data_payload):
 </body></html>
 """
 
-def run_report(service, site_url):
+def run_report(service, site_url, start_date, end_date):
     """Executes the Image Search success report."""
-    print(f"Running Image Performance Report for {site_url}...")
+    print(f"Running Image Performance Report for {site_url} ({start_date} to {end_date})...")
     
-    today = date.today()
-    end_date_dt = today - timedelta(days=3) # Safe buffer
+    # 1. Fetch Data for tables
+    df_queries = fetch_with_cache(service, site_url, start_date, end_date, ['query'], 'image')
+    df_pages = fetch_with_cache(service, site_url, start_date, end_date, ['page'], 'image')
+    df_matrix = fetch_with_cache(service, site_url, start_date, end_date, ['query', 'page'], 'image')
+    df_device = fetch_with_cache(service, site_url, start_date, end_date, ['device'], 'image')
+    df_country = fetch_with_cache(service, site_url, start_date, end_date, ['country'], 'image')
     
-    # Range for tables (Last complete month)
-    last_month_end = end_date_dt.replace(day=1) - timedelta(days=1)
-    last_month_start = last_month_end.replace(day=1)
-    
-    start_str = last_month_start.strftime('%Y-%m-%d')
-    end_str = last_month_end.strftime('%Y-%m-%d')
-
-    # 1. Fetch Data
-    df_queries = fetch_with_cache(service, site_url, start_str, end_str, ['query'], 'image')
-    df_pages = fetch_with_cache(service, site_url, start_str, end_str, ['page'], 'image')
-    df_matrix = fetch_with_cache(service, site_url, start_str, end_str, ['query', 'page'], 'image')
-    df_device = fetch_with_cache(service, site_url, start_str, end_str, ['device'], 'image')
-    df_country = fetch_with_cache(service, site_url, start_str, end_str, ['country'], 'image')
-    
-    # 2. History (16 months)
-    history_start = (last_month_end - relativedelta(months=15)).replace(day=1).strftime('%Y-%m-%d')
-    df_history_raw = fetch_with_cache(service, site_url, history_start, end_date_dt.strftime('%Y-%m-%d'), ['date'], 'image')
+    # 2. History (16 months lookback from end_date)
+    history_start, _ = get_month_range_lookback(end_date, months=16)
+    df_history_raw = fetch_with_cache(service, site_url, history_start, end_date, ['date'], 'image')
     
     if not df_history_raw.empty:
         df_history_raw['date'] = pd.to_datetime(df_history_raw['date'])
@@ -184,10 +175,10 @@ def run_report(service, site_url):
     output_dir = get_output_dir(site_url)
     os.makedirs(output_dir, exist_ok=True)
     slug = get_filename_slug(site_url)
-    file_prefix = f"image-performance-{slug}-{start_str}-to-{end_str}"
+    file_prefix = f"image-performance-{slug}-{start_date}-to-{end_date}"
     
     # 4. Save and Generate
-    html_content = create_html_report(site_url, start_str, end_str, data_payload)
+    html_content = create_html_report(site_url, start_date, end_date, data_payload)
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
@@ -210,8 +201,14 @@ if __name__ == '__main__':
     import argparse
     from core.client import get_gsc_service
     parser = argparse.ArgumentParser(description='Image performance report.')
-    parser.add_argument('site_url', help='The site URL.')
+    parser.add_argument('site_url', help='The URL of the site to analyse.')
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
+
     args = parser.parse_args()
+    start_date, end_date = parse_standard_date_args(args)
+
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url)
+        run_report(service, args.site_url, start_date, end_date)

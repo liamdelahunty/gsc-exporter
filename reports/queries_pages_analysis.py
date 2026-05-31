@@ -11,6 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
 from core.client import get_gsc_service
+from core.date_utils import parse_standard_date_args
 
 def create_html_report(df, report_title, period_str):
     """Generates an HTML report from the DataFrame."""
@@ -56,31 +57,32 @@ def create_html_report(df, report_title, period_str):
 </html>
 """
 
-def run_report(service, site_url, months=16):
+def run_report(service, site_url, start_date=None, end_date=None, months=16):
     """
     Runs the queries and pages analysis report.
     """
-    print(f"Running queries/pages analysis for {site_url}")
+    print(f"Running queries/pages analysis for {site_url} ({months} months ending {end_date})")
     
-    today = date.today()
     all_monthly_data = []
+    base_end_dt = datetime.strptime(end_date, '%Y-%m-%d')
 
     # Fetch data for each of the last N months
-    for i in range(1, months + 1):
-        end_of_month = today.replace(day=1) - relativedelta(months=i - 1) - timedelta(days=1)
-        start_of_month = end_of_month.replace(day=1)
-        start_date = start_of_month.strftime('%Y-%m-%d')
-        end_date = end_of_month.strftime('%Y-%m-%d')
+    for i in range(months):
+        month_dt = base_end_dt - relativedelta(months=i)
+        m_start = month_dt.strftime('%Y-%m-01')
+        m_end = (month_dt + relativedelta(months=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+        if i == 0:
+            m_end = end_date # Respect exact end_date for the target month
         
-        print(f"  - Fetching data for {start_of_month.strftime('%Y-%m')}...")
+        print(f"  - Fetching data for {month_dt.strftime('%Y-%m')}...")
         
         # Use core.cache.fetch_with_cache to get data grouped by query/page
-        df = fetch_with_cache(service, site_url, start_date, end_date, dimensions=['query', 'page'])
+        df = fetch_with_cache(service, site_url, m_start, m_end, dimensions=['query', 'page'])
         
         if not df.empty:
             # Aggregate stats for the month
             monthly_totals = {
-                'month': start_of_month.strftime('%Y-%m'),
+                'month': month_dt.strftime('%Y-%m'),
                 'clicks': df['clicks'].sum(),
                 'impressions': df['impressions'].sum(),
                 'queries': df['query'].nunique(),
@@ -93,12 +95,13 @@ def run_report(service, site_url, months=16):
     # Save output
     if all_monthly_data:
         df_final = pd.DataFrame(all_monthly_data)
+        df_final = df_final.sort_values(by='month', ascending=False)
         output_dir = get_output_dir(site_url)
         os.makedirs(output_dir, exist_ok=True)
         slug = get_filename_slug(site_url)
         
-        csv_path = os.path.join(output_dir, f"queries-pages-analysis-{slug}-historical.csv")
-        html_path = os.path.join(output_dir, f"queries-pages-analysis-{slug}-historical.html")
+        csv_path = os.path.join(output_dir, f"queries-pages-analysis-{slug}-{end_date}.csv")
+        html_path = os.path.join(output_dir, f"queries-pages-analysis-{slug}-{end_date}.html")
         
         df_final.to_csv(csv_path, index=False, encoding='utf-8')
         
@@ -123,12 +126,16 @@ if __name__ == '__main__':
     parser.add_argument('site_url', help='The URL of the site to analyse.')
     parser.add_argument('--months', type=int, default=16, help='Number of months to analyse.')
     
-    # Accept but ignore start/end date for compatibility with batch runner
-    parser.add_argument('--start-date', help=argparse.SUPPRESS)
-    parser.add_argument('--end-date', help=argparse.SUPPRESS)
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
+    parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     
     args = parser.parse_args()
     
+    # Adhere to the standard argument interface.
+    start_date, end_date = parse_standard_date_args(args)
+    
     service = get_gsc_service()
     if service:
-        run_report(service, args.site_url, args.months)
+        run_report(service, args.site_url, start_date=start_date, end_date=end_date, months=args.months)
+

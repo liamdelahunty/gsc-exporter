@@ -9,6 +9,7 @@ import subprocess
 import sys
 import argparse
 import importlib.util
+import re
 from urllib.parse import urlparse
 from core.client import get_gsc_service
 
@@ -85,35 +86,33 @@ def select_property(sites):
 
 def select_report():
     """Displays a list of available reports and prompts the user to select one."""
-    reports = {
-        '1': {'name': 'Snapshot Report', 'file': 'reports/snapshot_report.py'},
-        '2': {'name': 'Performance Analysis', 'file': 'reports/performance_analysis.py'},
-        '3': {'name': 'Page-Level Report', 'file': 'reports/page_level_report.py'},
-        '4': {'name': 'Queries & Pages Detailed', 'file': 'reports/gsc_pages_queries.py'},
-        '5': {'name': 'Key Performance Metrics', 'file': 'reports/key_performance_metrics.py'},
-        '6': {'name': 'Discover Performance Metrics', 'file': 'reports/discover_key_performance_metrics.py'},
-        '7': {'name': 'Queries & Pages Summary', 'file': 'reports/queries_pages_analysis.py'},
-        '8': {'name': 'Query Position Analysis', 'file': 'reports/query_position_analysis.py'},
-        '9': {'name': 'Query Segmentation Report', 'file': 'reports/query_segmentation_report.py'},
-        '10': {'name': 'Keyword Cannibalisation Report', 'file': 'reports/keyword_cannibalisation_report.py'},
-        '11': {'name': 'Page Performance Over Time', 'file': 'reports/page_performance_over_time.py'},
-        '12': {'name': 'Single Page Performance', 'file': 'reports/page_performance_single_page.py'},
-        '13': {'name': 'Monthly Summary Report', 'file': 'reports/monthly_summary_report.py'},
-        '14': {'name': 'Historical Summary Report', 'file': 'reports/historical_summary_report.py'},
-        '15': {'name': 'Consolidated Traffic Report', 'file': 'reports/consolidated_traffic_report.py'},
-        '16': {'name': 'Image Performance Report', 'file': 'reports/image_performance_report.py'},
-        '17': {'name': 'Monthly Search Type Performance', 'file': 'reports/monthly_search_type_performance_report.py'},
-        '18': {'name': 'Search Type Performance Report', 'file': 'reports/search_type_performance.py'},
-        '19': {'name': 'URL Inspection Report', 'file': 'reports/url_inspection_report.py'},
-        '20': {'name': 'Export All Pages', 'file': 'reports/gsc_pages_exporter.py'},
-        '21': {'name': 'Generate GSC Wrapped', 'file': 'reports/generate_gsc_wrapped.py'},
-        '22': {'name': 'Seasonal Performance (Year-over-Year)', 'file': 'reports/seasonal_performance_report.py'},
-        '23': {'name': 'Seasonal Page Spikes (Z-Score)', 'file': 'reports/seasonal_page_spike_report.py'},
-        '24': {'name': 'Seasonal Query Spikes (Z-Score)', 'file': 'reports/seasonal_query_spike_report.py'},
-    }
+    reports_dir = 'reports'
+    report_files = sorted([f for f in os.listdir(reports_dir) if f.endswith('.py') and f != '__init__.py'])
+    
+    reports = {}
     print("\nAvailable Reports:")
-    for key in sorted(reports.keys(), key=int):
-        print(f"  {key:2}: {reports[key]['name']}")
+    
+    for i, filename in enumerate(report_files):
+        file_path = os.path.join(reports_dir, filename)
+        
+        # Try to extract a name from the docstring
+        name = filename.replace('_', ' ').replace('.py', '').title()
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                # Simple docstring extraction
+                match = re.search(r'"""\s*(.*?)\s*"""', content, re.DOTALL)
+                if match:
+                    doc = match.group(1).split('\n')[0].strip()
+                    if doc:
+                        name = doc.rstrip('.')
+        except Exception:
+            pass
+            
+        key = str(i + 1)
+        reports[key] = {'name': name, 'file': file_path}
+        print(f"  {key:2}: {name}")
+        
     while True:
         choice = input(f"\nSelect a report (1-{len(reports)}): ")
         if choice in reports:
@@ -132,39 +131,14 @@ def main():
         
     selected_report = select_report()
     
-    # Reports that require date arguments
-    DATE_REQUIRING_SCRIPTS = [
-        'reports/snapshot_report.py',
-        'reports/performance_analysis.py',
-        'reports/page_level_report.py',
-        'reports/gsc_pages_queries.py',
-        'reports/discover_key_performance_metrics.py',
-        'reports/keyword_cannibalisation_report.py',
-        'reports/page_performance_over_time.py',
-        'reports/monthly_summary_report.py',
-        'reports/gsc_pages_exporter.py',
-        'reports/monthly_search_type_performance_report.py',
-        'reports/search_type_performance.py'
-    ]
-    
-    # Reports that use --months instead of --start-date/--end-date
-    MONTHS_BASED_SCRIPTS = [
-        'reports/queries_pages_analysis.py',
-        'reports/query_position_analysis.py',
-        'reports/key_performance_metrics.py'
-    ]
-
     print("\nEnter any additional flags (e.g., --start-date YYYY-MM-DD --end-date YYYY-MM-DD, or --last-month).")
     additional_flags = input("Flags: ")
     
-    # If report needs dates and no date flag was provided, append --last-month
-    if selected_report['file'] in DATE_REQUIRING_SCRIPTS:
-        if not any(f in additional_flags for f in ['--start-date', '--end-date', '--last-month', '--last-7-days', '--last-28-days']):
-            print(f"\n[!] Note: {selected_report['name']} requires date flags. Defaulting to --last-month.")
-            additional_flags = "--last-month " + additional_flags
-    # If report needs --months, do nothing as it's not a date flag report
-    elif selected_report['file'] in MONTHS_BASED_SCRIPTS:
-        pass    
+    # Since all reports are now standardised, we encourage using at least one date flag
+    if not any(f in additional_flags for f in ['--start-date', '--end-date', '--last-month']):
+        print(f"\n[!] Note: All reports now support standard date flags. Defaulting to --last-month for consistency.")
+        additional_flags = "--last-month " + additional_flags
+
     command = ["python", selected_report['file'], selected_site]
     
     if additional_flags:

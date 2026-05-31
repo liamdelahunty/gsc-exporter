@@ -86,3 +86,26 @@
     3. **Historical Anchor Logic**: Standardise how date flags affect trend-based reports (e.g., dates act as the end-point for historical lookbacks).
     4. **Template Audit**: Confirm all reports correctly utilise `templates/` and `resources/` for visual consistency.
     5. **Final Validation**: Update `validate_all_reports.py` and achieve a 100% verified pass rate.
+
+- **Phase 5 Completion (2026-05-31)**:
+    - **Global Argument Standardisation**: Successfully updated all 24 reports in `reports/` to use `core.date_utils.parse_standard_date_args`.
+    - **Dynamised Runners**: 
+        - Refactored `interactive-runner.py` to dynamically discover reports by scanning the `reports/` directory and extracting names from docstrings.
+        - Refactored `run-monthly-reports.py` to automatically include all reports in the `reports/` directory (excluding manual-input scripts like `url_inspection_report.py`).
+    - **Logic Refinement**: Standardised historical lookback reports (e.g., `queries_pages_analysis.py`, `page_performance_over_time.py`) to use the passed `end_date` as the anchor for analysis.
+    - **Output Standardisation**: Updated `url_inspection_report.py` to follow the standard output path and filename patterns.
+    - **Final Validation**: Ran `validate_all_reports.py` and confirmed a 100% pass rate for the entire suite.
+
+## Next Steps: Phase 6 - Cleanup & Documentation
+1. **Final Purge**: Delete the `reports/original/` directory and any legacy root-level scripts.
+2. **Documentation Overhaul**: 
+    - Update `README.md` with the new modular architecture and unified CLI usage.
+    - Refresh `INSTRUCTIONS.md` to guide users on the new dynamic runners.
+3. **Refine Output Consistency**: Audit all generated filenames for strict adherence to hyphenated, SEO-friendly standards.
+4. **Unit Test Expansion**: Add tests for `core/date_utils.py` and the dynamic discovery logic in runners.
+
+## Future Enhancements
+- **Concurrent Execution**: Support multi-threaded report generation for faster batch processing.
+- **Enhanced Visuals**: Integrate more interactive charting libraries (e.g., Plotly) for deeper data exploration.
+- **Automated Delivery**: Add support for automated email or Slack delivery of generated reports.
+- **BI Connector**: Create an exporter specifically for Looker Studio or Power BI data ingestion.
