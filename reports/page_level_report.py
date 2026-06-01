@@ -20,7 +20,9 @@ def create_html_report(df, report_title, period_str, summary_data, limit=None, t
     df_html['clicks'] = pd.to_numeric(df_html['clicks'], errors='coerce').fillna(0).astype(int)
     df_html['impressions'] = pd.to_numeric(df_html['impressions'], errors='coerce').fillna(0).astype(int)
     df_html['ctr'] = pd.to_numeric(df_html['ctr'], errors='coerce').fillna(0.0)
-    df_html['position'] = pd.to_numeric(df_html['position'], errors='coerce').fillna(0.0)
+    
+    if 'position' in df_html.columns:
+        df_html['position'] = pd.to_numeric(df_html['position'], errors='coerce').fillna(0.0)
     
     if 'Query #' in df_html.columns:
         df_html['Query #'] = pd.to_numeric(df_html['Query #'], errors='coerce').fillna(0).astype(int)
@@ -28,7 +30,9 @@ def create_html_report(df, report_title, period_str, summary_data, limit=None, t
     df_html['clicks'] = df_html['clicks'].apply(lambda x: f"{x:,}") 
     df_html['impressions'] = df_html['impressions'].apply(lambda x: f"{x:,}") 
     df_html['ctr'] = df_html['ctr'].apply(lambda x: f"{x:.2%}") 
-    df_html['position'] = df_html['position'].apply(lambda x: f"{x:.2f}") 
+    
+    if 'position' in df_html.columns:
+        df_html['position'] = df_html['position'].apply(lambda x: f"{x:.2f}") 
 
     if 'Query #' in df_html.columns:
         df_html['Query #'] = df_html['Query #'].apply(lambda x: f"{x:,}")
