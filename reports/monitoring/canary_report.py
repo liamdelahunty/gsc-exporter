@@ -106,6 +106,8 @@ def get_metric_table_data(cur_val, lw_val, lm_val, ly_val, metric_type):
 
 def run_report(config_path, output_dir, start_date_manual=None):
     service = get_gsc_service()
+    if service:
+        start_date, end_date = parse_standard_date_args(args, service, args.site_url)
     
     with open(config_path, 'r') as f:
         properties = json.load(f)

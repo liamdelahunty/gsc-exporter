@@ -203,10 +203,11 @@ if __name__ == '__main__':
     parser.add_argument('site_url', help='The URL of the site.')
     parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
     parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-7-days', action='store_true', help='Run for the last 7 available days.')
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     
     args = parser.parse_args()
     # Parse dates for compatibility, even if not used for filtering yet
-    parse_standard_date_args(args)
+    parse_standard_date_args(args, service, args.site_url)
     
     run_report(args.site_url)

@@ -180,21 +180,23 @@ if __name__ == '__main__':
     parser.add_argument('site_url', help='The URL of the site to analyse.')
     parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
     parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-7-days', action='store_true', help='Run for the last 7 available days.')
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     
     args = parser.parse_args()
-    start_date, end_date = parse_standard_date_args(args)
     
-    # Calculate comparison period (previous period of same length)
-    s_dt = datetime.strptime(start_date, '%Y-%m-%d')
-    e_dt = datetime.strptime(end_date, '%Y-%m-%d')
-    delta = e_dt - s_dt + timedelta(days=1)
-    comparison_end_date_dt = s_dt - timedelta(days=1)
-    comparison_start_date_dt = comparison_end_date_dt - delta + timedelta(days=1)
-    
-    comparison_start_date = comparison_start_date_dt.strftime('%Y-%m-%d')
-    comparison_end_date = comparison_end_date_dt.strftime('%Y-%m-%d')
-        
     service = get_gsc_service()
     if service:
+        start_date, end_date = parse_standard_date_args(args, service, args.site_url)
+        
+        # Calculate comparison period (previous period of same length)
+        s_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        e_dt = datetime.strptime(end_date, '%Y-%m-%d')
+        delta = e_dt - s_dt + timedelta(days=1)
+        comparison_end_date_dt = s_dt - timedelta(days=1)
+        comparison_start_date_dt = comparison_end_date_dt - delta + timedelta(days=1)
+        
+        comparison_start_date = comparison_start_date_dt.strftime('%Y-%m-%d')
+        comparison_end_date = comparison_end_date_dt.strftime('%Y-%m-%d')
+        
         run_report(service, args.site_url, start_date, end_date, comparison_start_date, comparison_end_date)

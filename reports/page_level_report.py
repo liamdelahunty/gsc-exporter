@@ -136,42 +136,51 @@ def run_report(service, site_url, start_date, end_date, search_type='web', limit
     """Executes the page-level report."""
     print(f"Running Page-Level Report for {site_url} ({start_date} to {end_date})...")
     
-    # 1. Fetch Granular Data (Page + Query)
-    # Fetching this first allows us to calculate unique query counts and aggregate page data 
-    # without making a second API call/cache read for just ['page'].
-    df_granular = fetch_with_cache(service, site_url, start_date, end_date, ['page', 'query'], search_type)
+    # 1. Define Dimensions based on search type
+    # Discover and News (sometimes) don't support the 'query' dimension
+    dimensions = ['page', 'query']
+    if search_type == 'discover':
+        dimensions = ['page']
+        
+    df_granular = fetch_with_cache(service, site_url, start_date, end_date, dimensions, search_type)
     
     if df_granular.empty:
-        # Fallback for search types that might not support query dimension (like Discover)
-        if search_type == 'discover':
-             df_pages = fetch_with_cache(service, site_url, start_date, end_date, ['page'], search_type)
-             df_pages['query_count'] = 0
-        else:
-            print("No data found.")
-            return None
-    else:
-        # 2. Process Page-Level Data from Granular Data
-        # Aggregate clicks/imps and calculate unique queries from the granular set
-        df_pages = df_granular.groupby('page').agg({
-            'clicks': 'sum',
-            'impressions': 'sum',
-            'position': 'mean',
-            'query': 'nunique'
-        }).reset_index()
+        print(f"No {search_type} data found for this period.")
+        return None
+
+    # 2. Process Data
+    # Identify which columns we actually have
+    has_position = 'position' in df_granular.columns
+    has_query = 'query' in df_granular.columns
+
+    agg_map = {
+        'clicks': 'sum',
+        'impressions': 'sum'
+    }
+    if has_position:
+        agg_map['position'] = 'mean'
+    if has_query:
+        agg_map['query'] = 'nunique'
+
+    df_pages = df_granular.groupby('page').agg(agg_map).reset_index()
+    
+    if has_query:
         df_pages.rename(columns={'query': 'query_count'}, inplace=True)
-        df_pages['ctr'] = df_pages['clicks'] / df_pages['impressions']
+    else:
+        df_pages['query_count'] = 0
         
-        df_page_query = df_granular # Keep for query string stripping logic below
+    df_pages['ctr'] = df_pages['clicks'] / df_pages['impressions']
+    df_page_query = df_granular 
     
     # 3. Handle Query String Stripping
     if strip_query_strings:
         df_pages['page'] = df_pages['page'].str.split('?').str[0]
-        df_pages = df_pages.groupby('page').agg({
-            'clicks': 'sum',
-            'impressions': 'sum',
-            'position': 'mean',
-            'query_count': 'sum' # If stripping, we sum the unique counts (approximate)
-        }).reset_index()
+        df_pages = df_pages.groupby('page').agg(agg_map).reset_index()
+        if has_query:
+            # Note: This is an approximation when stripping query strings
+            df_pages.rename(columns={'query': 'query_count'}, inplace=True)
+        else:
+            df_pages['query_count'] = 0
         df_pages['ctr'] = df_pages['clicks'] / df_pages['impressions']
 
     # 5. Final Data Prep
@@ -196,17 +205,21 @@ def run_report(service, site_url, start_date, end_date, search_type='web', limit
     total_clicks = df_pages['clicks'].sum()
     total_impressions = df_pages['impressions'].sum()
     avg_ctr = total_clicks / total_impressions if total_impressions > 0 else 0
-    avg_pos = (df_pages['impressions'] * df_pages['position']).sum() / total_impressions if total_impressions > 0 else 0
-    total_unique_queries = df_page_query['query'].nunique() if not df_page_query.empty else 0
     
     summary_data = {
         "Number of Pages": f"{len(df_pages):,}",
         "Total Clicks": f"{total_clicks:,.0f}",
         "Total Impressions": f"{total_impressions:,.0f}",
-        "Average CTR": f"{avg_ctr:.2%}",
-        "Average Position": f"{avg_pos:.2f}",
-        "Total Unique Queries": f"{total_unique_queries:,}"
+        "Average CTR": f"{avg_ctr:.2%}"
     }
+
+    if has_position:
+        avg_pos = (df_pages['impressions'] * df_pages['position']).sum() / total_impressions if total_impressions > 0 else 0
+        summary_data["Average Position"] = f"{avg_pos:.2f}"
+    
+    if has_query:
+        total_unique_queries = df_page_query['query'].nunique() if not df_page_query.empty else 0
+        summary_data["Total Unique Queries"] = f"{total_unique_queries:,}"
 
     # 9. Generate HTML
     df_pages_renamed = df_pages.rename(columns={'query_count': 'Query #'})
@@ -237,14 +250,16 @@ if __name__ == '__main__':
     parser.add_argument('--search-type', default='web', help='The search type (web, discover, etc.).')
     parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
     parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-7-days', action='store_true', help='Run for the last 7 available days.')
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     parser.add_argument('--limit', type=int, default=250, help='Limit for HTML report.')
     parser.add_argument('--strip-query-strings', action='store_true', help='Remove query strings.')
     
     args = parser.parse_args()
-    start_date, end_date = parse_standard_date_args(args)
-            
+    
     service = get_gsc_service()
     if service:
+        start_date, end_date = parse_standard_date_args(args, service, args.site_url)
+        
         run_report(service, args.site_url, start_date, end_date, 
                    args.search_type, args.limit, args.strip_query_strings)

@@ -180,6 +180,7 @@ if __name__ == '__main__':
     parser.add_argument('site_url', help='The URL of the site to analyse.')
     parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
     parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-7-days', action='store_true', help='Run for the last 7 available days.')
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     parser.add_argument('--months', type=int, default=16, help='Number of months to analyse.')
     
@@ -188,9 +189,10 @@ if __name__ == '__main__':
     if args.start_date and args.end_date:
         start_date, end_date = args.start_date, args.end_date
     else:
-        _, end_date = parse_standard_date_args(args)
+        _, end_date = parse_standard_date_args(args, service, args.site_url)
         start_date, end_date = get_month_range_lookback(end_date, months=args.months)
     
     service = get_gsc_service()
     if service:
+        start_date, end_date = parse_standard_date_args(args, service, args.site_url)
         run_report(service, args.site_url, start_date, end_date)

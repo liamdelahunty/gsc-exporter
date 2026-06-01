@@ -152,14 +152,16 @@ if __name__ == '__main__':
     parser.add_argument('site_url', help='The site URL.')
     parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
     parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-7-days', action='store_true', help='Run for the last 7 available days.')
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     parser.add_argument('--months', type=int, default=16)
     args = parser.parse_args()
     
     # Standardise date args
-    start_date, end_date = parse_standard_date_args(args)
+    
     
     service = get_gsc_service()
     if service:
+        start_date, end_date = parse_standard_date_args(args, service, args.site_url)
         # We use end_date as the anchor for the 16-month lookback
         run_report(service, args.site_url, args.months, anchor_end_date=end_date)

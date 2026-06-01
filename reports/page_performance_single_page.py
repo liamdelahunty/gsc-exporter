@@ -233,18 +233,18 @@ if __name__ == '__main__':
     
     parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
     parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
+    parser.add_argument('--last-7-days', action='store_true', help='Run for the last 7 available days.')
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     parser.add_argument('--months', type=int, default=16, help='Number of months for historical lookback.')
     
     args = parser.parse_args()
-    start_date, end_date = parse_standard_date_args(args)
     
-    # Determine the actual site_url and page_url from both positional and optional args
-    final_site_url = args.site_url_opt if args.site_url_opt else args.site_url
-    final_page_url = args.page_url
-
     service = get_gsc_service()
     if service:
+        start_date, end_date = parse_standard_date_args(args, service, args.site_url)
+        # Determine the actual site_url and page_url from both positional and optional args
+    final_site_url = args.site_url_opt if args.site_url_opt else args.site_url
+    final_page_url = args.page_url
         run_report(service, final_page_url, site_url=final_site_url, 
                    start_date=start_date, end_date=end_date, months=args.months)
 
