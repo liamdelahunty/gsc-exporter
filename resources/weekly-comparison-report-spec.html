@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Report Specification: Weekly Comparison</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 2rem; background-color: #f8f9fa; }
+        h1, h2 { border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 1.5rem; }
+        pre { background-color: #e9ecef; padding: 1rem; border-radius: .25rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>New Report Specification: Weekly Comparison</h1>
+        <p>This document details the requirements for a new modular report, <code>weekly_comparison_report.py</code>, to be implemented in the <code>reports/</code> directory.</p>
+
+        <h2>1. Purpose</h2>
+        <p>To provide a comparative performance analysis of two identical-length time periods (e.g., last 7 days vs. previous 7 days) for both top keywords and top URLs.</p>
+
+        <h2>2. CLI Arguments</h2>
+        <p>The report must support flexible date definition, prioritising ease of use for comparisons:</p>
+        <pre><code>python reports/weekly_comparison_report.py site.com [args]</code></pre>
+        <ul>
+            <li><code>--period1-start YYYY-MM-DD</code> / <code>--period1-end YYYY-MM-DD</code></li>
+            <li><code>--period2-start YYYY-MM-DD</code> / <code>--period2-end YYYY-MM-DD</code></li>
+            <li><strong>Convenience flag:</strong> <code>--last-7-days</code>. If used, <code>period1</code> is automatically set to the last 7 days, and <code>period2</code> is set to the 7 days preceding that.</li>
+        </ul>
+
+        <h2>3. Functionality</h2>
+        <ol>
+            <li><strong>Data Fetching:</strong>
+                <ul>
+                    <li>Fetch GSC data for <code>period1</code> (keywords and pages).</li>
+                    <li>Fetch GSC data for <code>period2</code> (keywords and pages).</li>
+                </ul>
+            </li>
+            <li><strong>Analysis:</strong>
+                <ul>
+                    <li>Join the two datasets on 'query' and 'page' respectively.</li>
+                    <li>Calculate the delta (absolute and percentage) for clicks, impressions, and CTR for each entity.</li>
+                </ul>
+            </li>
+            <li><strong>Top Entities:</strong>
+                <ul>
+                    <li>Sort results by the difference in clicks.</li>
+                    <li>Extract the Top 250 keywords.</li>
+                    <li>Extract the Top 250 URLs.</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h2>4. Output Requirements</h2>
+        <ul>
+            <li><strong>CSV:</strong> One file containing comparative metrics for both Top 250 keywords and Top 250 URLs.</li>
+            <li><strong>HTML:</strong> A comparative dashboard displaying two tables: "Top 250 Keyword Changes" and "Top 250 URL Changes", highlighting positive and negative changes in clicks/impressions/CTR.</li>
+        </ul>
+    </div>
+</body>
+</html>

@@ -11,6 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 
 from core.client import get_gsc_service
 from core.cache import fetch_with_cache
+from core.date_utils import parse_standard_date_args
 
 def get_latest_available_gsc_date(service, site_url, max_retries=10):
     """Determines the latest date for which GSC data is available."""
@@ -63,7 +64,7 @@ def get_date_ranges(start_date_manual=None, service=None, site_url=None):
     # LW periods relative to new start/end
     lw_end = start_date - datetime.timedelta(days=1)
     lw_start = lw_end - datetime.timedelta(days=6)
-    
+    # LM periods
     lm_end = end_date - datetime.timedelta(days=28)
     lm_start = start_date - datetime.timedelta(days=28)
     
@@ -77,8 +78,8 @@ def get_date_ranges(start_date_manual=None, service=None, site_url=None):
         "Last Year": f"{ly_start.strftime('%a %Y-%m-%d')} to {ly_end.strftime('%a %Y-%m-%d')}"
     }, start_date, end_date, lw_start, lw_end, lm_start, lm_end, ly_start, ly_end
 
-def fetch_gsc_metrics(service, site_url, start, end):
-    df = fetch_with_cache(service, site_url, start.isoformat(), end.isoformat(), dimensions=[])
+def fetch_gsc_metrics(service, site_url, start, end, label=None):
+    df = fetch_with_cache(service, site_url, start.isoformat(), end.isoformat(), dimensions=[], label=label)
     if df.empty:
         return {"clicks": 0, "impressions": 0, "ctr": 0, "position": 0}
     return {
@@ -104,19 +105,17 @@ def get_metric_table_data(cur_val, lw_val, lm_val, ly_val, metric_type):
         "ly": format_val(ly_val), "ly_pct": ly_pct, "ly_class": get_status_class(ly_pct, metric_type)
     }
 
-def run_report(config_path, output_dir, start_date_manual=None):
-    service = get_gsc_service()
-    if service:
-        start_date, end_date = parse_standard_date_args(args, service, args.site_url)
-    
-    with open(config_path, 'r') as f:
+def run_report(args, service):
+    with open(args.config, 'r') as f:
         properties = json.load(f)
     
     # We need the first site to determine the latest date if no date provided
     site_for_date = properties[0]['siteUrl'] if properties else None
     
+    start_date, end_date = parse_standard_date_args(args, service, site_for_date)
+    
     periods, cur_s, cur_e, lw_s, lw_e, lm_s, lm_e, ly_s, ly_e = get_date_ranges(
-        start_date_manual, service, site_for_date
+        args.start_date, service, site_for_date
     )
     
     # Structure for 4 tables
@@ -130,10 +129,10 @@ def run_report(config_path, output_dir, start_date_manual=None):
     for prop in properties:
         site_url = prop['siteUrl']
         
-        cur = fetch_gsc_metrics(service, site_url, cur_s, cur_e)
-        lw = fetch_gsc_metrics(service, site_url, lw_s, lw_e)
-        lm = fetch_gsc_metrics(service, site_url, lm_s, lm_e)
-        ly = fetch_gsc_metrics(service, site_url, ly_s, ly_e)
+        cur = fetch_gsc_metrics(service, site_url, cur_s, cur_e, label="Current")
+        lw = fetch_gsc_metrics(service, site_url, lw_s, lw_e, label="Last-Week")
+        lm = fetch_gsc_metrics(service, site_url, lm_s, lm_e, label="Last-Month")
+        ly = fetch_gsc_metrics(service, site_url, ly_s, ly_e, label="Last-Year")
         
         for m_id in metrics_data.keys():
             m_data = get_metric_table_data(
@@ -151,8 +150,8 @@ def run_report(config_path, output_dir, start_date_manual=None):
         metrics_data=metrics_data
     )
     
-    os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, f"gsc-monitoring-{datetime.date.today().isoformat()}.html")
+    os.makedirs(args.output_dir, exist_ok=True)
+    output_path = os.path.join(args.output_dir, f"gsc-monitoring-{datetime.date.today().isoformat()}.html")
     with open(output_path, 'w') as f:
         f.write(html_output)
     
@@ -163,6 +162,10 @@ if __name__ == "__main__":
     parser.add_argument("--config", default="config/properties.json")
     parser.add_argument("--output-dir", default="output/account")
     parser.add_argument("--start-date", help="Set week start date (YYYY-MM-DD)")
+    parser.add_argument("--last-7-days", action='store_true', help="Run for the last 7 available days.")
+    parser.add_argument("--last-month", action='store_true', help="Run for the last calendar month.")
     args = parser.parse_args()
     
-    run_report(args.config, args.output_dir, args.start_date)
+    service = get_gsc_service()
+    if service:
+        run_report(args, service)

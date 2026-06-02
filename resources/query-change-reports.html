@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Identifying Query Changes Week-on-Week</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 2rem; background-color: #f8f9fa; }
+        h1, h2 { border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; margin-top: 1.5rem; }
+        pre { background-color: #e9ecef; padding: 1rem; border-radius: .25rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Identifying Query Changes Week-on-Week</h1>
+        <p>To get a quick view of significant query changes week-on-week, you can utilise the following reports.</p>
+
+        <h2>1. Seasonal Query Spike Report (<code>seasonal_query_spike_report.py</code>)</h2>
+        <p>This report is excellent for quickly identifying queries that are performing "out of the ordinary" compared to their historical averages. While designed for seasonal analysis, it can be adapted to highlight significant weekly changes.</p>
+        <p><strong>How it works:</strong> The report calculates a Z-score for clicks and impressions for each query within a specified period, comparing it against the query's historical performance (defaulting to the last 16 months of data). Queries exceeding a defined threshold are flagged as "spikes."</p>
+        <p><strong>For a quick view of weekly changes (anomalies):</strong></p>
+        <ol>
+            <li><strong>Specify a weekly date range:</strong> Run the report for the week you are interested in (e.g., last 7 days). The report will then compare that week's performance for each query against its longer-term historical average. This is not a direct "last week vs. this week" comparison, but rather "this week vs. historical norm for this query," which is often more useful for identifying unexpected changes.
+            <p><strong>Example Command (Last 7 days):</strong></p>
+            <pre><code>python seasonal_query_spike_report.py your-site-url.com --last-7-days --threshold 2.0 --min-clicks 10</code></pre>
+            <ul>
+                <li>Replace <code>your-site-url.com</code> with your actual Google Search Console property.</li>
+                <li><code>--last-7-days</code>: Analyses data for the last full 7 days.</li>
+                <li><code>--threshold 2.0</code>: Queries with a Z-score above 2.0 (meaning they are 2 standard deviations above the mean) will be flagged. You can adjust this value.</li>
+                <li><code>--min-clicks 10</code>: Only queries with at least 10 clicks in the analysis period will be considered.</li>
+            </ul>
+            </li>
+            <li><strong>Review the HTML Report:</strong> The generated HTML report will list queries that show significant spikes in clicks or impressions, allowing you to quickly spot anomalies.</li>
+        </ol>
+
+        <h2>2. Queries and Pages Analysis Report (<code>queries_pages_analysis.py</code>)</h2>
+        <p>This report provides a detailed breakdown of clicks, impressions, CTR, and average position for each query and page combination within a given date range. This is useful for a more direct week-on-week comparison, although it requires manual review.</p>
+        <p><strong>For a detailed week-on-week comparison:</strong></p>
+        <ol>
+            <li><strong>Run for Current Week:</strong> Generate a report for the most recent full week.
+            <p><strong>Example Command (Current Week):</strong></p>
+            <pre><code>python queries_pages_analysis.py your-site-url.com --start-date YYYY-MM-DD --end-date YYYY-MM-DD</code></pre>
+            </li>
+            <li><strong>Run for Previous Week:</strong> Generate a report for the week immediately preceding the current week.
+            <p><strong>Example Command (Previous Week):</strong></p>
+            <pre><code>python queries_pages_analysis.py your-site-url.com --start-date YYYY-MM-DD --end-date YYYY-MM-DD</code></pre>
+            </li>
+            <li><strong>Manually Compare Reports:</strong>
+                <ul>
+                    <li><strong>CSV Files:</strong> Open both weeks' CSV files in a spreadsheet program (e.g., Google Sheets, Excel). You can then use features like conditional formatting or pivot tables to highlight changes in metrics for individual queries.</li>
+                    <li><strong>HTML Reports:</strong> Review the HTML reports side-by-side to visually compare the top queries and their performance.</li>
+                </ul>
+            </li>
+        </ol>
+        <p><strong>Recommendation for "Quick View":</strong></p>
+        <p>For a "quick view" of <em>what's changed</em> (i.e., identifying unexpected increases or decreases), the <strong>Seasonal Query Spike Report</strong> is generally more effective as it automates the detection of anomalies. Use the <strong>Queries and Pages Analysis Report</strong> when you need to perform a precise, detailed comparison between two specific weekly periods.</p>
+    </div>
+</body>
+</html>

@@ -7,6 +7,7 @@ import hashlib
 import json
 import time
 import socket
+import calendar
 import pandas as pd
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
@@ -14,6 +15,14 @@ from googleapiclient.errors import HttpError
 from core.naming import get_property_name
 
 CACHE_DIR = 'cache'
+
+def is_full_month(start, end):
+    if start.day != 1:
+        return False
+    last_day = calendar.monthrange(start.year, start.month)[1]
+    if end.day != last_day or end.month != start.month or end.year != start.year:
+        return False
+    return True
 
 def _get_cache_paths(cache_key, site_url):
     """Returns the CSV and JSON paths for a given cache key within a site subfolder."""
@@ -31,11 +40,15 @@ def _get_monthly_chunks(start_date, end_date):
     """
     Splits a date range into monthly chunks.
     Dates can be string 'YYYY-MM-DD' or datetime.date objects.
+    If range is <= 31 days, return as a single chunk.
     """
     if isinstance(start_date, str):
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
     if isinstance(end_date, str):
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
+    if (end_date - start_date).days <= 31:
+        return [(start_date, end_date)]
 
     chunks = []
     current_start = start_date
@@ -103,7 +116,7 @@ def _fetch_from_api(service, site_url, start_date, end_date, dimensions, search_
         
     return df
 
-def fetch_with_cache(service, site_url, start_date, end_date, dimensions, search_type='web'):
+def fetch_with_cache(service, site_url, start_date, end_date, dimensions, search_type='web', label=None):
     """
     Fetches GSC data, using monthly fragmentation for the cache.
     Reassembles data from multiple months if necessary.
@@ -111,6 +124,7 @@ def fetch_with_cache(service, site_url, start_date, end_date, dimensions, search
     chunks = _get_monthly_chunks(start_date, end_date)
     all_dfs = []
     
+    property_name = get_property_name(site_url)
     total_chunks = len(chunks)
     for i, (chunk_start, chunk_end) in enumerate(chunks):
         s_str = chunk_start.strftime('%Y-%m-%d')
@@ -124,12 +138,20 @@ def fetch_with_cache(service, site_url, start_date, end_date, dimensions, search
         
         csv_path, json_path = _get_cache_paths(cache_key, site_url)
         
+        if is_full_month(chunk_start, chunk_end):
+            date_label = month_label
+        else:
+            date_label = f"{s_str} to {e_str}"
+        
+        # If a label is provided, prepend it to the date_label
+        full_label = f"{label} {date_label}" if label else date_label
+        
         if os.path.exists(csv_path):
-            print(f"  - [{i+1}/{total_chunks}] {month_label}: Using cached data: {cache_key}.")
+            print(f"  - [{i+1}/{total_chunks}] {property_name} {full_label}: Using cached data: {cache_key}.")
             chunk_df = pd.read_csv(csv_path)
             all_dfs.append(chunk_df)
         else:
-            print(f"  - [{i+1}/{total_chunks}] {month_label}: Fetching from GSC API: {cache_key}.")
+            print(f"  - [{i+1}/{total_chunks}] {property_name} {full_label}: Fetching from GSC API: {cache_key}.")
             chunk_df = _fetch_from_api(service, site_url, s_str, e_str, dimensions, search_type)
             if not chunk_df.empty:
                 chunk_df.to_csv(csv_path, index=False)
