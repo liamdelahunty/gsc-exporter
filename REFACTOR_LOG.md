@@ -108,6 +108,11 @@
     - Fixed minor syntax issues in `validate_all_reports.py`.
 - **Project Status**: Refactor complete. The codebase is now fully modular, standardised, and documented.
 
+## 2026-06-02: Bug Fix - URL Inspection API
+- **Issue**: `url_inspection_report.py` failed with `'Resource' object has no attribute 'urlInspection'` because the service was built using the legacy `webmasters` `v3` API.
+- **Fix**: Updated `core/client.py` to use the `searchconsole` `v1` API. This service is required for the URL Inspection tool and remains compatible with the `searchanalytics` methods used by all other reports.
+- **Verification**: Verified compatibility by running the full test suite (`pytest`) with the new API version.
+
 ## Future Enhancements
 - **Concurrent Execution**: Support multi-threaded report generation for faster batch processing.
 - **Enhanced Visuals**: Integrate more interactive charting libraries (e.g., Plotly) for deeper data exploration.

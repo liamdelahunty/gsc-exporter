@@ -50,4 +50,4 @@ def get_gsc_service():
             token.write(creds.to_json())
             print("Authentication successful. Credentials saved.")
 
-    return build('webmasters', 'v3', credentials=creds)
+    return build('searchconsole', 'v1', credentials=creds)

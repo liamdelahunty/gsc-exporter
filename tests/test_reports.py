@@ -1,6 +1,7 @@
 import pytest
 import os
 import pandas as pd
+from datetime import datetime
 from unittest.mock import MagicMock
 from core.naming import get_output_dir, get_filename_slug
 
@@ -71,3 +72,40 @@ def test_query_position_analysis_report(mock_service, mocker):
     output_dir = get_output_dir(site)
     assert os.path.exists(os.path.join(output_dir, "query-position-analysis-historical.csv"))
     assert os.path.exists(os.path.join(output_dir, "query-position-analysis-historical.html"))
+
+def test_url_inspection_report(mock_service, mocker):
+    # Mock the response from urlInspection().index().inspect().execute()
+    mock_response = {
+        'inspectionResult': {
+            'indexStatusResult': {
+                'verdict': 'NEUTRAL',
+                'indexingState': 'INDEXED',
+                'pageFetchState': 'SUCCESSFUL'
+            }
+        }
+    }
+    mock_service.urlInspection().index().inspect().execute.return_value = mock_response
+    
+    from reports.url_inspection_report import run_report
+    
+    site = 'https://www.example.com/'
+    url_to_inspect = 'https://www.example.com/test-page'
+    
+    run_report(mock_service, site, urls=[url_to_inspect])
+    
+    output_dir = get_output_dir(site)
+    # The filename in url_inspection_report.py uses the current date
+    current_date_str = datetime.now().strftime("%Y-%m-%d")
+    slug = get_filename_slug(site)
+    
+    csv_path = os.path.join(output_dir, f"url-inspection-{slug}-{current_date_str}.csv")
+    html_path = os.path.join(output_dir, f"url-inspection-{slug}-{current_date_str}.html")
+    
+    assert os.path.exists(csv_path)
+    assert os.path.exists(html_path)
+    
+    # Check CSV content
+    df = pd.read_csv(csv_path)
+    assert len(df) == 1
+    assert df.iloc[0]['URL'] == url_to_inspect
+    assert df.iloc[0]['Verdict'] == 'NEUTRAL'
