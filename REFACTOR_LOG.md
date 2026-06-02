@@ -96,13 +96,17 @@
     - **Output Standardisation**: Updated `url_inspection_report.py` to follow the standard output path and filename patterns.
     - **Final Validation**: Ran `validate_all_reports.py` and confirmed a 100% pass rate for the entire suite.
 
-## Next Steps: Phase 6 - Cleanup & Documentation
-1. **Final Purge**: Delete the `reports/original/` directory and any legacy root-level scripts.
-2. **Documentation Overhaul**: 
-    - Update `README.md` with the new modular architecture and unified CLI usage.
-    - Refresh `INSTRUCTIONS.md` to guide users on the new dynamic runners.
-3. **Refine Output Consistency**: Audit all generated filenames for strict adherence to hyphenated, SEO-friendly standards.
-4. **Unit Test Expansion**: Add tests for `core/date_utils.py` and the dynamic discovery logic in runners.
+## 2026-06-02: Phase 6 Completion - Final Cleanup & Documentation
+- **Final Purge**: Deleted the `reports/original/` directory. All 24+ reports are now exclusively managed in the modular `reports/` folder.
+- **Canary Monitoring**: Refactored `reports/monitoring/canary_report.py` to support standardised date arguments and multi-period fetching (Current, LW, LM, LY).
+- **New Capability**: Implemented `reports/period_comparison_report.py` to provide automated week-on-week performance audits with Chart.js visualisations.
+- **Documentation Overhaul**:
+    - Completely rewrote `README.md` to reflect the modular architecture and new CLI flags.
+    - Updated `resources/index.html` with new guides for weekly performance analysis.
+- **Validation**:
+    - Verified 100% pass rate for the full test suite (`pytest`).
+    - Fixed minor syntax issues in `validate_all_reports.py`.
+- **Project Status**: Refactor complete. The codebase is now fully modular, standardised, and documented.
 
 ## Future Enhancements
 - **Concurrent Execution**: Support multi-threaded report generation for faster batch processing.
