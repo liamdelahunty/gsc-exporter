@@ -8,6 +8,7 @@ import argparse
 import pandas as pd
 from datetime import datetime
 from urllib.parse import urlparse
+from collections import defaultdict
 
 # Add parent directory to sys.path to allow importing core
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -192,7 +193,7 @@ def run_report(service, site_url, urls, site_list_name="report"):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Inspect URLs.')
-    parser.add_argument('site_url_or_prop', help='GSC property OR a specific URL to inspect.')
+    parser.add_argument('site_url_or_prop', nargs='?', help='GSC property OR a specific URL to inspect.')
     parser.add_argument('--url', help='Single URL to inspect (if first arg is the property).')
     parser.add_argument('--sites-file', help='File with a list of URLs to inspect.')
     
@@ -210,39 +211,60 @@ if __name__ == '__main__':
         
     available_properties = get_available_properties(service)
     
-    site_url = args.site_url_or_prop
-    urls = []
-    
-    # SMART DETECTION LOGIC
-    # Scenario 1: First arg is a property and --url is provided
-    if args.url:
-        site_url = normalize_property(args.site_url_or_prop, available_properties)
-        urls = [args.url]
-    # Scenario 2: First arg is a property and --sites-file is provided
-    elif args.sites_file:
-        site_url = normalize_property(args.site_url_or_prop, available_properties)
+    # CASE 1: Batch processing from file
+    if args.sites_file:
+        if not os.path.exists(args.sites_file):
+            print(f"Error: File not found: {args.sites_file}")
+            sys.exit(1)
+            
         with open(args.sites_file, 'r') as f:
-            urls = [line.strip() for line in f if line.strip()]
-    # Scenario 3: First arg IS the URL to inspect (Intelligent separation)
-    else:
-        # Check if the argument is actually a known property
-        prop = normalize_property(args.site_url_or_prop, available_properties)
-        if prop in available_properties:
-            # It's a property. Inspect its root.
-            site_url = prop
-            urls = [prop] if prop.startswith('http') else []
+            raw_urls = [line.strip() for line in f if line.strip()]
+            
+        if args.site_url_or_prop:
+            # Force all URLs in file to use the provided property
+            site_url = normalize_property(args.site_url_or_prop, available_properties)
+            run_report(service, site_url, raw_urls)
         else:
-            # It's not a property. Assume it's an inspection URL.
-            best_prop = find_best_property(args.site_url_or_prop, available_properties)
-            if best_prop:
-                site_url = best_prop
-                urls = [args.site_url_or_prop]
-                print(f"Intelligently detected property '{site_url}' for URL '{args.site_url_or_prop}'")
-            else:
-                print(f"Error: Could not find an authorized GSC property for '{args.site_url_or_prop}'")
+            # INTELLIGENT BATCH: Group URLs by their best property
+            groups = defaultdict(list)
+            for url in raw_urls:
+                prop = find_best_property(url, available_properties)
+                if prop:
+                    groups[prop].append(url)
+                else:
+                    print(f"Warning: Could not find an authorized GSC property for '{url}'. Skipping.")
+            
+            if not groups:
+                print("Error: No URLs in the file could be matched to an authorized property.")
                 sys.exit(1)
+                
+            for prop, urls in groups.items():
+                run_report(service, prop, urls)
 
-    if urls:
-        run_report(service, site_url, urls)
+    # CASE 2: Single URL or Property provided via positional arg or --url
+    elif args.site_url_or_prop:
+        # User provided --url explicitly
+        if args.url:
+            site_url = normalize_property(args.site_url_or_prop, available_properties)
+            run_report(service, site_url, [args.url])
+        else:
+            # INTELLIGENT SINGLE: First arg is either a property or a specific URL
+            prop = normalize_property(args.site_url_or_prop, available_properties)
+            if prop in available_properties:
+                # It's a property. Inspect its root (if it's a URL-prefix property).
+                if prop.startswith('http'):
+                    run_report(service, prop, [prop])
+                else:
+                    print(f"Property '{prop}' is a domain property. Please provide a specific --url to inspect.")
+            else:
+                # It's not a property. Assume it's an inspection URL.
+                best_prop = find_best_property(args.site_url_or_prop, available_properties)
+                if best_prop:
+                    print(f"Intelligently detected property '{best_prop}' for URL '{args.site_url_or_prop}'")
+                    run_report(service, best_prop, [args.site_url_or_prop])
+                else:
+                    print(f"Error: Could not find an authorized GSC property for '{args.site_url_or_prop}'")
+                    sys.exit(1)
     else:
-        print("No valid URLs found for inspection.")
+        parser.print_help()
+        sys.exit(1)
