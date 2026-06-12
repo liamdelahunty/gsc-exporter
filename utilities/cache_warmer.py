@@ -13,7 +13,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from core.client import get_gsc_service
 from core.cache import fetch_with_cache
-from core.date_utils import get_latest_available_date, get_month_range_lookback
+from core.date_utils import get_latest_available_date, get_month_range_lookback, get_last_month_range
 
 # Define the "Golden" dimension sets
 GOLDEN_DIMENSIONS = [
@@ -31,10 +31,14 @@ def warm_site(service, site_url, lookback_months=16):
     
     # 1. Determine Date Range
     latest = get_latest_available_date(service, site_url)
-    end_date = latest.strftime('%Y-%m-%d')
+    
+    # Get the last complete month range to ensure we only cache full months
+    _, end_date = get_last_month_range(latest)
+    
+    # Get the start date for the lookback (e.g. 16 full months)
     start_date, _ = get_month_range_lookback(end_date, lookback_months)
     
-    print(f"Lookback: {lookback_months} months ({start_date} to {end_date})")
+    print(f"Lookback: {lookback_months} full months ({start_date} to {end_date})")
     
     # 2. Iterate through Golden Dimensions
     for dims, label in GOLDEN_DIMENSIONS:
