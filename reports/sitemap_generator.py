@@ -138,9 +138,10 @@ def run_report(service, site_url, start_date, end_date, min_impressions=0):
     os.makedirs(output_dir, exist_ok=True)
     slug = get_filename_slug(site_url)
     
-    xml_path = os.path.join(output_dir, f"sitemap-{slug}.xml")
-    csv_path = os.path.join(output_dir, f"sitemap-urls-{slug}.csv")
-    html_path = os.path.join(output_dir, f"sitemap-summary-{slug}.html")
+    file_prefix = f"-{slug}-{start_date}-to-{end_date}"
+    xml_path = os.path.join(output_dir, f"sitemap{file_prefix}.xml")
+    csv_path = os.path.join(output_dir, f"sitemap-urls{file_prefix}.csv")
+    html_path = os.path.join(output_dir, f"sitemap-summary{file_prefix}.html")
 
     # 4. Save XML
     xml_content = generate_xml_sitemap(sorted_pages)
