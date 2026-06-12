@@ -111,7 +111,7 @@ Example Usage:
             
             # Since all reports are now standardised, we default to --last-month
             # if no other date-related flag was provided by the user.
-            date_flags = ['--last-month', '--start-date', '--end-date']
+            date_flags = ['--last-month', '--start-date', '--end-date', '--lookback-months']
             
             # Check if any date-related flag is already in other_args
             has_date_flag = any(flag in other_args for flag in date_flags)

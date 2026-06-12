@@ -95,8 +95,8 @@ def select_report():
     for i, filename in enumerate(report_files):
         file_path = os.path.join(reports_dir, filename)
         
-        # Try to extract a name from the docstring
-        name = filename.replace('_', ' ').replace('.py', '').title()
+        # Default name is the filename
+        doc_description = ""
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -105,13 +105,14 @@ def select_report():
                 if match:
                     doc = match.group(1).split('\n')[0].strip()
                     if doc:
-                        name = doc.rstrip('.')
+                        doc_description = f" - {doc.rstrip('.')}"
         except Exception:
             pass
             
+        display_name = f"{filename}{doc_description}"
         key = str(i + 1)
-        reports[key] = {'name': name, 'file': file_path}
-        print(f"  {key:2}: {name}")
+        reports[key] = {'name': filename, 'file': file_path}
+        print(f"  {key:2}: {display_name}")
         
     while True:
         choice = input(f"\nSelect a report (1-{len(reports)}): ")
@@ -131,11 +132,24 @@ def main():
         
     selected_report = select_report()
     
+    # Show available flags for the selected report
+    print(f"\nAvailable flags for {selected_report['name']}:")
+    try:
+        help_output = subprocess.check_output(["python", selected_report['file'], "--help"], text=True)
+        # Extract only the options section
+        options_match = re.search(r'(options:|optional arguments:)(.*)', help_output, re.DOTALL | re.IGNORECASE)
+        if options_match:
+            print(options_match.group(2).strip())
+        else:
+            print("  (Could not parse help message. Refer to script documentation.)")
+    except Exception:
+        print("  (Could not load flags for this report.)")
+    
     print("\nEnter any additional flags (e.g., --start-date YYYY-MM-DD --end-date YYYY-MM-DD, or --last-month).")
     additional_flags = input("Flags: ")
     
     # Since all reports are now standardised, we encourage using at least one date flag
-    if not any(f in additional_flags for f in ['--start-date', '--end-date', '--last-month']):
+    if not any(f in additional_flags for f in ['--start-date', '--end-date', '--last-month', '--lookback-months']):
         print(f"\n[!] Note: All reports now support standard date flags. Defaulting to --last-month for consistency.")
         additional_flags = "--last-month " + additional_flags
 
