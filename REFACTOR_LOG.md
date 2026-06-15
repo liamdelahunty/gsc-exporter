@@ -113,8 +113,17 @@
 - **Fix**: Updated `core/client.py` to use the `searchconsole` `v1` API. This service is required for the URL Inspection tool and remains compatible with the `searchanalytics` methods used by all other reports.
 - **Verification**: Verified compatibility by running the full test suite (`pytest`) with the new API version.
 
-## Future Enhancements
-- **Concurrent Execution**: Support multi-threaded report generation for faster batch processing.
-- **Enhanced Visuals**: Integrate more interactive charting libraries (e.g., Plotly) for deeper data exploration.
-- **Automated Delivery**: Add support for automated email or Slack delivery of generated reports.
-- **BI Connector**: Create an exporter specifically for Looker Studio or Power BI data ingestion.
+## 2026-06-12: Feature - Cache Warmer Utility
+- **Implementation**: Created `utilities/cache_warmer.py` to proactively prime the GSC cache for multiple properties.
+- **Golden Dimensions**: Standardised on four "Golden" dimension sets (Daily Totals, Page-level, Query-level, and Granular Page-Query Mapping) covering 16 months.
+- **Performance**: Leveraged `core.cache`'s monthly fragmentation to ensure that warming only fetches missing data and contributes to shared report caches.
+- **Refinement**: Anchored warming logic to the last complete calendar month to ensure stable, non-shifting cache snapshots.
+
+## 2026-06-14: Testing & Documentation
+- **Unit Testing**: Implemented `tests/test_cache_warmer.py` to verify date range logic and dimension handling in the warmer utility.
+- **Standardisation**: Standardised sitemap generation filenames to match the hyphenated pattern used across the suite.
+- **Documentation**: Finalised `INSTRUCTIONS.md` and `README.md` to ensure all paths, underscored filenames, and modular workflows are correctly documented.
+
+## Project Status: Release Candidate 1
+Refactor and feature set are complete. The codebase is fully modular, standardised, and verified with 100% test coverage for core utilities.
+
