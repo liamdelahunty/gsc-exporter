@@ -29,6 +29,9 @@ These scripts generate detailed reports (HTML and CSV) for single sites or all p
 *   **`image-performance-report.py`**: A specialized success report for Google Image Search, tracking queries, landing pages, and visual trends.
 *   **`url-inspection-report.py`**: Fetches detailed GSC URL inspection data for a single URL or a list.
 *   **`generate_gsc_wrapped.py`**: Creates a fun, "Spotify Wrapped"-style annual performance summary.
+*   **`sitemap_generator.py`**: Generates an XML sitemap and a discovery summary based on Google Search Console data to ensure maximum URL discovery.
+*   **`period_comparison_report.py`**: Compares performance across two time periods, providing charts and query-level delta analysis.
+*   **`monitoring/canary_report.py`**: Provides a weekly snapshot of key GSC metrics (clicks, impressions, ctr, position) for configured properties to track proactive performance.
 
 ## Utility and Management Scripts
 
@@ -36,6 +39,11 @@ These scripts provide helper functions, automation, or alternative ways to run r
 
 *   **`interactive-runner.py`**: An interactive CLI tool that guides you through selecting a property and a report.
 *   **`show_available_domains.py`**: Lists all properties in your account, grouped by root domain.
+*   **`show_data_range.py`**: Displays the first and last available data dates for a Google Search Console property.
+*   **`cache_warmer.py`**: Proactively fetches and caches Google Search Console data for multiple sites to prime 'Golden Caches' (Page, Query, Page+Query, and Date) for 16 months.
+*   **`generate_cache_inventory.py`**: Generates an inventory of cached data to track storage usage and coverage.
+*   **`monthly_cache_manager.py`**: Helper utility for managing the monthly cache directory and files.
+*   **`auth-cloud-shell.py`**: Authenticates GSC Exporter specifically for Google Cloud Shell environments, allowing custom token naming.
 *   **`generate_brand_files.py`**: Automatically generates default brand-term configuration files for your sites.
 *   **`gsc_pages_exporter.py`**: Exports a simple, bulk list of all discovered pages for a date range.
 *   **`run_for_sites.py`**: Runs a specific analysis script for a custom list of sites.

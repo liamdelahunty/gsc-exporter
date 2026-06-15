@@ -70,8 +70,9 @@ def test_query_position_analysis_report(mock_service, mocker):
     run_report(mock_service, site, '2026-05-01', '2026-05-31')
 
     output_dir = get_output_dir(site)
-    assert os.path.exists(os.path.join(output_dir, "query-position-analysis-historical.csv"))
-    assert os.path.exists(os.path.join(output_dir, "query-position-analysis-historical.html"))
+    slug = get_filename_slug(site)
+    assert os.path.exists(os.path.join(output_dir, f"query-position-analysis-{slug}-2026-05-01-to-2026-05-31.csv"))
+    assert os.path.exists(os.path.join(output_dir, f"query-position-analysis-{slug}-2026-05-01-to-2026-05-31.html"))
 
 def test_url_inspection_report(mock_service, mocker):
     # Mock the response from urlInspection().index().inspect().execute()

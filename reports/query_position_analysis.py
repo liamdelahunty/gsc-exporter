@@ -186,13 +186,12 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    if args.start_date and args.end_date:
-        start_date, end_date = args.start_date, args.end_date
-    else:
-        _, end_date = parse_standard_date_args(args, service, args.site_url)
-        start_date, end_date = get_month_range_lookback(end_date, months=args.months)
-    
     service = get_gsc_service()
     if service:
-        start_date, end_date = parse_standard_date_args(args, service, args.site_url)
+        if args.start_date and args.end_date:
+            start_date, end_date = args.start_date, args.end_date
+        else:
+            _, end_date = parse_standard_date_args(args, service, args.site_url)
+            start_date, end_date = get_month_range_lookback(end_date, months=args.months)
+        
         run_report(service, args.site_url, start_date, end_date)

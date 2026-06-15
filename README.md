@@ -59,6 +59,22 @@ Runs all primary analysis reports for a single domain in one command.
 python run_all_reports_for_site.py <site_url> --last-month
 ```
 
+## Recommended Monthly Workflow
+
+To generate reports most efficiently, it is highly recommended to "warm" the cache first. This process fetches the core data sets (the "Golden Caches") from the GSC API and stores them locally. Subsequent report generations will then read from this local cache, drastically reducing execution time and API quota usage.
+
+### 1. Warm the Cache
+Prime the cache for your sites (defaulting to 16 months of historical data).
+```bash
+python utilities/cache_warmer.py --file site-lists/sites.txt
+```
+
+### 2. Run Batch Reports
+Execute the suite of standard reports for the last calendar month using the batch runner. Because the cache is warmed, this step will execute almost instantly.
+```bash
+python run-monthly-reports.py --sites-file site-lists/sites.txt
+```
+
 ## Setup
 
 1. **Credentials**: Place your Google Cloud OAuth `client_secret.json` in the root directory.
