@@ -36,6 +36,7 @@ client_secret.json
 client_secret*.json
 output/
 config/
+cache/
 
 # ──────────────────────────────────────────────────────────────
 # OS / editor specific files
@@ -82,3 +83,4 @@ Thumbs.db
 ._*
 /temp
 /tmp
+z-chat-log.md

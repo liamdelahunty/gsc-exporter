@@ -39,8 +39,17 @@ git remote add upstream https://github.com/liamdelahunty/gsc-exporter.git</code>
             <li>Review your changes and click <strong>Create Pull Request</strong>.</li>
         </ol>
 
-        <h2>Step 3: Keep your Fork in Sync (Rebase)</h2>
-        <p>To avoid messy "Merge branch..." commits and keep your history clean, use <strong>rebase</strong> instead of merge when updating from the parent repo.</p>
+        <h2>Step 3: Syncing via GitHub UI (The Quick Way)</h2>
+        <p>GitHub provides a built-in way to sync your fork directly through the web interface. This is useful for quick updates when you aren't at your terminal.</p>
+        <ol>
+            <li>Go to your fork's page: <a href="https://github.com/liamvictor/gsc-exporter" target="_blank">github.com/liamvictor/gsc-exporter</a>.</li>
+            <li>Click the <strong>Sync fork</strong> dropdown menu.</li>
+            <li>If your branch is behind, click <strong>Update branch</strong>.</li>
+            <li>GitHub will attempt to fast-forward your branch to match the upstream repository.</li>
+        </ol>
+
+        <h2>Step 4: Keep your Local Machine in Sync (Rebase)</h2>
+        <p>To avoid messy "Merge branch..." commits and keep your history clean, use <strong>rebase</strong> instead of merge when updating from the parent repo. This is the <strong>preferred method</strong> for active development.</p>
         
         <pre><code><span class="code-comment"># 1. Fetch the latest changes from the parent repo</span>
 git fetch upstream

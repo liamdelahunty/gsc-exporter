@@ -4,3 +4,5 @@ google-auth-oauthlib
 pandas
 python-dateutil
 Jinja2
+pytest
+pytest-mock

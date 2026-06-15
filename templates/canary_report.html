@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GSC Monitoring Report: {{ report_timestamp }}</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 15px; }
+        th, td { border: 1px solid #ddd; padding: 5px; text-align: left; font-size: 14px;}
+        th { background-color: #f4f4f4; }
+        
+        /* New top-level container for period and legend */
+        .top-container {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 20px;
+            gap: 40px;
+            align-items: flex-start;
+        }
+
+        .period-table { width: auto; margin-bottom: 0; }
+
+        /* Styling for colored cells */
+        td.amber { background-color: #fff3cd; color: #856404; font-weight: bold; text-align: center; }
+        td.red { background-color: #f8d7da; color: #721c24; font-weight: bold; text-align: center; }
+        td.positive-moderate-green { background-color: #a3e0a3; color: #0a4c0a; font-weight: bold; text-align: center; }
+        td.positive-strong-green { background-color: #6aaa6a; color: #052c05; font-weight: bold; text-align: center; }
+
+        /* Styling for color legend */
+        .color-scheme-legend { font-size: 0.9em; color: #555; }
+        .color-scheme-legend table { width: auto; border: none; }
+        .color-scheme-legend th, .color-scheme-legend td { border: none; padding: 2px 5px; }
+        .color-box { width: 40px; height: 20px; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <h1>GSC (Google Organic) Monitoring</h1>
+    <p>Report generated: {{ report_timestamp }}</p>
+
+    <div class="top-container">
+        <div>
+            <h2>Time Periods</h2>
+            <table class="period-table">
+                <tr><th>Period</th><th>Date Range</th></tr>
+                {% for period, range in periods.items() %}
+                <tr><td>{{ period }}</td><td>{{ range }}</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div class="color-scheme-legend">
+            <h2>Colour Scheme</h2>
+            <table>
+                <tr><th class="color-box">Colour</th><th>Meaning</th></tr>
+                <tr><td class="color-box"></td><td>Change within &plusmn;10%</td></tr>
+                <tr><td class="color-box amber"></td><td>Negative change between -10% and -25%</td></tr>
+                <tr><td class="color-box red"></td><td>Negative change &gt; -25%</td></tr>
+                <tr><td class="color-box positive-moderate-green"></td><td>Positive change between +10% and +25%</td></tr>
+                <tr><td class="color-box positive-strong-green"></td><td>Positive change &gt; +25%</td></tr>
+            </table>
+        </div>
+    </div>
+
+    {% for m_id, m_data in metrics_data.items() %}
+    <h2>{{ m_data.title }}</h2>
+    <table>
+        <tr>
+            <th>Property</th>
+            <th>Current</th>
+            <th>Last Week</th><th>Vs LW (%)</th>
+            <th>Last Month</th><th>Vs LM (%)</th>
+            <th>Last Year</th><th>Vs LY (%)</th>
+        </tr>
+        {% for prop in m_data.properties %}
+        <tr>
+            <td>{{ prop.name }}</td>
+            <td>{{ prop.cur }}{% if m_id == 'ctr' %}%{% endif %}</td>
+            <td>{{ prop.lw }}{% if m_id == 'ctr' %}%{% endif %}</td>
+            <td class="{{ prop.lw_class }}">{{ prop.lw_pct if prop.lw_pct is not none else 'N/A' }}{{ '%' if prop.lw_pct is not none }}</td>
+            <td>{{ prop.lm }}{% if m_id == 'ctr' %}%{% endif %}</td>
+            <td class="{{ prop.lm_class }}">{{ prop.lm_pct if prop.lm_pct is not none else 'N/A' }}{{ '%' if prop.lm_pct is not none }}</td>
+            <td>{{ prop.ly }}{% if m_id == 'ctr' %}%{% endif %}</td>
+            <td class="{{ prop.ly_class }}">{{ prop.ly_pct if prop.ly_pct is not none else 'N/A' }}{{ '%' if prop.ly_pct is not none }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endfor %}
+</body>
+</html>

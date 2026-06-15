@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GSC Exporter: Codebase Improvement Plan</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+        h1, h2, h3 { color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+        .feature-box { border: 1px solid #ddd; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; background: #fff; }
+        .ga4-inspire { border-left: 5px solid #f4b400; background: #fffcf5; }
+        .warning-box { border-left: 5px solid #c0392b; background: #fdf2f2; }
+        code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
+        pre { background: #f4f4f4; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+        .benefit { color: #27ae60; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Improving GSC Exporter: The Modular Blueprint</h1>
+    <p>Taking inspiration from the <code>ga4-api-explorer</code> codebase, we can transform <code>gsc-exporter</code> into a more robust, maintainable, and scalable tool.</p>
+
+    <div class="feature-box warning-box">
+        <h2>Property Naming & Collision Prevention</h2>
+        <p>To avoid data being overwritten between <code>www</code>, <code>non-www</code>, and <code>sc-domain</code> properties, we will adopt a strict naming convention:</p>
+        
+        <h3>1. Directory Structure (Dot Notation)</h3>
+        <p>Directories will use dots to preserve the exact property hostname. This makes the <code>output/</code> folder easy to navigate and ensures uniqueness.</p>
+        <ul>
+            <li><code>output/www.example.com/</code></li>
+            <li><code>output/example.com/</code></li>
+            <li><code>output/sc-domain.example.com/</code> (Domain properties use the <code>sc-domain.</code> prefix)</li>
+        </ul>
+
+        <h3>2. Filenames (Hyphenated)</h3>
+        <p>Filenames will use hyphens for SEO-friendliness and readability, while still including the property identifier to prevent internal collisions.</p>
+        <ul>
+            <li>Example: <code>page-level-report-www-example-com-2026-04-01.html</code></li>
+            <li>Example: <code>page-level-report-sc-domain-example-com-2026-04-01.html</code></li>
+        </ul>
+    </div>
+
+    <div class="feature-box ga4-inspire">
+        <h2>1. Report Decoupling (The <code>reports/</code> Directory)</h2>
+        <p><strong>Recommendation:</strong> Move all specific report logic into a <code>reports/</code> subdirectory. Each report should be a module with a standard <code>run_report</code> function.</p>
+        <ul>
+            <li><span class="benefit">Benefit:</span> Root directory remains clean; only orchestrators (like <code>interactive-runner.py</code>) remain.</li>
+            <li><span class="benefit">Benefit:</span> Dynamic loading (using <code>importlib</code>) allows for a single entry point for all reports.</li>
+        </ul>
+    </div>
+
+    <div class="feature-box ga4-inspire">
+        <h2>2. Centralised Output Management</h2>
+        <p><strong>Recommendation:</strong> Create an <code>output_manager.py</code> and a <code>templates/</code> directory using <strong>Jinja2</strong>.</p>
+        <ul>
+            <li><span class="benefit">Benefit:</span> Shared CSS and layout (Bootstrap 5) across all reports.</li>
+            <li><span class="benefit">Benefit:</span> Standardised number formatting and URL handling.</li>
+        </ul>
+    </div>
+
+    <div class="feature-box ga4-inspire">
+        <h2>3. Unified Core Library (The <code>core/</code> Library)</h2>
+        <p><strong>Recommendation:</strong> Consolidation of core utilities into a <code>core/</code> package.</p>
+        <ul>
+            <li><code>core/client.py</code>: Handles OAuth2 and API service creation.</li>
+            <li><code>core/dates.py</code>: Standardises date range calculations.</li>
+            <li><code>core/naming.py</code>: Implements the Dot-Directory/Hyphen-File logic.</li>
+            <li><code>core/cache.py</code>: The new hash-based CSV/JSON caching system with monthly fragmentation for maximum reusability.</li>
+        </ul>
+    </div>
+
+    <h2>Proposed Directory Structure</h2>
+    <pre><code>gsc-exporter/
+├── reports/                 # Logic for each specific report
+├── templates/               # Jinja2 HTML templates
+├── core/                    # Shared utility library
+│   ├── naming.py            # Centralised naming logic
+│   └── ...
+├── output/                  # Organized by dot-notation
+│   ├── www.example.com/     
+│   └── sc-domain.example.com/
+├── interactive-runner.py    # Main entry point
+└── client_secret.json</code></pre>
+
+    <hr>
+    <h2>Implementation Directive: The Best Prompt</h2>
+    <p>Use the following prompt to execute the next phase of the refactor. This has been formulated to ensure consistency and prevent the property collisions identified in our research.</p>
+    <pre><code>Execute a modular refactor of the GSC Exporter codebase based on the plan in resources/codebase-improvement-plan.html.
+
+1. Centralise Naming Logic: Create core/naming.py to standardise property-based naming. Directories must use dot-notation to preserve the exact hostname (e.g., output/www.example.com/). Filenames must use hyphens for SEO and readability (e.g., page-level-report-www-example-com-...). Ensure that domain properties are prefixed with sc-domain. to prevent collisions.
+
+2. Unified Caching: Implement the hash-based caching system in core/cache.py. Use CSV for storing large tabular GSC data and JSON for accompanying metadata. The cache should be fragmented by month; if a report requests a multi-month range, the system must break this into individual monthly requests (where possible) to maximise reusability across different reports. The filename should be an MD5 hash of the granular request parameters (site_url, specific month, dimensions).
+
+3. Restructure Reports: Create a reports/ directory. Migrate seasonal-page-spike-report.py and page-level-report.py into this folder as the first pilot modules. Each should have a standard run_report function that accepts the GSC service, site URL, and relevant parameters.
+
+4. Core Utilities: Move authentication and service creation into core/client.py. 
+
+5. Validation: Update the interactive-runner.py to dynamically import and run these migrated reports from the new directory structure. Ensure that all generated files follow the new dot-directory and hyphen-filename convention.
+
+Adhere to British English in all documentation and comments. Do not use em dashes.</code></pre>
+</body>
+</html>

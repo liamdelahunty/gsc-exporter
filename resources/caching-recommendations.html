@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tailored Caching Recommendations</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; max-width: 800px; margin: 2rem auto; padding: 1rem; }
+        .section { border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; border-radius: 5px; }
+        .gsc { border-left: 5px solid #4285f4; }
+        .ga4 { border-left: 5px solid #f4b400; }
+        pre { background: #f4f4f4; padding: 1rem; }
+    </style>
+</head>
+<body>
+    <h1>Caching Recommendations</h1>
+    
+    <div class="section gsc">
+        <h2>GSC Exporter: Hash-CSV + JSON Meta</h2>
+        <p><strong>Approach:</strong> Use CSV for tabular data (performance) and JSON for metadata.</p>
+        <ul>
+            <li><strong>Data:</strong> Store in {hash}.csv for fast Pandas access.</li>
+            <li><strong>Metadata:</strong> Store in {hash}.json to track site, dates, and dimensions.</li>
+            <li><strong>Benefit:</strong> Fast, compact, and allows multiple reports to share the same data by generating the same hash.</li>
+        </ul>
+    </div>
+
+    <div class="section ga4">
+        <h2>GA4 API Explorer: Pure JSON</h2>
+        <p><strong>Approach:</strong> Stick with the current hash-based JSON system.</p>
+        <ul>
+            <li><strong>Reason:</strong> Variable report structures and high metadata requirements make JSON ideal.</li>
+            <li><strong>Benefit:</strong> Already robustly implemented in run_report.py.</li>
+        </ul>
+    </div>
+
+    <h3>Best Implementation Prompt for GSC</h3>
+    <pre><code>Implement a hash-based CSV caching system for GSC Exporter.
+1. Create cache_manager.py to generate MD5 hashes from request params.
+2. Save data to {hash}.csv and metadata to {hash}.json.
+3. Update reports to check for these files before calling the API.</code></pre>
+</body>
+</html>

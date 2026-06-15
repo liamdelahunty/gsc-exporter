@@ -18,3 +18,6 @@ gsc_pages_exporter.py
 consolidated-traffic-report.py
 image-performance-report.py
 monthly-search-type-performance-report.py
+seasonal-performance-report.py
+seasonal-page-spike-report.py
+seasonal-query-spike-report.py

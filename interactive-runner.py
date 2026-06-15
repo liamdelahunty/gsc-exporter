@@ -8,56 +8,10 @@ import os
 import subprocess
 import sys
 import argparse
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from google.auth import exceptions
+import importlib.util
+import re
 from urllib.parse import urlparse
-
-# --- Configuration ---
-SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
-CLIENT_SECRET_FILE = 'client_secret.json'
-TOKEN_FILE = 'token.json'
-
-def get_gsc_service():
-    """Authenticates and returns a Google Search Console service object."""
-    creds = None
-    if os.path.exists(TOKEN_FILE):
-        try:
-            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-        except Exception as e:
-            print(f"Could not load credentials from {TOKEN_FILE}. Error: {e}")
-            print("Will attempt to re-authenticate.")
-            creds = None
-
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            try:
-                print("Credentials have expired. Attempting to refresh...")
-                creds.refresh(Request())
-            except exceptions.RefreshError as e:
-                print(f"Error refreshing token: {e}")
-                print("The refresh token is expired or revoked. Deleting it and re-authenticating.")
-                if os.path.exists(TOKEN_FILE):
-                    os.remove(TOKEN_FILE)
-                creds = None
-        
-        if not creds:
-            if not os.path.exists(CLIENT_SECRET_FILE):
-                print(f"Error: {CLIENT_SECRET_FILE} not found. Please follow setup instructions in README.md.")
-                return None
-            
-            # Optimized for Cloud Shell: we expect the user to have generated a token already.
-            print(f"Error: {TOKEN_FILE} not found.")
-            print(f"Please run 'python auth-cloud-shell.py' to generate authentication.")
-            return None
-        
-        with open(TOKEN_FILE, 'w') as token:
-            token.write(creds.to_json())
-            print("Authentication successful. Credentials saved.")
-
-    return build('webmasters', 'v3', credentials=creds)
+from core.client import get_gsc_service
 
 def get_all_sites(service):
     """Fetches a list of all sites in the user's GSC account."""
@@ -132,27 +86,34 @@ def select_property(sites):
 
 def select_report():
     """Displays a list of available reports and prompts the user to select one."""
-    reports = {
-        '1': {'name': 'Snapshot Report', 'file': 'snapshot-report.py'},
-        '2': {'name': 'Performance Analysis', 'file': 'performance-analysis.py'},
-        '3': {'name': 'Page-Level Report', 'file': 'page-level-report.py'},
-        '4': {'name': 'Queries & Pages Detailed', 'file': 'gsc-pages-queries.py'},
-        '5': {'name': 'Key Performance Metrics', 'file': 'key-performance-metrics.py'},
-        '6': {'name': 'Discover Performance Metrics', 'file': 'discover-key-performance-metrics.py'},
-        '7': {'name': 'Queries & Pages Summary', 'file': 'queries-pages-analysis.py'},
-        '8': {'name': 'Query Position Analysis', 'file': 'query-position-analysis.py'},
-        '9': {'name': 'Query Segmentation Report', 'file': 'query-segmentation-report.py'},
-        '10': {'name': 'Keyword Cannibalisation Report', 'file': 'keyword-cannibalisation-report.py'},
-        '11': {'name': 'Page Performance Over Time', 'file': 'page-performance-over-time.py'},
-        '12': {'name': 'Monthly Summary Report', 'file': 'monthly-summary-report.py'},
-        '13': {'name': 'Export All Pages', 'file': 'gsc_pages_exporter.py'},
-        '14': {'name': 'URL Inspection Report', 'file': 'url-inspection-report.py'},
-        '15': {'name': 'Generate GSC Wrapped', 'file': 'generate_gsc_wrapped.py'},
-        '16': {'name': 'Monthly Search Type Performance Report', 'file': 'monthly-search-type-performance-report.py'},
-    }
+    reports_dir = 'reports'
+    report_files = sorted([f for f in os.listdir(reports_dir) if f.endswith('.py') and f != '__init__.py'])
+    
+    reports = {}
     print("\nAvailable Reports:")
-    for key in sorted(reports.keys(), key=int):
-        print(f"  {key:2}: {reports[key]['name']}")
+    
+    for i, filename in enumerate(report_files):
+        file_path = os.path.join(reports_dir, filename)
+        
+        # Default name is the filename
+        doc_description = ""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                # Simple docstring extraction
+                match = re.search(r'"""\s*(.*?)\s*"""', content, re.DOTALL)
+                if match:
+                    doc = match.group(1).split('\n')[0].strip()
+                    if doc:
+                        doc_description = f" - {doc.rstrip('.')}"
+        except Exception:
+            pass
+            
+        display_name = f"{filename}{doc_description}"
+        key = str(i + 1)
+        reports[key] = {'name': filename, 'file': file_path}
+        print(f"  {key:2}: {display_name}")
+        
     while True:
         choice = input(f"\nSelect a report (1-{len(reports)}): ")
         if choice in reports:
@@ -171,9 +132,27 @@ def main():
         
     selected_report = select_report()
     
-    print("\nEnter any additional flags (e.g., --last-7-days). Press Enter for none.")
+    # Show available flags for the selected report
+    print(f"\nAvailable flags for {selected_report['name']}:")
+    try:
+        help_output = subprocess.check_output(["python", selected_report['file'], "--help"], text=True)
+        # Extract only the options section
+        options_match = re.search(r'(options:|optional arguments:)(.*)', help_output, re.DOTALL | re.IGNORECASE)
+        if options_match:
+            print(options_match.group(2).strip())
+        else:
+            print("  (Could not parse help message. Refer to script documentation.)")
+    except Exception:
+        print("  (Could not load flags for this report.)")
+    
+    print("\nEnter any additional flags (e.g., --start-date YYYY-MM-DD --end-date YYYY-MM-DD, or --last-month).")
     additional_flags = input("Flags: ")
     
+    # Since all reports are now standardised, we encourage using at least one date flag
+    if not any(f in additional_flags for f in ['--start-date', '--end-date', '--last-month', '--lookback-months']):
+        print(f"\n[!] Note: All reports now support standard date flags. Defaulting to --last-month for consistency.")
+        additional_flags = "--last-month " + additional_flags
+
     command = ["python", selected_report['file'], selected_site]
     
     if additional_flags:

@@ -1,0 +1,78 @@
+Fetching sites from Google Search Console API...
+
+Available sites for use in reports (choose the correct format based on your GSC property type):
+
+# accountancydaily.co
+sc-domain:accountancydaily.co
+https://www.accountancydaily.co/
+
+# accountantadvice.co.uk
+https://accountantadvice.co.uk/
+https://www.accountantadvice.co.uk/
+
+# care-inform.co.uk
+sc-domain:care-inform.co.uk
+
+# care-inform.com
+sc-domain:care-inform.com
+
+# croner.co.uk
+sc-domain:croner.co.uk
+https://croner.co.uk/
+https://www.croner.co.uk/
+
+# croneri-navigate-care.co.uk
+sc-domain:croneri-navigate-care.co.uk
+
+# croneri-navigate-safety.co.uk
+sc-domain:croneri-navigate-safety.co.uk
+
+# croneri.co.uk
+sc-domain:croneri.co.uk
+https://app.croneri.co.uk/
+https://bsc.croneri.co.uk/
+https://ciot.croneri.co.uk/
+https://comms.croneri.co.uk/
+https://cta.croneri.co.uk/
+https://learning.croneri.co.uk/
+https://library.croneri.co.uk/
+https://mm.croneri.co.uk/
+https://necc-online.croneri.co.uk/
+https://nfb.croneri.co.uk/
+https://pages.croneri.co.uk/
+https://portal.croneri.co.uk/
+https://preview-library.croneri.co.uk/
+https://progression.croneri.co.uk/
+https://rospadirect.croneri.co.uk/
+https://uat.vip.croneri.co.uk/
+https://ukcridevdmapi.croneri.co.uk/
+https://ukcrilivesfapi.croneri.co.uk/
+https://vip.croneri.co.uk/
+https://www.croneri.co.uk/
+
+# cronertaxwise.com
+sc-domain:cronertaxwise.com
+https://www.cronertaxwise.com/
+
+# employeradvice.org
+sc-domain:employeradvice.org
+
+# hr-inform.co.uk
+sc-domain:hr-inform.co.uk
+https://cipd.hr-inform.co.uk/
+https://pages.hr-inform.co.uk/
+https://shop.hr-inform.co.uk/
+https://staging.pro.hr-inform.co.uk/
+https://www.hr-inform.co.uk/
+
+# hr-inform.ie
+sc-domain:hr-inform.ie
+https://www.hr-inform.ie/
+
+# myviptaxteam.com
+sc-domain:myviptaxteam.com
+https://www.myviptaxteam.com/
+
+# safety-inform.co.uk
+sc-domain:safety-inform.co.uk
+
