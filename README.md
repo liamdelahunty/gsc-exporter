@@ -77,8 +77,8 @@ python run-monthly-reports.py --sites-file site-lists/sites.txt
 
 ## Setup
 
-1. **Credentials**: Place your Google Cloud OAuth `client_secret.json` in the root directory.
+1. **Credentials**: Place your Google Cloud OAuth `client_secret.json` in the `config/` directory.
 2. **Dependencies**: `pip install -r requirements.txt`
-3. **Authorisation**: Run any script to trigger the one-time browser authorisation flow.
+3. **Authorisation**: Run any script to trigger the one-time browser authorisation flow. It will automatically generate `config/token.json`.
 
 For detailed guides and scenario analysis, see the `resources/` directory or view the [Index](resources/index.html).

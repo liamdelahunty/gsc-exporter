@@ -5,19 +5,19 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 # --- Configuration ---
 SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
-CLIENT_SECRET_FILE = 'client_secret.json'
+CLIENT_SECRET_FILE = 'config/client_secret.json'
 
 def main():
     parser = argparse.ArgumentParser(description="Authenticate GSC Exporter in Cloud Shell.")
     parser.add_argument("--name", help="Optional name for the token file (e.g., 'work').", default=None)
     args = parser.parse_args()
 
-    token_file = 'token.json'
+    token_file = 'config/token.json'
     if args.name:
-        token_file = f"token-{args.name}.json"
+        token_file = f"config/token-{args.name}.json"
 
     if not os.path.exists(CLIENT_SECRET_FILE):
-        print(f"Error: {CLIENT_SECRET_FILE} not found. Ensure it is in this directory.")
+        print(f"Error: {CLIENT_SECRET_FILE} not found. Ensure it is in the config directory.")
         return
 
     # Initialize the flow

@@ -30,4 +30,4 @@ This repository contains a modular suite of tools for exporting and analysing Go
 ## Workflows
 
 - **Run Reports**: Use `interactive-runner.py` for guided execution or `run-monthly-reports.py` for batch processing.
-- **Validation**: Use `validate_all_reports.py` to verify that all modular reports are functioning correctly.
+- **Validation**: Use `utilities/validate_all_reports.py` to verify that all modular reports are functioning correctly.
