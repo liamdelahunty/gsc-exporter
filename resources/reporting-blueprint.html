@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GSC Exporter: Weekly and Monthly Reporting Blueprint</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { 
+            padding: 2rem 0; 
+            background-color: #f8f9fa; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #333;
+        }
+        .container { 
+            max-width: 960px; 
+            background: white; 
+            padding: 3rem; 
+            border-radius: 12px; 
+            box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.05); 
+        }
+        h1 { 
+            color: #1a365d; 
+            border-bottom: 3px solid #cbd5e1; 
+            padding-bottom: 0.75rem; 
+            margin-bottom: 2rem; 
+        }
+        h2 { 
+            color: #2b6cb0; 
+            margin-top: 2.5rem; 
+            margin-bottom: 1.25rem; 
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+        }
+        h3 {
+            color: #4a5568;
+            font-size: 1.25rem;
+            margin-top: 1.5rem;
+        }
+        pre { 
+            background-color: #0f172a; 
+            color: #f8fafc;
+            padding: 1.25rem; 
+            border-radius: 0.5rem; 
+            border: 1px solid #334155; 
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+        code { 
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-weight: bold;
+        }
+        .cli-code {
+            color: #38bdf8;
+        }
+        .text-arg {
+            color: #f472b6;
+        }
+        .flag-arg {
+            color: #a7f3d0;
+        }
+        .badge-weekly {
+            background-color: #dbeafe;
+            color: #1e40af;
+            font-size: 0.85rem;
+            padding: 0.35rem 0.65rem;
+        }
+        .badge-monthly {
+            background-color: #fef3c7;
+            color: #92400e;
+            font-size: 0.85rem;
+            padding: 0.35rem 0.65rem;
+        }
+        .card-workflow {
+            border-left: 5px solid #2b6cb0;
+            background-color: #f7fafc;
+        }
+        .card-branding {
+            border-left: 5px solid #10b981;
+            background-color: #f0fdf4;
+        }
+        .step-num {
+            background-color: #2b6cb0;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container my-4">
+        <header class="mb-4">
+            <a href="index.html" class="btn btn-outline-secondary btn-sm">&larr; Back to Resources</a>
+        </header>
+
+        <h1>GSC Exporter: Weekly and Monthly Reporting Blueprint</h1>
+        <p class="lead">This blueprint outlines the recommended scheduling, report selection, and workflow to establish a comprehensive search analytics pipeline for your properties.</p>
+
+        <div class="card card-workflow mb-5">
+            <div class="card-body">
+                <h5 class="card-title text-primary">Core Pipeline Objective</h5>
+                <p class="card-text mb-0">
+                    A successful search monitoring pipeline balances <strong>tactical agility</strong> (weekly monitoring to spot technical drops or content anomalies) with <strong>strategic analysis</strong> (monthly reports to evaluate long-term trends, keyword cannibalisation, and new search features).
+                </p>
+            </div>
+        </div>
+
+        <!-- SECTION: WEEKLY WORKFLOW -->
+        <h2>1. Weekly Reporting: Monitoring & Agility</h2>
+        <p>Weekly reporting focuses on operational monitoring: identifying keyword trends, tracking recent content launches, and checking search features like Google Discover and Google News for editorial and news properties.</p>
+
+        <div class="table-responsive my-3">
+            <table class="table table-bordered align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 25%;">Report</th>
+                        <th style="width: 30%;">Operational Purpose</th>
+                        <th>Frequency & Timing</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <strong>Canary Monitoring</strong><br>
+                            <span class="badge badge-weekly mt-1">Weekly</span>
+                        </td>
+                        <td>Provides a multi-period delta analysis (LW, LM, LY) across clicks, impressions, CTR, and average position for all key properties. Good for flagging sudden shifts.</td>
+                        <td>Run every Monday morning to review the preceding week's performance.</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong>Period Comparison</strong><br>
+                            <span class="badge badge-weekly mt-1">Weekly</span>
+                        </td>
+                        <td>Compares the last 7 days to the previous 7 days. Highlights keyword/page query deltas and displays interactive performance charts.</td>
+                        <td>Run weekly to evaluate the impact of content edits, recent launches, or technical adjustments.</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong>Page-Level Performance</strong><br>
+                            <span class="badge badge-weekly mt-1">Weekly</span>
+                        </td>
+                        <td>Analyses individual URL metrics across search types (Web, Discover, News) to show which URLs drove the week's traffic.</td>
+                        <td>Run weekly for properties that receive substantial non-standard search traffic.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>Weekly Execution Commands</h3>
+        <p>Use the <code>--last-7-days</code> flag. The suite automatically determines the latest available date in GSC (accounting for the standard 2 to 3 day processing lag) and anchors the 7-day reporting range accordingly.</p>
+
+        <h5 class="mt-3">Canary Monitoring Report</h5>
+        <p class="text-muted">Checks all properties configured in your <code>config/properties.json</code> file:</p>
+        <pre><code><span class="cli-code">python</span> <span class="text-arg">reports/monitoring/canary_report.py</span> --config <span class="text-arg">config/properties.json</span></code></pre>
+
+        <h5>Period Comparison Report</h5>
+        <p class="text-muted">Compares the last 7 days against the previous 7 days for a specific domain:</p>
+        <pre><code><span class="cli-code">python</span> <span class="text-arg">reports/period_comparison_report.py</span> <span class="text-arg">sc-domain:example.com</span> <span class="flag-arg">--last-7-days</span></code></pre>
+
+        <h5>Page-Level Performance (by Search Type)</h5>
+        <p class="text-muted">Run separately for standard Web search, Google Discover, and Google News:</p>
+        <pre><code><span class="cli-code">python</span> <span class="text-arg">reports/page_level_report.py</span> <span class="text-arg">sc-domain:example.com</span> --search-type <span class="text-arg">web</span> <span class="flag-arg">--last-7-days</span>
+<span class="cli-code">python</span> <span class="text-arg">reports/page_level_report.py</span> <span class="text-arg">sc-domain:example.com</span> --search-type <span class="text-arg">discover</span> <span class="flag-arg">--last-7-days</span>
+<span class="cli-code">python</span> <span class="text-arg">reports/page_level_report.py</span> <span class="text-arg">sc-domain:example.com</span> --search-type <span class="text-arg">news</span> <span class="flag-arg">--last-7-days</span></code></pre>
+
+        <!-- SECTION: MONTHLY WORKFLOW -->
+        <h2>2. Monthly Reporting: Strategic Trend Analysis</h2>
+        <p>Monthly reporting provides a deeper, strategic audit: evaluating search visibility changes, keyword cannibalisation, ranking distributions, and identifying content optimization opportunities.</p>
+
+        <div class="table-responsive my-3">
+            <table class="table table-bordered align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 25%;">Report</th>
+                        <th style="width: 30%;">Strategic Purpose</th>
+                        <th>Frequency & Timing</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <strong>Performance Analysis</strong><br>
+                            <span class="badge badge-monthly mt-1">Monthly</span>
+                        </td>
+                        <td>Categorises pages into actionable cohorts: "Rising Stars" (gaining visibility), "Content Decay" (losing clicks), and "Low CTR Opportunities" (high impressions, low CTR).</td>
+                        <td>Run at the start of the month to set the content optimisation priorities for the next 30 days.</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong>GSC Pages & Queries</strong><br>
+                            <span class="badge badge-monthly mt-1">Monthly</span>
+                        </td>
+                        <td>Provides an interactive drill-down report pairing top pages with their driving search queries, including brand vs non-brand performance.</td>
+                        <td>Run monthly to audit keyword relevance and user intent mapping.</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong>Keyword Cannibalisation</strong><br>
+                            <span class="badge badge-monthly mt-1">Monthly</span>
+                        </td>
+                        <td>Flags queries where multiple pages compete in the search results, diluting rankings and CTR.</td>
+                        <td>Run monthly to identify where content consolidation or internal linking changes are needed.</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong>Query Position Analysis</strong><br>
+                            <span class="badge badge-monthly mt-1">Monthly</span>
+                        </td>
+                        <td>Tracks keyword ranking distribution (Positions 1-3, 4-10, 11-20, etc.) over a 16-month period to identify long-term structural changes.</td>
+                        <td>Run monthly or quarterly to monitor overall brand search visibility trends.</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong>Monthly Summary</strong><br>
+                            <span class="badge badge-monthly mt-1">Monthly</span>
+                        </td>
+                        <td>Generates a clean, aggregate executive overview of the calendar month's totals.</td>
+                        <td>Run monthly to archive high-level performance metrics for historical logging.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>Monthly Execution: The Warmed Cache Workflow</h3>
+        <p>To avoid hitting Google Search Console API rate limits and to make report generation near-instant, always run the <strong>Cache Warmer</strong> first. The warmer pre-fetches and saves the "Golden Caches" locally.</p>
+
+        <div class="mb-4">
+            <h5><span class="step-num">1</span> Warm the Cache</h5>
+            <p class="text-muted">Prime the cache for your sites (this pulls the necessary monthly files for standard and granular reporting):</p>
+            <pre><code><span class="cli-code">python</span> <span class="text-arg">utilities/cache_warmer.py</span> --file <span class="text-arg">site-lists/sites.txt</span></code></pre>
+        </div>
+
+        <div class="mb-4">
+            <h5><span class="step-num">2</span> Run Individual Strategic Reports</h5>
+            <p class="text-muted">Once the cache is primed, execute the primary monthly analysis tools using the <code>--last-month</code> flag (which automatically resolves to the last complete calendar month):</p>
+            
+            <h6>Performance Analysis (Optimisation Opportunities)</h6>
+            <pre><code><span class="cli-code">python</span> <span class="text-arg">reports/performance_analysis.py</span> <span class="text-arg">sc-domain:example.com</span> <span class="flag-arg">--last-month</span></code></pre>
+
+            <h6>GSC Pages & Queries Drill-down</h6>
+            <pre><code><span class="cli-code">python</span> <span class="text-arg">reports/gsc_pages_queries.py</span> <span class="text-arg">sc-domain:example.com</span> <span class="flag-arg">--last-month</span></code></pre>
+
+            <h6>Keyword Cannibalisation Auditor</h6>
+            <pre><code><span class="cli-code">python</span> <span class="text-arg">reports/keyword_cannibalisation_report.py</span> <span class="text-arg">sc-domain:example.com</span> <span class="flag-arg">--last-month</span></code></pre>
+
+            <h6>Query Position Analysis (16-Month Trend)</h6>
+            <pre><code><span class="cli-code">python</span> <span class="text-arg">reports/query_position_analysis.py</span> <span class="text-arg">sc-domain:example.com</span> <span class="flag-arg">--last-month</span></code></pre>
+
+            <h6>Monthly Summary Report</h6>
+            <pre><code><span class="cli-code">python</span> <span class="text-arg">reports/monthly_summary_report.py</span> <span class="text-arg">sc-domain:example.com</span> <span class="flag-arg">--last-month</span></code></pre>
+        </div>
+
+        <div class="mb-4">
+            <h5><span class="step-num">3</span> Alternative: Run the Automated Site Suite</h5>
+            <p class="text-muted">To run all primary analysis reports for a single domain in a single command, use the suite runner:</p>
+            <pre><code><span class="cli-code">python</span> <span class="text-arg">run_all_reports_for_site.py</span> <span class="text-arg">sc-domain:example.com</span> <span class="flag-arg">--last-month</span></code></pre>
+        </div>
+
+        <!-- SECTION: CORPORATE PRESENTATION -->
+        <h2>3. Corporate Presentation & Stakeholder Communication</h2>
+        <p>Running the code is only half the task; translating the output into business value is key to promoting your work within the organisation. Configure your reports for distinct stakeholder groups:</p>
+
+        <div class="row g-4 mt-1 mb-5">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">For Content & Editorial Teams</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">Focus: Immediate Performance</h6>
+                        <p class="card-text">
+                            Editorial teams care about which articles worked. Send them the weekly <strong>Page-Level Performance</strong> report (split by Web, Discover, and News). Highlight high Discover click counts, as it reinforces headline quality and topic virality.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">For SEO & Growth Managers</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">Focus: Actionable Optimisation</h6>
+                        <p class="card-text">
+                            SEO specialists need optimization queues. Provide them with the monthly <strong>Performance Analysis</strong> (specifically the *High Impressions, Low CTR Opportunities* list) and the <strong>Keyword Cannibalisation</strong> audit to guide their remediation sprints.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">For Executive Stakeholders</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">Focus: Macro Trends & Health</h6>
+                        <p class="card-text">
+                            Directors and VPs want to see high-level trends without getting bogged down in individual search queries. Present them with the monthly <strong>Query Position Distribution</strong> trend charts and the <strong>Monthly Summary</strong> report.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">For Annual Reviews & Wrap-ups</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">Focus: Performance Celebrations</h6>
+                        <p class="card-text">
+                            Use the <strong>GSC Wrapped</strong> report at the end of the year or major quarters. It generates a visually engaging, card-based summary of top-performing assets, which fits well into corporate newsletters or review slide decks.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION: CORPORATE BRANDING -->
+        <div class="card card-branding mb-4">
+            <div class="card-body">
+                <h4 class="card-title text-success mb-3">Subtle Corporate Promotion</h4>
+                <p class="card-text">
+                    To promote your initiative internally, you can apply subtle corporate branding to the generated HTML reports:
+                </p>
+                <ul>
+                    <li>
+                        <strong>Customise the Footer</strong>: Replace the open-source GitHub link with an internal signature, e.g. 
+                        <code>Report generated by the Enterprise Search Analytics Suite (maintained by [Your Name/Team])</code>.
+                    </li>
+                    <li>
+                        <strong>Header Badge</strong>: Add an inline Bootstrap pill badge next to report titles (e.g., <code>&lt;span class="badge bg-secondary"&gt;Internal SEO Tool&lt;/span&gt;</code>) to mark it as an official internal resource.
+                    </li>
+                    <li>
+                        <strong>Apply Corporate Colour Accents</strong>: Adjust the CSS tables header background-color from the default dark grey (<code>#434343</code>) to match your corporation's official primary brand colour.
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <footer class="mt-5 pt-4 border-top text-center text-muted smaller">
+            <p>GSC Exporter Documentation Suite</p>
+        </footer>
+    </div>
+</body>
+</html>
