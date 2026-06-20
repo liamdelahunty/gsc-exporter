@@ -34,8 +34,10 @@ venv.bak/
 token.json
 client_secret.json
 client_secret*.json
+config/token.json
+config/client_secret.json
+config/client_secret*.json
 output/
-config/
 cache/
 
 # ──────────────────────────────────────────────────────────────

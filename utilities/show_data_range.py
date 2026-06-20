@@ -19,8 +19,8 @@ from google.auth import exceptions
 
 # --- Configuration ---
 SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly']
-CLIENT_SECRET_FILE = 'client_secret.json'
-TOKEN_FILE = 'token.json'
+CLIENT_SECRET_FILE = 'config/client_secret.json'
+TOKEN_FILE = 'config/token.json'
 
 def get_gsc_service():
     """Authenticates and returns a Google Search Console service object."""
