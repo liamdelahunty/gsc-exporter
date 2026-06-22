@@ -1,91 +1,1218 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <title>GSC Monitoring Report: {{ report_timestamp }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GSC Executive Canary Report: {{ report_timestamp }}</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
-        body { font-family: sans-serif; margin: 20px; }
-        h1 { color: #333; }
-        h2 { border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 20px; }
-        table { border-collapse: collapse; width: 100%; margin-bottom: 15px; }
-        th, td { border: 1px solid #ddd; padding: 5px; text-align: left; font-size: 14px;}
-        th { background-color: #f4f4f4; }
-        
-        /* New top-level container for period and legend */
-        .top-container {
-            display: flex;
-            justify-content: flex-start;
-            margin-bottom: 20px;
-            gap: 40px;
-            align-items: flex-start;
+        :root {
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --primary-rgb: 99, 102, 241; /* Indigo */
+            
+            --success-bg: #d1fae5;
+            --success-color: #065f46;
+            --warning-bg: #fef3c7;
+            --warning-color: #92400e;
+            --danger-bg: #fee2e2;
+            --danger-color: #991b1b;
+            --info-bg: #e0f2fe;
+            --info-color: #075985;
+            
+            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            --header-bg: rgba(255, 255, 255, 0.8);
         }
 
-        .period-table { width: auto; margin-bottom: 0; }
+        [data-theme="dark"] {
+            --bg-body: #0b0f19;
+            --bg-card: #151c2c;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #222e45;
+            
+            --success-bg: #064e3b;
+            --success-color: #34d399;
+            --warning-bg: #78350f;
+            --warning-color: #fbbf24;
+            --danger-bg: #7f1d1d;
+            --danger-color: #f87171;
+            --info-bg: #0c4a6e;
+            --info-color: #38bdf8;
+            
+            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+            --header-bg: rgba(21, 28, 44, 0.8);
+        }
 
-        /* Styling for colored cells */
-        td.amber { background-color: #fff3cd; color: #856404; font-weight: bold; text-align: center; }
-        td.red { background-color: #f8d7da; color: #721c24; font-weight: bold; text-align: center; }
-        td.positive-moderate-green { background-color: #a3e0a3; color: #0a4c0a; font-weight: bold; text-align: center; }
-        td.positive-strong-green { background-color: #6aaa6a; color: #052c05; font-weight: bold; text-align: center; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            min-height: 100vh;
+        }
 
-        /* Styling for color legend */
-        .color-scheme-legend { font-size: 0.9em; color: #555; }
-        .color-scheme-legend table { width: auto; border: none; }
-        .color-scheme-legend th, .color-scheme-legend td { border: none; padding: 2px 5px; }
-        .color-box { width: 40px; height: 20px; border: 1px solid #ddd; }
+        .glass-header {
+            background-color: var(--header-bg);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .dashboard-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            padding: 24px;
+            margin-bottom: 24px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08);
+        }
+
+        .kpi-card {
+            border-top: 4px solid rgb(var(--primary-rgb));
+        }
+
+        .kpi-val {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            margin: 8px 0;
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+
+        .status-badge.positive-strong-green,
+        .status-badge.positive-moderate-green {
+            background-color: var(--success-bg);
+            color: var(--success-color);
+        }
+
+        .status-badge.amber {
+            background-color: var(--warning-bg);
+            color: var(--warning-color);
+        }
+
+        .status-badge.red {
+            background-color: var(--danger-bg);
+            color: var(--danger-color);
+        }
+
+        .status-badge.neutral {
+            background-color: var(--bg-body);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Custom Tabs Styling */
+        .nav-pills .nav-link {
+            color: var(--text-secondary);
+            border-radius: 10px;
+            font-weight: 500;
+            padding: 10px 20px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .nav-pills .nav-link:hover {
+            background-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: rgb(var(--primary-rgb));
+            color: #ffffff;
+        }
+
+        /* Table Styling */
+        .table-responsive {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .custom-table {
+            margin-bottom: 0;
+            background-color: var(--bg-card);
+            color: var(--text-primary);
+            vertical-align: middle;
+        }
+
+        .custom-table th {
+            background-color: var(--bg-body);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 16px;
+            border-bottom: 2px solid var(--border-color);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .custom-table th:hover {
+            background-color: var(--border-color);
+        }
+
+        .custom-table td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.875rem;
+        }
+
+        .custom-table tbody tr:hover {
+            background-color: rgba(var(--primary-rgb), 0.02);
+        }
+
+        /* Theme toggle switch */
+        .theme-toggle-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 10px;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle-btn:hover {
+            background-color: var(--border-color);
+        }
+
+        /* Canary warning banner */
+        .canary-alert-banner {
+            border-left: 5px solid var(--danger-color);
+            background-color: var(--danger-bg);
+            color: var(--danger-color);
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+
+        .property-checkbox-list {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px;
+            background-color: var(--bg-body);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 380px;
+            width: 100%;
+        }
+
+        .badge-pill-outline {
+            border: 1px solid var(--border-color);
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        /* Micro-animations */
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .pulse-warning {
+            animation: pulse-slow 2s infinite ease-in-out;
+        }
+
+        .sort-icon::after {
+            content: ' \2195';
+            opacity: 0.3;
+            font-size: 0.8em;
+        }
+        .sort-asc::after {
+            content: ' \2191';
+            opacity: 1;
+        }
+        .sort-desc::after {
+            content: ' \2193';
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
-    <h1>GSC (Google Organic) Monitoring</h1>
-    <p>Report generated: {{ report_timestamp }}</p>
 
-    <div class="top-container">
-        <div>
-            <h2>Time Periods</h2>
-            <table class="period-table">
-                <tr><th>Period</th><th>Date Range</th></tr>
-                {% for period, range in periods.items() %}
-                <tr><td>{{ period }}</td><td>{{ range }}</td></tr>
-                {% endfor %}
-            </table>
+    <!-- Header -->
+    <header class="glass-header py-3 mb-4">
+        <div class="container-fluid px-4 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-danger text-white rounded-3 p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <i class="bi bi-shield-fill-exclamation fs-5 pulse-warning"></i>
+                </div>
+                <div>
+                    <h1 class="h4 mb-0 fw-bold">Canary Performance Monitor</h1>
+                    <p class="text-muted small mb-0">Google Search Console Organic Traffic Oversight</p>
+                </div>
+            </div>
+            
+            <div class="d-flex align-items-center gap-3">
+                <span class="text-secondary small d-none d-md-inline">Generated: <strong>{{ report_timestamp }}</strong></span>
+                <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle dark mode">
+                    <i class="bi bi-moon-stars-fill" id="theme-icon"></i>
+                    <span id="theme-text" class="small">Dark Theme</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container-fluid px-4 pb-5">
+        
+        <!-- Date ranges info -->
+        <div class="dashboard-card py-3 px-4 mb-4">
+            <div class="row align-items-center">
+                <div class="col-lg-3">
+                    <span class="text-secondary fw-semibold small uppercase"><i class="bi bi-calendar3 me-2"></i>Comparison Baselines</span>
+                </div>
+                <div class="col-lg-9">
+                    <div class="d-flex flex-wrap gap-3 mt-2 mt-lg-0 justify-content-lg-between">
+                        {% for period, range in periods.items() %}
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge-pill-outline bg-light">{{ period }}</span>
+                            <span class="small text-secondary">{{ range }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="color-scheme-legend">
-            <h2>Colour Scheme</h2>
-            <table>
-                <tr><th class="color-box">Colour</th><th>Meaning</th></tr>
-                <tr><td class="color-box"></td><td>Change within &plusmn;10%</td></tr>
-                <tr><td class="color-box amber"></td><td>Negative change between -10% and -25%</td></tr>
-                <tr><td class="color-box red"></td><td>Negative change &gt; -25%</td></tr>
-                <tr><td class="color-box positive-moderate-green"></td><td>Positive change between +10% and +25%</td></tr>
-                <tr><td class="color-box positive-strong-green"></td><td>Positive change &gt; +25%</td></tr>
-            </table>
+        <!-- Canary Warning Box (Dynamic alerts based on performance drop) -->
+        <div id="canary-alerts-container" class="d-none">
+            <div class="canary-alert-banner shadow-sm">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="bi bi-exclamation-triangle-fill fs-4 mt-1"></i>
+                    <div>
+                        <h5 class="fw-bold mb-1">Executive Advisory: Performance Canary Anomalies Detected</h5>
+                        <p class="mb-2 small">The following properties have dropped below acceptable thresholds relative to baseline periods. Immediate technical audit is recommended.</p>
+                        <div class="row g-2 mt-2" id="alerts-grid">
+                            <!-- Dynamic Warning Cards will be inserted here by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
 
-    {% for m_id, m_data in metrics_data.items() %}
-    <h2>{{ m_data.title }}</h2>
-    <table>
-        <tr>
-            <th>Property</th>
-            <th>Current</th>
-            <th>Last Week</th><th>Vs LW (%)</th>
-            <th>Last Month</th><th>Vs LM (%)</th>
-            <th>Last Year</th><th>Vs LY (%)</th>
-        </tr>
-        {% for prop in m_data.properties %}
-        <tr>
-            <td>{{ prop.name }}</td>
-            <td>{{ prop.cur }}{% if m_id == 'ctr' %}%{% endif %}</td>
-            <td>{{ prop.lw }}{% if m_id == 'ctr' %}%{% endif %}</td>
-            <td class="{{ prop.lw_class }}">{{ prop.lw_pct if prop.lw_pct is not none else 'N/A' }}{{ '%' if prop.lw_pct is not none }}</td>
-            <td>{{ prop.lm }}{% if m_id == 'ctr' %}%{% endif %}</td>
-            <td class="{{ prop.lm_class }}">{{ prop.lm_pct if prop.lm_pct is not none else 'N/A' }}{{ '%' if prop.lm_pct is not none }}</td>
-            <td>{{ prop.ly }}{% if m_id == 'ctr' %}%{% endif %}</td>
-            <td class="{{ prop.ly_class }}">{{ prop.ly_pct if prop.ly_pct is not none else 'N/A' }}{{ '%' if prop.ly_pct is not none }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-    {% endfor %}
+        <!-- Executive Summary Cards -->
+        <div class="row mb-2">
+            {% for m_id, summary in summary_data.items() %}
+            <div class="col-md-6 col-xl-3">
+                <div class="dashboard-card kpi-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <span class="text-secondary small fw-semibold">{{ summary.title }}</span>
+                        <span class="badge-pill-outline">Global Aggregate</span>
+                    </div>
+                    <div class="kpi-val">{{ summary.cur }}{% if m_id == 'ctr' %}%{% endif %}</div>
+                    
+                    <div class="d-flex flex-column gap-2 mt-3 pt-2 border-top border-light">
+                        <!-- WoW Change -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small text-muted">Vs Last Week</span>
+                            <span class="status-badge {{ summary.lw_class }}">
+                                {% if summary.lw_pct is not none %}
+                                    <i class="bi {% if summary.lw_pct > 0 %}bi-arrow-up-short{% elif summary.lw_pct < 0 %}bi-arrow-down-short{% else %}bi-dash{% endif %}"></i>
+                                    {{ summary.lw_pct }}%
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </span>
+                        </div>
+                        <!-- MoM Change -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small text-muted">Vs Last Month</span>
+                            <span class="status-badge {{ summary.lm_class }}">
+                                {% if summary.lm_pct is not none %}
+                                    <i class="bi {% if summary.lm_pct > 0 %}bi-arrow-up-short{% elif summary.lm_pct < 0 %}bi-arrow-down-short{% else %}bi-dash{% endif %}"></i>
+                                    {{ summary.lm_pct }}%
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </span>
+                        </div>
+                        <!-- YoY Change -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small text-muted">Vs Last Year</span>
+                            <span class="status-badge {{ summary.ly_class }}">
+                                {% if summary.ly_pct is not none %}
+                                    <i class="bi {% if summary.ly_pct > 0 %}bi-arrow-up-short{% elif summary.ly_pct < 0 %}bi-arrow-down-short{% else %}bi-dash{% endif %}"></i>
+                                    {{ summary.ly_pct }}%
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-pills mb-4 gap-2" id="dashboardTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#overview" type="button" role="tab" aria-selected="true">
+                    <i class="bi bi-speedometer2 me-2"></i>Executive Summary View
+                </button>
+            </li>
+            {% for m_id, m_data in metrics_data.items() %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="{{ m_id }}-tab" data-bs-toggle="pill" data-bs-target="#tab-{{ m_id }}" type="button" role="tab" aria-selected="false" onclick="renderMetricChart('{{ m_id }}')">
+                    <i class="bi {% if m_id == 'clicks' %}bi-mouse2{% elif m_id == 'impressions' %}bi-eye{% elif m_id == 'ctr' %}bi-percent{% else %}bi-graph-up-arrow{% endif %} me-2"></i>{{ m_data.title }}
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <!-- Tab Panes -->
+        <div class="tab-content" id="dashboardTabContent">
+            
+            <!-- Overview Dashboard -->
+            <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                <div class="row">
+                    <!-- Dynamic Summary Visualisations -->
+                    <div class="col-lg-6">
+                        <div class="dashboard-card">
+                            <h5 class="fw-bold mb-3"><i class="bi bi-bar-chart-line-fill me-2 text-primary"></i>Clicks Baseline Comparison</h5>
+                            <div style="height: 320px; position: relative;">
+                                <canvas id="overviewClicksChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="dashboard-card">
+                            <h5 class="fw-bold mb-3"><i class="bi bi-bar-chart-line-fill me-2 text-info"></i>Impressions Baseline Comparison</h5>
+                            <div style="height: 320px; position: relative;">
+                                <canvas id="overviewImpressionsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Group Overview Table -->
+                <div class="dashboard-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-table me-2"></i>Unified Portfolio Monitoring Directory</h5>
+                        <div class="d-flex gap-2">
+                            <input type="text" id="overviewSearchInput" class="form-control form-control-sm" placeholder="Search properties..." style="width: 250px;" onkeyup="filterOverviewTable()">
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table custom-table table-hover" id="overviewTable">
+                            <thead>
+                                <tr>
+                                    <th onclick="sortOverviewTable(0)">Property <span class="sort-icon"></span></th>
+                                    <th onclick="sortOverviewTable(1)" class="text-end">Clicks (Cur) <span class="sort-icon"></span></th>
+                                    <th onclick="sortOverviewTable(2)" class="text-end">WoW % <span class="sort-icon"></span></th>
+                                    <th onclick="sortOverviewTable(3)" class="text-end">Impressions (Cur) <span class="sort-icon"></span></th>
+                                    <th onclick="sortOverviewTable(4)" class="text-end">WoW % <span class="sort-icon"></span></th>
+                                    <th onclick="sortOverviewTable(5)" class="text-end">CTR (Cur) <span class="sort-icon"></span></th>
+                                    <th onclick="sortOverviewTable(6)" class="text-end">WoW % <span class="sort-icon"></span></th>
+                                    <th onclick="sortOverviewTable(7)" class="text-end">Position (Cur) <span class="sort-icon"></span></th>
+                                    <th onclick="sortOverviewTable(8)" class="text-end">WoW % <span class="sort-icon"></span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Built dynamically via JavaScript for clean data binding -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Individual Metric Tabs (Rendered dynamically using templates) -->
+            {% for m_id, m_data in metrics_data.items() %}
+            <div class="tab-pane fade" id="tab-{{ m_id }}" role="tabpanel">
+                <div class="row">
+                    <!-- Controls Column -->
+                    <div class="col-lg-3">
+                        <div class="dashboard-card">
+                            <h6 class="fw-bold mb-3"><i class="bi bi-sliders me-2"></i>Visual Filters</h6>
+                            
+                            <!-- Toggle properties checkbox list -->
+                            <div class="mb-4">
+                                <label class="form-label small text-secondary fw-semibold">Show Properties</label>
+                                <div class="d-flex gap-2 mb-2">
+                                    <button class="btn btn-outline-secondary btn-xs py-1 px-2 text-xs" style="font-size:0.75rem;" onclick="toggleAllProperties('{{ m_id }}', true)">All</button>
+                                    <button class="btn btn-outline-secondary btn-xs py-1 px-2 text-xs" style="font-size:0.75rem;" onclick="toggleAllProperties('{{ m_id }}', false)">None</button>
+                                </div>
+                                <div class="property-checkbox-list" id="{{ m_id }}-checkboxes">
+                                    <!-- Populated dynamically -->
+                                </div>
+                            </div>
+
+                            <!-- Options -->
+                            <div class="mb-3">
+                                <label class="form-label small text-secondary fw-semibold">Chart Scale</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="{{ m_id }}-logScale" onchange="toggleLogScale('{{ m_id }}')">
+                                    <label class="form-check-label small" for="{{ m_id }}-logScale">Logarithmic Axis</label>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <label class="form-label small text-secondary fw-semibold">Visual Layout</label>
+                                <select class="form-select form-select-sm" id="{{ m_id }}-chartType" onchange="changeChartType('{{ m_id }}')">
+                                    <option value="bar">Grouped Bar Chart</option>
+                                    <option value="line">Trend Line Comparison</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visualization Column -->
+                    <div class="col-lg-9">
+                        <div class="dashboard-card">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="fw-bold mb-0">{{ m_data.title }} Baseline Metric Comparison</h5>
+                                <span class="badge bg-indigo text-xs py-1" style="font-size:0.75rem;">Interactive View</span>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="{{ m_id }}-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detail Directory Table -->
+                <div class="dashboard-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0">{{ m_data.title }} Performance Detail Directory</h5>
+                        <div class="d-flex gap-2">
+                            <input type="text" id="{{ m_id }}-searchInput" class="form-control form-control-sm" placeholder="Search properties..." style="width: 250px;" onkeyup="filterMetricTable('{{ m_id }}')">
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table custom-table table-hover" id="{{ m_id }}-table">
+                            <thead>
+                                <tr>
+                                    <th onclick="sortMetricTable('{{ m_id }}', 0)">Property <span class="sort-icon"></span></th>
+                                    <th onclick="sortMetricTable('{{ m_id }}', 1)" class="text-end">Current <span class="sort-icon"></span></th>
+                                    <th onclick="sortMetricTable('{{ m_id }}', 2)" class="text-end">Last Week <span class="sort-icon"></span></th>
+                                    <th onclick="sortMetricTable('{{ m_id }}', 3)" class="text-end">Vs WoW % <span class="sort-icon"></span></th>
+                                    <th onclick="sortMetricTable('{{ m_id }}', 4)" class="text-end">Last Month <span class="sort-icon"></span></th>
+                                    <th onclick="sortMetricTable('{{ m_id }}', 5)" class="text-end">Vs MoM % <span class="sort-icon"></span></th>
+                                    <th onclick="sortMetricTable('{{ m_id }}', 6)" class="text-end">Last Year <span class="sort-icon"></span></th>
+                                    <th onclick="sortMetricTable('{{ m_id }}', 7)" class="text-end">Vs YoY % <span class="sort-icon"></span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prop in m_data.properties %}
+                                <tr>
+                                    <td class="fw-semibold">{{ prop.name }}</td>
+                                    <td class="text-end fw-medium">{{ prop.cur }}{% if m_id == 'ctr' %}%{% endif %}</td>
+                                    <td class="text-end text-secondary">{{ prop.lw }}{% if m_id == 'ctr' %}%{% endif %}</td>
+                                    <td class="text-end"><span class="status-badge {{ prop.lw_class }}">{{ prop.lw_pct if prop.lw_pct is not none else 'N/A' }}{{ '%' if prop.lw_pct is not none }}</span></td>
+                                    <td class="text-end text-secondary">{{ prop.lm }}{% if m_id == 'ctr' %}%{% endif %}</td>
+                                    <td class="text-end"><span class="status-badge {{ prop.lm_class }}">{{ prop.lm_pct if prop.lm_pct is not none else 'N/A' }}{{ '%' if prop.lm_pct is not none }}</span></td>
+                                    <td class="text-end text-secondary">{{ prop.ly }}{% if m_id == 'ctr' %}%{% endif %}</td>
+                                    <td class="text-end"><span class="status-badge {{ prop.ly_class }}">{{ prop.ly_pct if prop.ly_pct is not none else 'N/A' }}{{ '%' if prop.ly_pct is not none }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-4 border-top border-light mt-5" style="background-color: var(--bg-card); color: var(--text-secondary); transition: all 0.3s ease;">
+        <p class="small mb-0">Executive Canary Report produced automatically via <strong>gsc-exporter</strong>.</p>
+        <p class="text-xs text-muted mb-0" style="font-size:0.75rem;">Powered by Chart.js, Bootstrap 5 and British English design parameters.</p>
+    </footer>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Dashboard Operations JavaScript -->
+    <script>
+        // Parse the metrics payload sent from python
+        const metricsPayload = {{ metrics_data_json|safe }};
+        
+        // Active Chart instances mapping
+        const activeCharts = {};
+        
+        // Property visibilities filter
+        const visibleProperties = {};
+
+        // Theme management
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('gsc-theme', newTheme);
+            
+            updateThemeUI(newTheme);
+            
+            // Re-render charts to adjust styles and fonts for dark/light grids
+            Object.keys(activeCharts).forEach(key => {
+                const chart = activeCharts[key];
+                if (chart) {
+                    chart.options.scales.x.grid.color = getGridColor();
+                    chart.options.scales.y.grid.color = getGridColor();
+                    chart.options.scales.x.ticks.color = getTickColor();
+                    chart.options.scales.y.ticks.color = getTickColor();
+                    chart.options.plugins.legend.labels.color = getTickColor();
+                    chart.update();
+                }
+            });
+        }
+
+        function updateThemeUI(theme) {
+            const icon = document.getElementById('theme-icon');
+            const text = document.getElementById('theme-text');
+            
+            if (theme === 'dark') {
+                icon.className = 'bi bi-sun-fill';
+                text.innerText = 'Light Theme';
+            } else {
+                icon.className = 'bi bi-moon-stars-fill';
+                text.innerText = 'Dark Theme';
+            }
+        }
+
+        // Color accessors for Chart.js depending on layout settings
+        function getTickColor() {
+            return document.documentElement.getAttribute('data-theme') === 'dark' ? '#94a3b8' : '#475569';
+        }
+
+        function getGridColor() {
+            return document.documentElement.getAttribute('data-theme') === 'dark' ? '#222e45' : '#e2e8f0';
+        }
+
+        // Bootstrap loader
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('gsc-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeUI(savedTheme);
+            
+            // Initialize structures
+            Object.keys(metricsPayload).forEach(mId => {
+                visibleProperties[mId] = {};
+                metricsPayload[mId].properties.forEach(p => {
+                    visibleProperties[mId][p.name] = true;
+                });
+            });
+
+            // Build dynamic sections
+            generateCanaryAlerts();
+            renderOverviewTable();
+            renderOverviewCharts();
+            
+            // Setup checklist controllers
+            Object.keys(metricsPayload).forEach(mId => {
+                populatePropertyFilters(mId);
+            });
+        });
+
+        // Overview Baseline Charts
+        function renderOverviewCharts() {
+            const Clicks = metricsPayload['clicks'].properties;
+            const Impressions = metricsPayload['impressions'].properties;
+            
+            const labels = Clicks.map(c => c.name);
+            
+            // Overview Clicks
+            const ctxClicks = document.getElementById('overviewClicksChart').getContext('2d');
+            activeCharts['overview_clicks'] = new Chart(ctxClicks, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Current Week',
+                            data: Clicks.map(c => c.cur_raw),
+                            backgroundColor: 'rgba(99, 102, 241, 0.85)',
+                            borderColor: 'rgb(99, 102, 241)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Last Week',
+                            data: Clicks.map(c => c.lw_raw),
+                            backgroundColor: 'rgba(203, 213, 225, 0.5)',
+                            borderColor: 'rgb(203, 213, 225)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: getOverviewChartOptions('Clicks')
+            });
+
+            // Overview Impressions
+            const ctxImpressions = document.getElementById('overviewImpressionsChart').getContext('2d');
+            activeCharts['overview_impressions'] = new Chart(ctxImpressions, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Current Week',
+                            data: Impressions.map(i => i.cur_raw),
+                            backgroundColor: 'rgba(14, 165, 233, 0.85)',
+                            borderColor: 'rgb(14, 165, 233)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Last Week',
+                            data: Impressions.map(i => i.lw_raw),
+                            backgroundColor: 'rgba(203, 213, 225, 0.5)',
+                            borderColor: 'rgb(203, 213, 225)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: getOverviewChartOptions('Impressions')
+            });
+        }
+
+        function getOverviewChartOptions(title) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y', // Horizontal bars are much cleaner when there are many properties
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: getTickColor(), font: { family: 'Inter', size: 11 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.dataset.label}: ${context.raw.toLocaleString()}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: getGridColor() },
+                        ticks: { color: getTickColor(), font: { family: 'Inter', size: 10 } }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { color: getTickColor(), font: { family: 'Inter', size: 11, weight: 'bold' } }
+                    }
+                }
+            };
+        }
+
+        // Automatic Canary Warnings Alert Logic
+        function generateCanaryAlerts() {
+            const alerts = [];
+            const clicks = metricsPayload['clicks'].properties;
+            const impressions = metricsPayload['impressions'].properties;
+            const position = metricsPayload['position'].properties;
+            
+            // Check WoW declines
+            clicks.forEach((c, idx) => {
+                const name = c.name;
+                const imp = impressions[idx];
+                const pos = position[idx];
+                
+                // Alert conditions: Clicks drops > 15% OR Impressions drops > 25% OR Avg Position worsens (increases) > 20%
+                if (c.lw_pct !== null && c.lw_pct < -15.0) {
+                    alerts.push({
+                        type: 'danger',
+                        propName: name,
+                        metric: 'Clicks',
+                        change: c.lw_pct,
+                        period: 'WoW',
+                        cur: c.cur,
+                        prev: c.lw
+                    });
+                } else if (c.lm_pct !== null && c.lm_pct < -20.0) {
+                    alerts.push({
+                        type: 'warning',
+                        propName: name,
+                        metric: 'Clicks',
+                        change: c.lm_pct,
+                        period: 'MoM',
+                        cur: c.cur,
+                        prev: c.lm
+                    });
+                }
+                
+                if (imp.lw_pct !== null && imp.lw_pct < -25.0) {
+                    alerts.push({
+                        type: 'danger',
+                        propName: name,
+                        metric: 'Impressions',
+                        change: imp.lw_pct,
+                        period: 'WoW',
+                        cur: imp.cur,
+                        prev: imp.lw
+                    });
+                }
+                
+                if (pos.lw_pct !== null && pos.lw_pct > 20.0) { // average position worsens (higher number is worse)
+                    alerts.push({
+                        type: 'warning',
+                        propName: name,
+                        metric: 'Average Position',
+                        change: -pos.lw_pct, // show negative drop in ranking power
+                        period: 'WoW',
+                        cur: pos.cur,
+                        prev: pos.lw
+                    });
+                }
+            });
+            
+            const container = document.getElementById('canary-alerts-container');
+            const grid = document.getElementById('alerts-grid');
+            
+            if (alerts.length > 0) {
+                container.classList.remove('d-none');
+                grid.innerHTML = '';
+                
+                // Limit warnings to top 6 most severe drops to prevent cluttering
+                alerts.sort((a, b) => a.change - b.change);
+                const displayAlerts = alerts.slice(0, 6);
+                
+                displayAlerts.forEach(a => {
+                    const card = document.createElement('div');
+                    card.className = 'col-md-6 col-xl-4';
+                    
+                    const badgeClass = a.type === 'danger' ? 'bg-danger text-white' : 'bg-warning text-dark';
+                    const icon = a.type === 'danger' ? 'bi-arrow-down-circle-fill' : 'bi-exclamation-circle-fill';
+                    
+                    card.innerHTML = `
+                        <div class="p-3 rounded-3 bg-white border border-light shadow-sm d-flex flex-column h-100" style="min-height: 100px;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="fw-bold text-dark small text-truncate" style="max-width: 170px;">${a.propName}</span>
+                                <span class="badge ${badgeClass} small py-1" style="font-size:0.75rem;">${a.period}</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 mt-auto">
+                                <span class="text-danger fw-bold d-flex align-items-center gap-1">
+                                    <i class="bi ${icon}"></i> ${a.change.toFixed(1)}%
+                                </span>
+                                <span class="text-secondary small">${a.metric}: ${a.prev} &rarr; ${a.cur}</span>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } else {
+                container.classList.add('d-none');
+            }
+        }
+
+        // Render the Directory overview index
+        function renderOverviewTable() {
+            const tbody = document.querySelector('#overviewTable tbody');
+            tbody.innerHTML = '';
+            
+            const clicks = metricsPayload['clicks'].properties;
+            const impressions = metricsPayload['impressions'].properties;
+            const ctr = metricsPayload['ctr'].properties;
+            const position = metricsPayload['position'].properties;
+            
+            clicks.forEach((c, idx) => {
+                const name = c.name;
+                const imp = impressions[idx];
+                const ct = ctr[idx];
+                const pos = position[idx];
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-semibold text-primary-hover">${name}</td>
+                    <td class="text-end fw-medium">${c.cur}</td>
+                    <td class="text-end"><span class="status-badge ${c.lw_class}">${c.lw_pct !== null ? c.lw_pct + '%' : 'N/A'}</span></td>
+                    <td class="text-end text-secondary">${imp.cur}</td>
+                    <td class="text-end"><span class="status-badge ${imp.lw_class}">${imp.lw_pct !== null ? imp.lw_pct + '%' : 'N/A'}</span></td>
+                    <td class="text-end text-secondary">${ct.cur}%</td>
+                    <td class="text-end"><span class="status-badge ${ct.lw_class}">${ct.lw_pct !== null ? ct.lw_pct + '%' : 'N/A'}</span></td>
+                    <td class="text-end text-secondary">${pos.cur}</td>
+                    <td class="text-end"><span class="status-badge ${pos.lw_class}">${pos.lw_pct !== null ? pos.lw_pct + '%' : 'N/A'}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Checklist filter options population
+        function populatePropertyFilters(mId) {
+            const container = document.getElementById(`${mId}-checkboxes`);
+            container.innerHTML = '';
+            
+            metricsPayload[mId].properties.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'form-check mb-1';
+                
+                div.innerHTML = `
+                    <input class="form-check-input" type="checkbox" id="${mId}-filter-${p.name}" checked onchange="handlePropertyFilterChange('${mId}', '${p.name}')">
+                    <label class="form-check-label small text-secondary-hover fw-medium cursor-pointer" for="${mId}-filter-${p.name}">${p.name}</label>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function handlePropertyFilterChange(mId, propName) {
+            const checked = document.getElementById(`${mId}-filter-${propName}`).checked;
+            visibleProperties[mId][propName] = checked;
+            updateMetricChart(mId);
+        }
+
+        function toggleAllProperties(mId, state) {
+            metricsPayload[mId].properties.forEach(p => {
+                document.getElementById(`${mId}-filter-${p.name}`).checked = state;
+                visibleProperties[mId][p.name] = state;
+            });
+            updateMetricChart(mId);
+        }
+
+        // Chart render controllers
+        function renderMetricChart(mId) {
+            // Wait slightly for bootstrap layout calculations to draw on active canvas dimensions
+            setTimeout(() => {
+                if (activeCharts[mId]) {
+                    updateMetricChart(mId);
+                    return;
+                }
+                
+                const ctx = document.getElementById(`${mId}-chart`).getContext('2d');
+                const scaleType = document.getElementById(`${mId}-logScale`).checked ? 'logarithmic' : 'linear';
+                const chartType = document.getElementById(`${mId}-chartType`).value;
+                
+                const chartData = getMetricChartData(mId);
+                
+                activeCharts[mId] = new Chart(ctx, {
+                    type: chartType,
+                    data: chartData,
+                    options: getMetricChartOptions(mId, scaleType)
+                });
+            }, 150);
+        }
+
+        function updateMetricChart(mId) {
+            const chart = activeCharts[mId];
+            if (!chart) return;
+            
+            const chartData = getMetricChartData(mId);
+            chart.data = chartData;
+            chart.update();
+        }
+
+        // Scale type switch
+        function toggleLogScale(mId) {
+            const chart = activeCharts[mId];
+            if (!chart) return;
+            
+            const logScale = document.getElementById(`${mId}-logScale`).checked;
+            chart.options.scales.y.type = logScale ? 'logarithmic' : 'linear';
+            chart.update();
+        }
+
+        // Chart layout type switch
+        function changeChartType(mId) {
+            const chart = activeCharts[mId];
+            if (!chart) return;
+            
+            const chartType = document.getElementById(`${mId}-chartType`).value;
+            
+            // Destruct and rebuild because Chart.js doesn't allow direct hot-swapping types cleanly
+            chart.destroy();
+            
+            const ctx = document.getElementById(`${mId}-chart`).getContext('2d');
+            const scaleType = document.getElementById(`${mId}-logScale`).checked ? 'logarithmic' : 'linear';
+            const chartData = getMetricChartData(mId);
+            
+            activeCharts[mId] = new Chart(ctx, {
+                type: chartType,
+                data: chartData,
+                options: getMetricChartOptions(mId, scaleType)
+            });
+        }
+
+        function getMetricChartData(mId) {
+            const rawData = metricsPayload[mId].properties;
+            // Filter by checkboxes
+            const filteredData = rawData.filter(p => visibleProperties[mId][p.name]);
+            
+            const labels = filteredData.map(p => p.name);
+            const chartType = document.getElementById(`${mId}-chartType`).value;
+            
+            if (chartType === 'bar') {
+                return {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Current',
+                            data: filteredData.map(p => p.cur_raw),
+                            backgroundColor: 'rgba(99, 102, 241, 0.85)',
+                            borderColor: 'rgb(99, 102, 241)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Last Week',
+                            data: filteredData.map(p => p.lw_raw),
+                            backgroundColor: 'rgba(56, 189, 248, 0.7)',
+                            borderColor: 'rgb(56, 189, 248)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Last Month',
+                            data: filteredData.map(p => p.lm_raw),
+                            backgroundColor: 'rgba(251, 191, 36, 0.7)',
+                            borderColor: 'rgb(251, 191, 36)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Last Year',
+                            data: filteredData.map(p => p.ly_raw),
+                            backgroundColor: 'rgba(244, 63, 94, 0.7)',
+                            borderColor: 'rgb(244, 63, 94)',
+                            borderWidth: 1
+                        }
+                    ]
+                };
+            } else {
+                // Line chart is cleaner when showing curves across periods for each property
+                // Labels will be periods: Last Year, Last Month, Last Week, Current
+                const periods = ['Last Year', 'Last Month', 'Last Week', 'Current'];
+                const datasets = filteredData.map((p, index) => {
+                    const colors = [
+                        '#6366f1', '#10b981', '#f59e0b', '#ef4444', 
+                        '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', 
+                        '#f97316', '#84cc16', '#64748b'
+                    ];
+                    const color = colors[index % colors.length];
+                    return {
+                        label: p.name,
+                        data: [p.ly_raw, p.lm_raw, p.lw_raw, p.cur_raw],
+                        borderColor: color,
+                        backgroundColor: color + '22',
+                        borderWidth: 3,
+                        tension: 0.15,
+                        fill: false
+                    };
+                });
+                
+                return {
+                    labels: periods,
+                    datasets: datasets
+                };
+            }
+        }
+
+        function getMetricChartOptions(mId, scaleType) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: getTickColor(), font: { family: 'Inter', size: 11 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = ` ${context.dataset.label || ''}: `;
+                                let val = context.raw;
+                                if (mId === 'ctr') {
+                                    label += val.toFixed(2) + '%';
+                                } else if (mId === 'position') {
+                                    label += val.toFixed(2);
+                                } else {
+                                    label += val.toLocaleString();
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: getGridColor() },
+                        ticks: { color: getTickColor(), font: { family: 'Inter', size: 10 } }
+                    },
+                    y: {
+                        type: scaleType,
+                        grid: { color: getGridColor() },
+                        ticks: { 
+                            color: getTickColor(), 
+                            font: { family: 'Inter', size: 10 },
+                            callback: function(value) {
+                                if (mId === 'ctr') return value + '%';
+                                return value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        // Sorting & Searching implementation
+        let overviewSortCol = -1;
+        let overviewSortAsc = true;
+        
+        function sortOverviewTable(colIdx) {
+            const table = document.getElementById('overviewTable');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            const ths = table.querySelectorAll('thead th');
+            ths.forEach((th, idx) => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (idx === colIdx) {
+                    th.classList.add(overviewSortAsc ? 'sort-asc' : 'sort-desc');
+                }
+            });
+
+            if (overviewSortCol === colIdx) {
+                overviewSortAsc = !overviewSortAsc;
+            } else {
+                overviewSortCol = colIdx;
+                overviewSortAsc = true;
+            }
+
+            rows.sort((a, b) => {
+                let cellA = a.cells[colIdx].innerText;
+                let cellB = b.cells[colIdx].innerText;
+                
+                // Parse percentage or numerical values
+                if (colIdx > 0) {
+                    cellA = parseFloat(cellA.replace(/,/g, '').replace(/%/g, ''));
+                    cellB = parseFloat(cellB.replace(/,/g, '').replace(/%/g, ''));
+                    
+                    if (isNaN(cellA)) cellA = -Infinity;
+                    if (isNaN(cellB)) cellB = -Infinity;
+                }
+                
+                if (cellA < cellB) return overviewSortAsc ? -1 : 1;
+                if (cellA > cellB) return overviewSortAsc ? 1 : -1;
+                return 0;
+            });
+            
+            tbody.innerHTML = '';
+            rows.forEach(r => tbody.appendChild(r));
+        }
+
+        function filterOverviewTable() {
+            const query = document.getElementById('overviewSearchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#overviewTable tbody tr');
+            
+            rows.forEach(r => {
+                const name = r.cells[0].innerText.toLowerCase();
+                if (name.includes(query)) {
+                    r.classList.remove('d-none');
+                } else {
+                    r.classList.add('d-none');
+                }
+            });
+        }
+
+        // Metric tables sort and filter
+        const metricSortStates = {};
+
+        function sortMetricTable(mId, colIdx) {
+            const table = document.getElementById(`${mId}-table`);
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            if (!metricSortStates[mId]) {
+                metricSortStates[mId] = { col: -1, asc: true };
+            }
+            
+            const ths = table.querySelectorAll('thead th');
+            ths.forEach((th, idx) => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (idx === colIdx) {
+                    th.classList.add(metricSortStates[mId].asc ? 'sort-asc' : 'sort-desc');
+                }
+            });
+
+            if (metricSortStates[mId].col === colIdx) {
+                metricSortStates[mId].asc = !metricSortStates[mId].asc;
+            } else {
+                metricSortStates[mId].col = colIdx;
+                metricSortStates[mId].asc = true;
+            }
+
+            const state = metricSortStates[mId];
+
+            rows.sort((a, b) => {
+                let cellA = a.cells[colIdx].innerText;
+                let cellB = b.cells[colIdx].innerText;
+                
+                if (colIdx > 0) {
+                    cellA = parseFloat(cellA.replace(/,/g, '').replace(/%/g, ''));
+                    cellB = parseFloat(cellB.replace(/,/g, '').replace(/%/g, ''));
+                    
+                    if (isNaN(cellA)) cellA = -Infinity;
+                    if (isNaN(cellB)) cellB = -Infinity;
+                }
+                
+                if (cellA < cellB) return state.asc ? -1 : 1;
+                if (cellA > cellB) return state.asc ? 1 : -1;
+                return 0;
+            });
+            
+            tbody.innerHTML = '';
+            rows.forEach(r => tbody.appendChild(r));
+        }
+
+        function filterMetricTable(mId) {
+            const query = document.getElementById(`${mId}-searchInput`).value.toLowerCase();
+            const rows = document.querySelectorAll(`#${mId}-table tbody tr`);
+            
+            rows.forEach(r => {
+                const name = r.cells[0].innerText.toLowerCase();
+                if (name.includes(query)) {
+                    r.classList.remove('d-none');
+                } else {
+                    r.classList.add('d-none');
+                }
+            });
+        }
+    </script>
 </body>
 </html>
