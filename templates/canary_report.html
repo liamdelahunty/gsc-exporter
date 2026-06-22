@@ -577,8 +577,19 @@
                 
                 <!-- Group Overview Table -->
                 <div class="dashboard-card">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold mb-0"><i class="bi bi-table me-2"></i>Unified Portfolio Monitoring Directory</h5>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <h5 class="fw-bold mb-0 me-3"><i class="bi bi-table me-2"></i>Portfolio Monitoring Directory</h5>
+                            
+                            <!-- Table View Switches -->
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Table dataset selector">
+                                <button type="button" class="btn btn-outline-primary active" id="btn-all" onclick="changeOverviewMode('all')">WoW Summary</button>
+                                <button type="button" class="btn btn-outline-primary" id="btn-clicks" onclick="changeOverviewMode('clicks')">Clicks</button>
+                                <button type="button" class="btn btn-outline-primary" id="btn-impressions" onclick="changeOverviewMode('impressions')">Impressions</button>
+                                <button type="button" class="btn btn-outline-primary" id="btn-ctr" onclick="changeOverviewMode('ctr')">CTR</button>
+                                <button type="button" class="btn btn-outline-primary" id="btn-position" onclick="changeOverviewMode('position')">Avg Position</button>
+                            </div>
+                        </div>
                         <div class="d-flex gap-2">
                             <input type="text" id="overviewSearchInput" class="form-control form-control-sm" placeholder="Search properties..." style="width: 250px;" onkeyup="filterOverviewTable()">
                         </div>
@@ -1038,9 +1049,14 @@
             }
         }
 
+        let currentOverviewMode = 'all';
+
         // Render the Directory overview index
         function renderOverviewTable() {
-            const tbody = document.querySelector('#overviewTable tbody');
+            const table = document.getElementById('overviewTable');
+            const thead = table.querySelector('thead tr');
+            const tbody = table.querySelector('tbody');
+            
             tbody.innerHTML = '';
             
             const clicks = metricsPayload['clicks'].properties;
@@ -1048,26 +1064,100 @@
             const ctr = metricsPayload['ctr'].properties;
             const position = metricsPayload['position'].properties;
             
-            clicks.forEach((c, idx) => {
-                const name = c.name;
-                const imp = impressions[idx];
-                const ct = ctr[idx];
-                const pos = position[idx];
-                
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="fw-semibold text-primary-hover">${name}</td>
-                    <td class="text-end fw-medium">${c.cur}</td>
-                    <td class="text-end"><span class="status-badge ${c.lw_class}">${c.lw_pct !== null ? c.lw_pct + '%' : 'N/A'}</span></td>
-                    <td class="text-end text-secondary">${imp.cur}</td>
-                    <td class="text-end"><span class="status-badge ${imp.lw_class}">${imp.lw_pct !== null ? imp.lw_pct + '%' : 'N/A'}</span></td>
-                    <td class="text-end text-secondary">${ct.cur}%</td>
-                    <td class="text-end"><span class="status-badge ${ct.lw_class}">${ct.lw_pct !== null ? ct.lw_pct + '%' : 'N/A'}</span></td>
-                    <td class="text-end text-secondary">${pos.cur}</td>
-                    <td class="text-end"><span class="status-badge ${pos.lw_class}">${pos.lw_pct !== null ? pos.lw_pct + '%' : 'N/A'}</span></td>
+            if (currentOverviewMode === 'all') {
+                // Header
+                thead.innerHTML = `
+                    <th onclick="sortOverviewTable(0)">Property <span class="sort-icon"></span></th>
+                    <th onclick="sortOverviewTable(1)" class="text-end">Clicks (Cur) <span class="sort-icon"></span></th>
+                    <th onclick="sortOverviewTable(2)" class="text-end">WoW % <span class="sort-icon"></span></th>
+                    <th onclick="sortOverviewTable(3)" class="text-end">Impressions (Cur) <span class="sort-icon"></span></th>
+                    <th onclick="sortOverviewTable(4)" class="text-end">WoW % <span class="sort-icon"></span></th>
+                    <th onclick="sortOverviewTable(5)" class="text-end">CTR (Cur) <span class="sort-icon"></span></th>
+                    <th onclick="sortOverviewTable(6)" class="text-end">WoW % <span class="sort-icon"></span></th>
+                    <th onclick="sortOverviewTable(7)" class="text-end">Position (Cur) <span class="sort-icon"></span></th>
+                    <th onclick="sortOverviewTable(8)" class="text-end">WoW % <span class="sort-icon"></span></th>
                 `;
-                tbody.appendChild(tr);
+                
+                clicks.forEach((c, idx) => {
+                    const name = c.name;
+                    const imp = impressions[idx];
+                    const ct = ctr[idx];
+                    const pos = position[idx];
+                    
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="fw-semibold text-primary-hover">${name}</td>
+                        <td class="text-end fw-medium">${c.cur}</td>
+                        <td class="text-end"><span class="status-badge ${c.lw_class}">${c.lw_pct !== null ? c.lw_pct + '%' : 'N/A'}</span></td>
+                        <td class="text-end text-secondary">${imp.cur}</td>
+                        <td class="text-end"><span class="status-badge ${imp.lw_class}">${imp.lw_pct !== null ? imp.lw_pct + '%' : 'N/A'}</span></td>
+                        <td class="text-end text-secondary">${ct.cur}%</td>
+                        <td class="text-end"><span class="status-badge ${ct.lw_class}">${ct.lw_pct !== null ? ct.lw_pct + '%' : 'N/A'}</span></td>
+                        <td class="text-end text-secondary">${pos.cur}</td>
+                        <td class="text-end"><span class="status-badge ${pos.lw_class}">${pos.lw_pct !== null ? pos.lw_pct + '%' : 'N/A'}</span></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                // Specific metric headers
+                thead.innerHTML = `
+                    <th onclick="sortOverviewTable(0)">Property <span class="sort-icon"></span></th>
+                    <th onclick="sortOverviewTable(1)" class="text-end">Current <span class="sort-icon"></span></th>
+                    <th onclick="sortOverviewTable(2)" class="text-end">Last Week <span class="sort-icon"></span></th>
+                    <th onclick="sortOverviewTable(3)" class="text-end">Vs WoW % <span class="sort-icon"></span></th>
+                    <th onclick="sortOverviewTable(4)" class="text-end">Last Month <span class="sort-icon"></span></th>
+                    <th onclick="sortOverviewTable(5)" class="text-end">Vs MoM % <span class="sort-icon"></span></th>
+                    <th onclick="sortOverviewTable(6)" class="text-end">Last Year <span class="sort-icon"></span></th>
+                    <th onclick="sortOverviewTable(7)" class="text-end">Vs YoY % <span class="sort-icon"></span></th>
+                `;
+                
+                const props = metricsPayload[currentOverviewMode].properties;
+                props.forEach(p => {
+                    const tr = document.createElement('tr');
+                    const suffix = currentOverviewMode === 'ctr' ? '%' : '';
+                    tr.innerHTML = `
+                        <td class="fw-semibold text-primary-hover">${p.name}</td>
+                        <td class="text-end fw-medium">${p.cur}${suffix}</td>
+                        <td class="text-end text-secondary">${p.lw}${suffix}</td>
+                        <td class="text-end"><span class="status-badge ${p.lw_class}">${p.lw_pct !== null ? p.lw_pct + '%' : 'N/A'}</span></td>
+                        <td class="text-end text-secondary">${p.lm}${suffix}</td>
+                        <td class="text-end"><span class="status-badge ${p.lm_class}">${p.lm_pct !== null ? p.lm_pct + '%' : 'N/A'}</span></td>
+                        <td class="text-end text-secondary">${p.ly}${suffix}</td>
+                        <td class="text-end"><span class="status-badge ${p.ly_class}">${p.ly_pct !== null ? p.ly_pct + '%' : 'N/A'}</span></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+            
+            // Reapply sort icons to the header DOM
+            const ths = table.querySelectorAll('thead th');
+            ths.forEach((th, idx) => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (idx === overviewSortCol) {
+                    th.classList.add(overviewSortAsc ? 'sort-asc' : 'sort-desc');
+                }
             });
+        }
+
+        function changeOverviewMode(mode) {
+            currentOverviewMode = mode;
+            
+            // Update button active states
+            const buttons = ['all', 'clicks', 'impressions', 'ctr', 'position'];
+            buttons.forEach(b => {
+                const btn = document.getElementById(`btn-${b}`);
+                if (btn) {
+                    if (b === mode) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                }
+            });
+            
+            overviewSortCol = -1;
+            renderOverviewTable();
+            filterOverviewTable(); // maintain active search filters if any
         }
 
         // Checklist filter options population
@@ -1291,6 +1381,13 @@
             const tbody = table.querySelector('tbody');
             const rows = Array.from(tbody.querySelectorAll('tr'));
             
+            if (overviewSortCol === colIdx) {
+                overviewSortAsc = !overviewSortAsc;
+            } else {
+                overviewSortCol = colIdx;
+                overviewSortAsc = true;
+            }
+            
             const ths = table.querySelectorAll('thead th');
             ths.forEach((th, idx) => {
                 th.classList.remove('sort-asc', 'sort-desc');
@@ -1298,13 +1395,6 @@
                     th.classList.add(overviewSortAsc ? 'sort-asc' : 'sort-desc');
                 }
             });
-
-            if (overviewSortCol === colIdx) {
-                overviewSortAsc = !overviewSortAsc;
-            } else {
-                overviewSortCol = colIdx;
-                overviewSortAsc = true;
-            }
 
             rows.sort((a, b) => {
                 let cellA = a.cells[colIdx].innerText;
