@@ -674,8 +674,19 @@
 
                 <!-- Detail Directory Table -->
                 <div class="dashboard-card">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold mb-0">{{ m_data.title }} Performance Detail Directory</h5>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <h5 class="fw-bold mb-0 me-3"><i class="bi bi-table me-2"></i>{{ m_data.title }} Directory</h5>
+                            
+                            <!-- Table View Switches -->
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Table dataset selector">
+                                <button type="button" class="btn btn-outline-primary" onclick="switchToTab('overview')">WoW Summary</button>
+                                <button type="button" class="btn btn-outline-primary {% if m_id == 'clicks' %}active{% endif %}" onclick="switchToTab('clicks')">Clicks</button>
+                                <button type="button" class="btn btn-outline-primary {% if m_id == 'impressions' %}active{% endif %}" onclick="switchToTab('impressions')">Impressions</button>
+                                <button type="button" class="btn btn-outline-primary {% if m_id == 'ctr' %}active{% endif %}" onclick="switchToTab('ctr')">CTR</button>
+                                <button type="button" class="btn btn-outline-primary {% if m_id == 'position' %}active{% endif %}" onclick="switchToTab('position')">Avg Position</button>
+                            </div>
+                        </div>
                         <div class="d-flex gap-2">
                             <input type="text" id="{{ m_id }}-searchInput" class="form-control form-control-sm" placeholder="Search properties..." style="width: 250px;" onkeyup="filterMetricTable('{{ m_id }}')">
                         </div>
@@ -1158,6 +1169,16 @@
             overviewSortCol = -1;
             renderOverviewTable();
             filterOverviewTable(); // maintain active search filters if any
+        }
+
+        function switchToTab(metricId) {
+            if (metricId === 'overview') {
+                const tab = document.getElementById('overview-tab');
+                if (tab) tab.click();
+            } else {
+                const tab = document.getElementById(`${metricId}-tab`);
+                if (tab) tab.click();
+            }
         }
 
         // Checklist filter options population
