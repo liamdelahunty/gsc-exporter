@@ -152,9 +152,16 @@ def run_report(args, service):
         'critical': 0,
         'warning': 0,
         'stable': 0,
+        'total_list': [],
+        'critical_list': [],
+        'warning_list': [],
+        'stable_list': []
     }
     
     for prop_idx in range(len(properties)):
+        prop_name = properties[prop_idx]['name']
+        portfolio_health['total_list'].append(prop_name)
+        
         # Check WoW and MoM statuses
         clicks_lw = metrics_data['clicks']['properties'][prop_idx]['lw_class']
         clicks_lm = metrics_data['clicks']['properties'][prop_idx]['lm_class']
@@ -170,10 +177,13 @@ def run_report(args, service):
         
         if 'red' in statuses:
             portfolio_health['critical'] += 1
+            portfolio_health['critical_list'].append(prop_name)
         elif 'amber' in statuses:
             portfolio_health['warning'] += 1
+            portfolio_health['warning_list'].append(prop_name)
         else:
             portfolio_health['stable'] += 1
+            portfolio_health['stable_list'].append(prop_name)
 
     env = Environment(loader=FileSystemLoader('templates'))
     template = env.get_template('canary_report.html')

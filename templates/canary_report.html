@@ -270,6 +270,66 @@
             content: ' \2193';
             opacity: 1;
         }
+
+        /* Flip Card Styles */
+        .flip-card-container {
+            perspective: 1000px;
+            cursor: pointer;
+            margin-bottom: 24px;
+            height: 190px;
+        }
+        
+        .flip-card {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        
+        .flip-card.flipped {
+            transform: rotateY(180deg);
+        }
+        
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            margin-bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .flip-card-back {
+            transform: rotateY(180deg);
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            padding: 20px;
+        }
+        
+        .property-scroll-list {
+            max-height: 110px;
+            overflow-y: auto;
+            margin-top: 8px;
+            padding-right: 4px;
+        }
+
+        /* Scrollbar styles for the tiny scrollable list */
+        .property-scroll-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .property-scroll-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .property-scroll-list::-webkit-scrollbar-thumb {
+            background-color: var(--border-color);
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -325,7 +385,7 @@
                 <div class="d-flex align-items-start gap-3">
                     <i class="bi bi-exclamation-triangle-fill fs-4 mt-1"></i>
                     <div>
-                        <h5 class="fw-bold mb-1">Executive Advisory: Performance Canary Anomalies Detected</h5>
+                        <h5 class="fw-bold mb-1">Performance Canary Anomalies Detected</h5>
                         <p class="mb-2 small">The following properties have dropped below acceptable thresholds relative to baseline periods. Immediate technical audit is recommended.</p>
                         <div class="row g-2 mt-2" id="alerts-grid">
                             <!-- Dynamic Warning Cards will be inserted here by JS -->
@@ -338,58 +398,122 @@
         <!-- Portfolio Health Summary Cards -->
         <div class="row mb-4">
             <!-- Card 1: Total Monitored -->
-            <div class="col-md-6 col-xl-3">
-                <div class="dashboard-card kpi-card border-top border-primary" style="border-top-width: 4px !important;">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <span class="text-secondary small fw-semibold">Properties Monitored</span>
-                        <div class="bg-primary text-white rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
-                            <i class="bi bi-globe small"></i>
+            <div class="flip-card-container col-md-6 col-xl-3">
+                <div class="flip-card" id="card-total" onclick="toggleCardFlip('card-total')">
+                    <div class="flip-card-front dashboard-card kpi-card border-top border-primary" style="border-top-width: 4px !important;">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <span class="text-secondary small fw-semibold">Properties Monitored</span>
+                            <div class="bg-primary text-white rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                                <i class="bi bi-globe small"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-val">{{ portfolio_health.total }}</div>
+                        <p class="text-muted small mb-0 mt-2">Active GSC properties tracked <i class="bi bi-arrow-repeat ms-1 text-primary" style="font-size: 0.8rem;"></i></p>
+                    </div>
+                    <div class="flip-card-back border-top border-primary" style="border-top-width: 4px !important;">
+                        <div class="d-flex justify-content-between align-items-center pb-2 border-bottom border-light">
+                            <span class="text-secondary small fw-bold">Properties Directory</span>
+                            <i class="bi bi-arrow-repeat text-primary" style="font-size: 0.8rem;"></i>
+                        </div>
+                        <div class="property-scroll-list">
+                            {% for prop_name in portfolio_health.total_list %}
+                            <div class="small py-1 border-bottom border-light text-secondary">{{ prop_name }}</div>
+                            {% endfor %}
                         </div>
                     </div>
-                    <div class="kpi-val">{{ portfolio_health.total }}</div>
-                    <p class="text-muted small mb-0 mt-2">Active GSC properties tracked</p>
                 </div>
             </div>
             
             <!-- Card 2: Critical Alerts -->
-            <div class="col-md-6 col-xl-3">
-                <div class="dashboard-card kpi-card border-top border-danger" style="border-top-width: 4px !important; border-top-color: var(--danger-color) !important;">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <span class="text-secondary small fw-semibold">Critical Alerts</span>
-                        <div class="bg-danger text-white rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
-                            <i class="bi bi-exclamation-octagon small"></i>
+            <div class="flip-card-container col-md-6 col-xl-3">
+                <div class="flip-card" id="card-critical" onclick="toggleCardFlip('card-critical')">
+                    <div class="flip-card-front dashboard-card kpi-card border-top border-danger" style="border-top-width: 4px !important; border-top-color: var(--danger-color) !important;">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <span class="text-secondary small fw-semibold">Critical Alerts</span>
+                            <div class="bg-danger text-white rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                                <i class="bi bi-exclamation-octagon small"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-val text-danger">{{ portfolio_health.critical }}</div>
+                        <p class="text-muted small mb-0 mt-2">Sites with severe WoW/MoM declines <i class="bi bi-arrow-repeat ms-1 text-danger" style="font-size: 0.8rem;"></i></p>
+                    </div>
+                    <div class="flip-card-back border-top border-danger" style="border-top-width: 4px !important; border-top-color: var(--danger-color) !important;">
+                        <div class="d-flex justify-content-between align-items-center pb-2 border-bottom border-light">
+                            <span class="text-danger small fw-bold">Critical Anomalies</span>
+                            <i class="bi bi-arrow-repeat text-danger" style="font-size: 0.8rem;"></i>
+                        </div>
+                        <div class="property-scroll-list">
+                            {% if portfolio_health.critical_list %}
+                                {% for prop_name in portfolio_health.critical_list %}
+                                <div class="small py-1 border-bottom border-light text-danger fw-medium">{{ prop_name }}</div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="small text-muted py-2">No critical drops detected.</div>
+                            {% endif %}
                         </div>
                     </div>
-                    <div class="kpi-val text-danger">{{ portfolio_health.critical }}</div>
-                    <p class="text-muted small mb-0 mt-2">Sites with severe WoW/MoM declines</p>
                 </div>
             </div>
             
             <!-- Card 3: Warning Alerts -->
-            <div class="col-md-6 col-xl-3">
-                <div class="dashboard-card kpi-card border-top border-warning" style="border-top-width: 4px !important; border-top-color: var(--warning-color) !important;">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <span class="text-secondary small fw-semibold">Warning Alerts</span>
-                        <div class="bg-warning text-dark rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
-                            <i class="bi bi-exclamation-triangle small"></i>
+            <div class="flip-card-container col-md-6 col-xl-3">
+                <div class="flip-card" id="card-warning" onclick="toggleCardFlip('card-warning')">
+                    <div class="flip-card-front dashboard-card kpi-card border-top border-warning" style="border-top-width: 4px !important; border-top-color: var(--warning-color) !important;">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <span class="text-secondary small fw-semibold">Warning Alerts</span>
+                            <div class="bg-warning text-dark rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                                <i class="bi bi-exclamation-triangle small"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-val text-warning">{{ portfolio_health.warning }}</div>
+                        <p class="text-muted small mb-0 mt-2">Sites with moderate performance drops <i class="bi bi-arrow-repeat ms-1 text-warning" style="font-size: 0.8rem;"></i></p>
+                    </div>
+                    <div class="flip-card-back border-top border-warning" style="border-top-width: 4px !important; border-top-color: var(--warning-color) !important;">
+                        <div class="d-flex justify-content-between align-items-center pb-2 border-bottom border-light">
+                            <span class="text-warning small fw-bold">Warnings Directory</span>
+                            <i class="bi bi-arrow-repeat text-warning" style="font-size: 0.8rem;"></i>
+                        </div>
+                        <div class="property-scroll-list">
+                            {% if portfolio_health.warning_list %}
+                                {% for prop_name in portfolio_health.warning_list %}
+                                <div class="small py-1 border-bottom border-light text-warning fw-medium">{{ prop_name }}</div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="small text-muted py-2">No warning alerts active.</div>
+                            {% endif %}
                         </div>
                     </div>
-                    <div class="kpi-val text-warning">{{ portfolio_health.warning }}</div>
-                    <p class="text-muted small mb-0 mt-2">Sites with moderate performance drops</p>
                 </div>
             </div>
             
             <!-- Card 4: Stable / Improving -->
-            <div class="col-md-6 col-xl-3">
-                <div class="dashboard-card kpi-card border-top border-success" style="border-top-width: 4px !important; border-top-color: var(--success-color) !important;">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <span class="text-secondary small fw-semibold">Stable or Improving</span>
-                        <div class="bg-success text-white rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
-                            <i class="bi bi-check-circle small"></i>
+            <div class="flip-card-container col-md-6 col-xl-3">
+                <div class="flip-card" id="card-stable" onclick="toggleCardFlip('card-stable')">
+                    <div class="flip-card-front dashboard-card kpi-card border-top border-success" style="border-top-width: 4px !important; border-top-color: var(--success-color) !important;">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <span class="text-secondary small fw-semibold">Stable or Improving</span>
+                            <div class="bg-success text-white rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                                <i class="bi bi-check-circle small"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-val text-success">{{ portfolio_health.stable }}</div>
+                        <p class="text-muted small mb-0 mt-2">Sites maintaining or growing traffic <i class="bi bi-arrow-repeat ms-1 text-success" style="font-size: 0.8rem;"></i></p>
+                    </div>
+                    <div class="flip-card-back border-top border-success" style="border-top-width: 4px !important; border-top-color: var(--success-color) !important;">
+                        <div class="d-flex justify-content-between align-items-center pb-2 border-bottom border-light">
+                            <span class="text-success small fw-bold">Stable & Growth List</span>
+                            <i class="bi bi-arrow-repeat text-success" style="font-size: 0.8rem;"></i>
+                        </div>
+                        <div class="property-scroll-list">
+                            {% if portfolio_health.stable_list %}
+                                {% for prop_name in portfolio_health.stable_list %}
+                                <div class="small py-1 border-bottom border-light text-success fw-medium">{{ prop_name }}</div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="small text-muted py-2">All sites are experiencing drops.</div>
+                            {% endif %}
                         </div>
                     </div>
-                    <div class="kpi-val text-success">{{ portfolio_health.stable }}</div>
-                    <p class="text-muted small mb-0 mt-2">Sites maintaining or growing traffic</p>
                 </div>
             </div>
         </div>
@@ -398,7 +522,7 @@
         <ul class="nav nav-pills mb-4 gap-2" id="dashboardTabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#overview" type="button" role="tab" aria-selected="true">
-                    <i class="bi bi-speedometer2 me-2"></i>Executive Summary View
+                    <i class="bi bi-speedometer2 me-2"></i>Summary View
                 </button>
             </li>
             {% for m_id, m_data in metrics_data.items() %}
@@ -585,9 +709,10 @@
     </main>
 
     <!-- Footer -->
-    <footer class="text-center py-4 border-top border-light mt-5" style="background-color: var(--bg-card); color: var(--text-secondary); transition: all 0.3s ease;">
-        <p class="small mb-0">Executive Canary Report produced automatically via <strong>gsc-exporter</strong>.</p>
-        <p class="text-xs text-muted mb-0" style="font-size:0.75rem;">Powered by Chart.js, Bootstrap 5 and British English design parameters.</p>
+    <footer class="footer mt-auto py-3 border-top border-light mt-5" style="background-color: var(--bg-card); color: var(--text-secondary); transition: all 0.3s ease;">
+        <div class="container text-center">
+            <span class="small">Report generated on {{ report_timestamp }}. <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank" style="color: rgb(99, 102, 241); text-decoration: none;">gsc-exporter</a></span>
+        </div>
     </footer>
 
     <!-- Bootstrap JS Bundle -->
@@ -595,6 +720,14 @@
 
     <!-- Dashboard Operations JavaScript -->
     <script>
+        // Card Flip Toggler
+        function toggleCardFlip(cardId) {
+            const card = document.getElementById(cardId);
+            if (card) {
+                card.classList.toggle('flipped');
+            }
+        }
+
         // Parse the metrics payload sent from python
         const metricsPayload = {{ metrics_data_json|safe }};
         
