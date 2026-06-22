@@ -146,66 +146,34 @@ def run_report(args, service):
             m_data['siteUrl'] = site_url
             metrics_data[m_id]['properties'].append(m_data)
 
-    # Calculate global summaries across all properties
-    summary_data = {
-        'clicks': {'title': 'Total Clicks', 'cur': 0, 'lw': 0, 'lm': 0, 'ly': 0},
-        'impressions': {'title': 'Total Impressions', 'cur': 0, 'lw': 0, 'lm': 0, 'ly': 0},
-        'ctr': {'title': 'Average CTR', 'cur_num': 0.0, 'lw_num': 0.0, 'lm_num': 0.0, 'ly_num': 0.0, 'cur': 0.0, 'lw': 0.0, 'lm': 0.0, 'ly': 0.0},
-        'position': {'title': 'Average Position', 'cur': 0.0, 'lw': 0.0, 'lm': 0.0, 'ly': 0.0}
+    # Calculate portfolio health statistics
+    portfolio_health = {
+        'total': len(properties),
+        'critical': 0,
+        'warning': 0,
+        'stable': 0,
     }
     
-    num_props = len(properties)
-    for prop_idx in range(num_props):
-        clicks_data = metrics_data['clicks']['properties'][prop_idx]
-        impressions_data = metrics_data['impressions']['properties'][prop_idx]
-        ctr_data = metrics_data['ctr']['properties'][prop_idx]
-        pos_data = metrics_data['position']['properties'][prop_idx]
+    for prop_idx in range(len(properties)):
+        # Check WoW and MoM statuses
+        clicks_lw = metrics_data['clicks']['properties'][prop_idx]['lw_class']
+        clicks_lm = metrics_data['clicks']['properties'][prop_idx]['lm_class']
         
-        for p in ['cur', 'lw', 'lm', 'ly']:
-            summary_data['clicks'][p] += clicks_data[f'{p}_raw']
-            summary_data['impressions'][p] += impressions_data[f'{p}_raw']
-            summary_data['ctr'][f'{p}_num'] += ctr_data[f'{p}_raw'] * impressions_data[f'{p}_raw']
-            summary_data['position'][p] += pos_data[f'{p}_raw']
-            
-    # Finalise weighted CTR and average position
-    for p in ['cur', 'lw', 'lm', 'ly']:
-        total_imp = summary_data['impressions'][p]
-        if total_imp > 0:
-            summary_data['ctr'][p] = (summary_data['ctr'][f'{p}_num'] / total_imp)
+        imp_lw = metrics_data['impressions']['properties'][prop_idx]['lw_class']
+        imp_lm = metrics_data['impressions']['properties'][prop_idx]['lm_class']
+        
+        ctr_lw = metrics_data['ctr']['properties'][prop_idx]['lw_class']
+        pos_lw = metrics_data['position']['properties'][prop_idx]['lw_class']
+        
+        # Classify as critical if any metric has a severe drop (red), or warning if moderate (amber)
+        statuses = [clicks_lw, clicks_lm, imp_lw, imp_lm, ctr_lw, pos_lw]
+        
+        if 'red' in statuses:
+            portfolio_health['critical'] += 1
+        elif 'amber' in statuses:
+            portfolio_health['warning'] += 1
         else:
-            summary_data['ctr'][p] = 0.0
-            
-        if num_props > 0:
-            summary_data['position'][p] = summary_data['position'][p] / num_props
-        else:
-            summary_data['position'][p] = 0.0
-            
-    # Format summary data for the template
-    formatted_summary = {}
-    for m_id, m_info in summary_data.items():
-        cur_v = m_info['cur']
-        lw_v = m_info['lw']
-        lm_v = m_info['lm']
-        ly_v = m_info['ly']
-        
-        lw_pct = calculate_pct_change(cur_v, lw_v)
-        lm_pct = calculate_pct_change(cur_v, lm_v)
-        ly_pct = calculate_pct_change(cur_v, ly_v)
-        
-        def format_val(v):
-            return f"{v:,.2f}" if m_id in ['ctr', 'position'] else f"{v:,.0f}"
-            
-        formatted_summary[m_id] = {
-            'title': m_info['title'],
-            'cur': format_val(cur_v),
-            'lw': format_val(lw_v), 'lw_pct': lw_pct, 'lw_class': get_status_class(lw_pct, m_id),
-            'lm': format_val(lm_v), 'lm_pct': lm_pct, 'lm_class': get_status_class(lm_pct, m_id),
-            'ly': format_val(ly_v), 'ly_pct': ly_pct, 'ly_class': get_status_class(ly_pct, m_id),
-            'cur_raw': cur_v,
-            'lw_raw': lw_v,
-            'lm_raw': lm_v,
-            'ly_raw': ly_v
-        }
+            portfolio_health['stable'] += 1
 
     env = Environment(loader=FileSystemLoader('templates'))
     template = env.get_template('canary_report.html')
@@ -214,7 +182,7 @@ def run_report(args, service):
         report_timestamp=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         periods=periods,
         metrics_data=metrics_data,
-        summary_data=formatted_summary,
+        portfolio_health=portfolio_health,
         metrics_data_json=json.dumps(metrics_data)
     )
     

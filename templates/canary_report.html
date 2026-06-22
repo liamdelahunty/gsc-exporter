@@ -335,58 +335,63 @@
             </div>
         </div>
 
-        <!-- Executive Summary Cards -->
-        <div class="row mb-2">
-            {% for m_id, summary in summary_data.items() %}
+        <!-- Portfolio Health Summary Cards -->
+        <div class="row mb-4">
+            <!-- Card 1: Total Monitored -->
             <div class="col-md-6 col-xl-3">
-                <div class="dashboard-card kpi-card">
+                <div class="dashboard-card kpi-card border-top border-primary" style="border-top-width: 4px !important;">
                     <div class="d-flex justify-content-between align-items-start">
-                        <span class="text-secondary small fw-semibold">{{ summary.title }}</span>
-                        <span class="badge-pill-outline">Global Aggregate</span>
-                    </div>
-                    <div class="kpi-val">{{ summary.cur }}{% if m_id == 'ctr' %}%{% endif %}</div>
-                    
-                    <div class="d-flex flex-column gap-2 mt-3 pt-2 border-top border-light">
-                        <!-- WoW Change -->
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="small text-muted">Vs Last Week</span>
-                            <span class="status-badge {{ summary.lw_class }}">
-                                {% if summary.lw_pct is not none %}
-                                    <i class="bi {% if summary.lw_pct > 0 %}bi-arrow-up-short{% elif summary.lw_pct < 0 %}bi-arrow-down-short{% else %}bi-dash{% endif %}"></i>
-                                    {{ summary.lw_pct }}%
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </span>
-                        </div>
-                        <!-- MoM Change -->
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="small text-muted">Vs Last Month</span>
-                            <span class="status-badge {{ summary.lm_class }}">
-                                {% if summary.lm_pct is not none %}
-                                    <i class="bi {% if summary.lm_pct > 0 %}bi-arrow-up-short{% elif summary.lm_pct < 0 %}bi-arrow-down-short{% else %}bi-dash{% endif %}"></i>
-                                    {{ summary.lm_pct }}%
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </span>
-                        </div>
-                        <!-- YoY Change -->
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="small text-muted">Vs Last Year</span>
-                            <span class="status-badge {{ summary.ly_class }}">
-                                {% if summary.ly_pct is not none %}
-                                    <i class="bi {% if summary.ly_pct > 0 %}bi-arrow-up-short{% elif summary.ly_pct < 0 %}bi-arrow-down-short{% else %}bi-dash{% endif %}"></i>
-                                    {{ summary.ly_pct }}%
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </span>
+                        <span class="text-secondary small fw-semibold">Properties Monitored</span>
+                        <div class="bg-primary text-white rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                            <i class="bi bi-globe small"></i>
                         </div>
                     </div>
+                    <div class="kpi-val">{{ portfolio_health.total }}</div>
+                    <p class="text-muted small mb-0 mt-2">Active GSC properties tracked</p>
                 </div>
             </div>
-            {% endfor %}
+            
+            <!-- Card 2: Critical Alerts -->
+            <div class="col-md-6 col-xl-3">
+                <div class="dashboard-card kpi-card border-top border-danger" style="border-top-width: 4px !important; border-top-color: var(--danger-color) !important;">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <span class="text-secondary small fw-semibold">Critical Alerts</span>
+                        <div class="bg-danger text-white rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                            <i class="bi bi-exclamation-octagon small"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-val text-danger">{{ portfolio_health.critical }}</div>
+                    <p class="text-muted small mb-0 mt-2">Sites with severe WoW/MoM declines</p>
+                </div>
+            </div>
+            
+            <!-- Card 3: Warning Alerts -->
+            <div class="col-md-6 col-xl-3">
+                <div class="dashboard-card kpi-card border-top border-warning" style="border-top-width: 4px !important; border-top-color: var(--warning-color) !important;">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <span class="text-secondary small fw-semibold">Warning Alerts</span>
+                        <div class="bg-warning text-dark rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                            <i class="bi bi-exclamation-triangle small"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-val text-warning">{{ portfolio_health.warning }}</div>
+                    <p class="text-muted small mb-0 mt-2">Sites with moderate performance drops</p>
+                </div>
+            </div>
+            
+            <!-- Card 4: Stable / Improving -->
+            <div class="col-md-6 col-xl-3">
+                <div class="dashboard-card kpi-card border-top border-success" style="border-top-width: 4px !important; border-top-color: var(--success-color) !important;">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <span class="text-secondary small fw-semibold">Stable or Improving</span>
+                        <div class="bg-success text-white rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                            <i class="bi bi-check-circle small"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-val text-success">{{ portfolio_health.stable }}</div>
+                    <p class="text-muted small mb-0 mt-2">Sites maintaining or growing traffic</p>
+                </div>
+            </div>
         </div>
 
         <!-- Navigation Tabs -->
@@ -425,6 +430,22 @@
                             <h5 class="fw-bold mb-3"><i class="bi bi-bar-chart-line-fill me-2 text-info"></i>Impressions Baseline Comparison</h5>
                             <div style="height: 320px; position: relative;">
                                 <canvas id="overviewImpressionsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="dashboard-card">
+                            <h5 class="fw-bold mb-3"><i class="bi bi-bar-chart-line-fill me-2 text-warning"></i>CTR Baseline Comparison</h5>
+                            <div style="height: 320px; position: relative;">
+                                <canvas id="overviewCtrChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="dashboard-card">
+                            <h5 class="fw-bold mb-3"><i class="bi bi-bar-chart-line-fill me-2 text-success"></i>Average Position Baseline Comparison</h5>
+                            <div style="height: 320px; position: relative;">
+                                <canvas id="overviewPositionChart"></canvas>
                             </div>
                         </div>
                     </div>
@@ -659,9 +680,19 @@
         function renderOverviewCharts() {
             const Clicks = metricsPayload['clicks'].properties;
             const Impressions = metricsPayload['impressions'].properties;
+            const Ctr = metricsPayload['ctr'].properties;
+            const Position = metricsPayload['position'].properties;
             
             const labels = Clicks.map(c => c.name);
             
+            const createDataset = (label, data, bg, border) => ({
+                label: label,
+                data: data,
+                backgroundColor: bg,
+                borderColor: border,
+                borderWidth: 1
+            });
+
             // Overview Clicks
             const ctxClicks = document.getElementById('overviewClicksChart').getContext('2d');
             activeCharts['overview_clicks'] = new Chart(ctxClicks, {
@@ -669,23 +700,13 @@
                 data: {
                     labels: labels,
                     datasets: [
-                        {
-                            label: 'Current Week',
-                            data: Clicks.map(c => c.cur_raw),
-                            backgroundColor: 'rgba(99, 102, 241, 0.85)',
-                            borderColor: 'rgb(99, 102, 241)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Last Week',
-                            data: Clicks.map(c => c.lw_raw),
-                            backgroundColor: 'rgba(203, 213, 225, 0.5)',
-                            borderColor: 'rgb(203, 213, 225)',
-                            borderWidth: 1
-                        }
+                        createDataset('Current', Clicks.map(c => c.cur_raw), 'rgba(99, 102, 241, 0.85)', 'rgb(99, 102, 241)'),
+                        createDataset('Last Week', Clicks.map(c => c.lw_raw), 'rgba(56, 189, 248, 0.8)', 'rgb(56, 189, 248)'),
+                        createDataset('Last Month', Clicks.map(c => c.lm_raw), 'rgba(251, 191, 36, 0.8)', 'rgb(251, 191, 36)'),
+                        createDataset('Last Year', Clicks.map(c => c.ly_raw), 'rgba(244, 63, 94, 0.8)', 'rgb(244, 63, 94)')
                     ]
                 },
-                options: getOverviewChartOptions('Clicks')
+                options: getOverviewChartOptions('clicks')
             });
 
             // Overview Impressions
@@ -695,27 +716,49 @@
                 data: {
                     labels: labels,
                     datasets: [
-                        {
-                            label: 'Current Week',
-                            data: Impressions.map(i => i.cur_raw),
-                            backgroundColor: 'rgba(14, 165, 233, 0.85)',
-                            borderColor: 'rgb(14, 165, 233)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Last Week',
-                            data: Impressions.map(i => i.lw_raw),
-                            backgroundColor: 'rgba(203, 213, 225, 0.5)',
-                            borderColor: 'rgb(203, 213, 225)',
-                            borderWidth: 1
-                        }
+                        createDataset('Current', Impressions.map(i => i.cur_raw), 'rgba(99, 102, 241, 0.85)', 'rgb(99, 102, 241)'),
+                        createDataset('Last Week', Impressions.map(i => i.lw_raw), 'rgba(56, 189, 248, 0.8)', 'rgb(56, 189, 248)'),
+                        createDataset('Last Month', Impressions.map(i => i.lm_raw), 'rgba(251, 191, 36, 0.8)', 'rgb(251, 191, 36)'),
+                        createDataset('Last Year', Impressions.map(i => i.ly_raw), 'rgba(244, 63, 94, 0.8)', 'rgb(244, 63, 94)')
                     ]
                 },
-                options: getOverviewChartOptions('Impressions')
+                options: getOverviewChartOptions('impressions')
+            });
+
+            // Overview CTR
+            const ctxCtr = document.getElementById('overviewCtrChart').getContext('2d');
+            activeCharts['overview_ctr'] = new Chart(ctxCtr, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        createDataset('Current', Ctr.map(c => c.cur_raw), 'rgba(99, 102, 241, 0.85)', 'rgb(99, 102, 241)'),
+                        createDataset('Last Week', Ctr.map(c => c.lw_raw), 'rgba(56, 189, 248, 0.8)', 'rgb(56, 189, 248)'),
+                        createDataset('Last Month', Ctr.map(c => c.lm_raw), 'rgba(251, 191, 36, 0.8)', 'rgb(251, 191, 36)'),
+                        createDataset('Last Year', Ctr.map(c => c.ly_raw), 'rgba(244, 63, 94, 0.8)', 'rgb(244, 63, 94)')
+                    ]
+                },
+                options: getOverviewChartOptions('ctr')
+            });
+
+            // Overview Position
+            const ctxPosition = document.getElementById('overviewPositionChart').getContext('2d');
+            activeCharts['overview_position'] = new Chart(ctxPosition, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        createDataset('Current', Position.map(p => p.cur_raw), 'rgba(99, 102, 241, 0.85)', 'rgb(99, 102, 241)'),
+                        createDataset('Last Week', Position.map(p => p.lw_raw), 'rgba(56, 189, 248, 0.8)', 'rgb(56, 189, 248)'),
+                        createDataset('Last Month', Position.map(p => p.lm_raw), 'rgba(251, 191, 36, 0.8)', 'rgb(251, 191, 36)'),
+                        createDataset('Last Year', Position.map(p => p.ly_raw), 'rgba(244, 63, 94, 0.8)', 'rgb(244, 63, 94)')
+                    ]
+                },
+                options: getOverviewChartOptions('position')
             });
         }
 
-        function getOverviewChartOptions(title) {
+        function getOverviewChartOptions(mId) {
             return {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -728,7 +771,16 @@
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return ` ${context.dataset.label}: ${context.raw.toLocaleString()}`;
+                                let label = ` ${context.dataset.label || ''}: `;
+                                let val = context.raw;
+                                if (mId === 'ctr') {
+                                    label += val.toFixed(2) + '%';
+                                } else if (mId === 'position') {
+                                    label += val.toFixed(2);
+                                } else {
+                                    label += val.toLocaleString();
+                                }
+                                return label;
                             }
                         }
                     }
@@ -736,7 +788,14 @@
                 scales: {
                     x: {
                         grid: { color: getGridColor() },
-                        ticks: { color: getTickColor(), font: { family: 'Inter', size: 10 } }
+                        ticks: { 
+                            color: getTickColor(), 
+                            font: { family: 'Inter', size: 10 },
+                            callback: function(value) {
+                                if (mId === 'ctr') return value + '%';
+                                return value.toLocaleString();
+                            }
+                        }
                     },
                     y: {
                         grid: { display: false },
