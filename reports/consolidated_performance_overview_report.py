@@ -20,7 +20,7 @@ from core.date_utils import parse_standard_date_args
 SEARCH_TYPES = ['web', 'image', 'video', 'news', 'discover', 'googleNews']
 
 def create_consolidated_html(df_types, df_appearances, date_range_str):
-    """Generates the HTML report with two tables and an explanation of the data overlap."""
+    """Generates the HTML report with separate tables per property, including totals and anchor links."""
     
     # 1. Format Search Types DataFrame
     df_types_disp = df_types.copy()
@@ -29,22 +29,60 @@ def create_consolidated_html(df_types, df_appearances, date_range_str):
     df_types_disp['ctr'] = pd.to_numeric(df_types_disp['ctr'], errors='coerce').fillna(0)
     df_types_disp['position'] = pd.to_numeric(df_types_disp['position'], errors='coerce').fillna(0)
 
-    df_types_disp_formatted = df_types_disp.copy()
-    df_types_disp_formatted['clicks'] = df_types_disp_formatted['clicks'].apply(lambda x: f"{x:,.0f}")
-    df_types_disp_formatted['impressions'] = df_types_disp_formatted['impressions'].apply(lambda x: f"{x:,.0f}")
-    df_types_disp_formatted['ctr'] = df_types_disp_formatted['ctr'].apply(lambda x: f"{x:.2%}")
-    df_types_disp_formatted['position'] = df_types_disp_formatted['position'].apply(lambda x: f"{x:.2f}")
-
-    df_types_disp_formatted = df_types_disp_formatted.rename(columns={
-        'site_url': 'Property',
-        'search_type': 'Search Type',
-        'clicks': 'Clicks',
-        'impressions': 'Impressions',
-        'ctr': 'CTR',
-        'position': 'Avg. Position'
-    })
-    df_types_disp_formatted = df_types_disp_formatted[['Property', 'Search Type', 'Clicks', 'Impressions', 'CTR', 'Avg. Position']]
-    types_table_html = df_types_disp_formatted.to_html(classes="table table-striped table-hover", index=False, border=0)
+    unique_sites_types = sorted(df_types_disp['site_url'].unique())
+    types_tables_html = []
+    
+    for site in unique_sites_types:
+        site_df = df_types_disp[df_types_disp['site_url'] == site].copy()
+        
+        # Calculate totals
+        tot_clicks = site_df['clicks'].sum()
+        tot_imps = site_df['impressions'].sum()
+        tot_ctr = tot_clicks / tot_imps if tot_imps > 0 else 0
+        tot_pos = site_df['position'].mean()
+        
+        # Format the values for display
+        site_df_disp = site_df.copy()
+        site_df_disp['clicks'] = site_df_disp['clicks'].apply(lambda x: f"{x:,.0f}")
+        site_df_disp['impressions'] = site_df_disp['impressions'].apply(lambda x: f"{x:,.0f}")
+        site_df_disp['ctr'] = site_df_disp['ctr'].apply(lambda x: f"{x:.2%}")
+        site_df_disp['position'] = site_df_disp['position'].apply(lambda x: f"{x:.2f}")
+        
+        # Drop site_url and rename columns
+        site_df_disp = site_df_disp.drop(columns=['site_url'])
+        site_df_disp = site_df_disp.rename(columns={
+            'search_type': 'Search Type',
+            'clicks': 'Clicks',
+            'impressions': 'Impressions',
+            'ctr': 'CTR',
+            'position': 'Avg. Position'
+        })
+        site_df_disp = site_df_disp[['Search Type', 'Clicks', 'Impressions', 'CTR', 'Avg. Position']]
+        
+        # Convert all columns to strings to allow HTML tags in pandas output
+        for col in site_df_disp.columns:
+            site_df_disp[col] = site_df_disp[col].astype(str)
+            
+        # Append totals row
+        total_row_df = pd.DataFrame([{
+            'Search Type': '<strong>Total</strong>',
+            'Clicks': f"<strong>{tot_clicks:,.0f}</strong>",
+            'Impressions': f"<strong>{tot_imps:,.0f}</strong>",
+            'CTR': f"<strong>{tot_ctr:.2%}</strong>",
+            'Avg. Position': f"<strong>{tot_pos:.2f}</strong>"
+        }])
+        site_df_disp = pd.concat([site_df_disp, total_row_df], ignore_index=True)
+        
+        table_html = site_df_disp.to_html(classes="table table-striped table-hover", index=False, border=0, escape=False)
+        
+        types_tables_html.append(f"""
+        <div class="property-block mb-4">
+            <h5 class="property-title text-secondary mb-2">{site}</h5>
+            {table_html}
+        </div>
+        """)
+        
+    types_content = "\n".join(types_tables_html) if types_tables_html else "<p class='text-muted'>No search type data found.</p>"
 
     # 2. Format Search Appearances DataFrame
     df_apps_disp = df_appearances.copy()
@@ -53,22 +91,60 @@ def create_consolidated_html(df_types, df_appearances, date_range_str):
     df_apps_disp['ctr'] = pd.to_numeric(df_apps_disp['ctr'], errors='coerce').fillna(0)
     df_apps_disp['position'] = pd.to_numeric(df_apps_disp['position'], errors='coerce').fillna(0)
 
-    df_apps_disp_formatted = df_apps_disp.copy()
-    df_apps_disp_formatted['clicks'] = df_apps_disp_formatted['clicks'].apply(lambda x: f"{x:,.0f}")
-    df_apps_disp_formatted['impressions'] = df_apps_disp_formatted['impressions'].apply(lambda x: f"{x:,.0f}")
-    df_apps_disp_formatted['ctr'] = df_apps_disp_formatted['ctr'].apply(lambda x: f"{x:.2%}")
-    df_apps_disp_formatted['position'] = df_apps_disp_formatted['position'].apply(lambda x: f"{x:.2f}")
-
-    df_apps_disp_formatted = df_apps_disp_formatted.rename(columns={
-        'site_url': 'Property',
-        'searchAppearance': 'Search Appearance',
-        'clicks': 'Clicks',
-        'impressions': 'Impressions',
-        'ctr': 'CTR',
-        'position': 'Avg. Position'
-    })
-    df_apps_disp_formatted = df_apps_disp_formatted[['Property', 'Search Appearance', 'Clicks', 'Impressions', 'CTR', 'Avg. Position']]
-    apps_table_html = df_apps_disp_formatted.to_html(classes="table table-striped table-hover", index=False, border=0)
+    unique_sites_apps = sorted(df_apps_disp['site_url'].unique())
+    apps_tables_html = []
+    
+    for site in unique_sites_apps:
+        site_df = df_apps_disp[df_apps_disp['site_url'] == site].copy()
+        
+        # Calculate totals
+        tot_clicks = site_df['clicks'].sum()
+        tot_imps = site_df['impressions'].sum()
+        tot_ctr = tot_clicks / tot_imps if tot_imps > 0 else 0
+        tot_pos = site_df['position'].mean()
+        
+        # Format the values for display
+        site_df_disp = site_df.copy()
+        site_df_disp['clicks'] = site_df_disp['clicks'].apply(lambda x: f"{x:,.0f}")
+        site_df_disp['impressions'] = site_df_disp['impressions'].apply(lambda x: f"{x:,.0f}")
+        site_df_disp['ctr'] = site_df_disp['ctr'].apply(lambda x: f"{x:.2%}")
+        site_df_disp['position'] = site_df_disp['position'].apply(lambda x: f"{x:.2f}")
+        
+        # Drop site_url and rename columns
+        site_df_disp = site_df_disp.drop(columns=['site_url'])
+        site_df_disp = site_df_disp.rename(columns={
+            'searchAppearance': 'Search Appearance',
+            'clicks': 'Clicks',
+            'impressions': 'Impressions',
+            'ctr': 'CTR',
+            'position': 'Avg. Position'
+        })
+        site_df_disp = site_df_disp[['Search Appearance', 'Clicks', 'Impressions', 'CTR', 'Avg. Position']]
+        
+        # Convert all columns to strings to allow HTML tags in pandas output
+        for col in site_df_disp.columns:
+            site_df_disp[col] = site_df_disp[col].astype(str)
+            
+        # Append totals row
+        total_row_df = pd.DataFrame([{
+            'Search Appearance': '<strong>Total</strong>',
+            'Clicks': f"<strong>{tot_clicks:,.0f}</strong>",
+            'Impressions': f"<strong>{tot_imps:,.0f}</strong>",
+            'CTR': f"<strong>{tot_ctr:.2%}</strong>",
+            'Avg. Position': f"<strong>{tot_pos:.2f}</strong>"
+        }])
+        site_df_disp = pd.concat([site_df_disp, total_row_df], ignore_index=True)
+        
+        table_html = site_df_disp.to_html(classes="table table-striped table-hover", index=False, border=0, escape=False)
+        
+        apps_tables_html.append(f"""
+        <div class="property-block mb-4">
+            <h5 class="property-title text-secondary mb-2">{site}</h5>
+            {table_html}
+        </div>
+        """)
+        
+    apps_content = "\n".join(apps_tables_html) if apps_tables_html else "<p class='text-muted'>No search appearance data found.</p>"
 
     # 3. Create main content with explanation
     main_html = f"""
@@ -76,8 +152,8 @@ def create_consolidated_html(df_types, df_appearances, date_range_str):
         .table th, .table td {{
             text-align: left !important;
         }}
-        .table th:nth-child(n+3), 
-        .table td:nth-child(n+3) {{
+        .table th:nth-child(n+2), 
+        .table td:nth-child(n+2) {{
             text-align: right !important;
         }}
         .explanation-card {{
@@ -93,7 +169,32 @@ def create_consolidated_html(df_types, df_appearances, date_range_str):
             border-bottom: 2px solid #dee2e6;
             padding-bottom: 0.5rem;
         }}
+        .property-block {{
+            background-color: #ffffff;
+            border: 1px solid #e3e6f0;
+            border-radius: 4px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.05);
+        }}
+        .property-title {{
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-bottom: 1px solid #eaecf4;
+            padding-bottom: 0.5rem;
+        }}
+        .quick-nav {{
+            background-color: #eaecf4;
+            border-radius: 4px;
+            padding: 0.75rem;
+            margin-bottom: 2rem;
+        }}
     </style>
+
+    <div class="quick-nav d-flex justify-content-center">
+        <a href="#search-types-section" class="btn btn-primary btn-sm me-3">Jump to Search Types</a>
+        <a href="#search-appearances-section" class="btn btn-primary btn-sm">Jump to Search Appearances</a>
+    </div>
 
     <div class="explanation-card shadow-sm">
         <h4 class="text-primary mb-3">Understanding the Data Structures and Overlap</h4>
@@ -111,16 +212,16 @@ def create_consolidated_html(df_types, df_appearances, date_range_str):
         </ul>
     </div>
 
-    <h2>1. Search Type Performance Overview</h2>
-    <p class="text-muted">Displays performance across Google search channels (Web, Discover, News, Image, Video, Google News).</p>
-    <div class="table-responsive mb-5">
-        {types_table_html}
+    <h2 id="search-types-section">1. Search Type Performance by Property</h2>
+    <p class="text-muted mb-4">Displays performance across Google search channels (Web, Discover, News, Image, Video, Google News) with a total for each property.</p>
+    <div class="mb-5">
+        {types_content}
     </div>
 
-    <h2>2. Search Appearance Performance Overview</h2>
-    <p class="text-muted">Displays performance for enhanced search features (such as product markup or translation features).</p>
-    <div class="table-responsive">
-        {apps_table_html}
+    <h2 id="search-appearances-section">2. Search Appearance Performance by Property</h2>
+    <p class="text-muted mb-4">Displays performance for enhanced search features (such as product markup or translation features) with a total for each property.</p>
+    <div>
+        {apps_content}
     </div>
     """
 
