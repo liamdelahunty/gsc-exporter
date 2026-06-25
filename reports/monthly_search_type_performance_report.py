@@ -329,18 +329,18 @@ if __name__ == '__main__':
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     
     args = parser.parse_args()
-    start_date_anchor, end_date = parse_standard_date_args(args, service, args.site_url)
-    
-    if args.last_month or (not args.start_date and not args.end_date):
-        # Anchor the 16-month lookback to end_date
-        end_date_dt = datetime.strptime(end_date, '%Y-%m-%d').date()
-        start_date_dt = end_date_dt.replace(day=1) - relativedelta(months=15)
-        start_date = start_date_dt.strftime('%Y-%m-%d')
-    else:
-        start_date = args.start_date
-        end_date = args.end_date
     
     service = get_gsc_service()
     if service:
-        start_date, end_date = parse_standard_date_args(args, service, args.site_url)
+        start_date_anchor, end_date = parse_standard_date_args(args, service, args.site_url)
+        
+        if args.last_month or (not args.start_date and not args.end_date):
+            # Anchor the 16-month lookback to end_date
+            end_date_dt = datetime.strptime(end_date, '%Y-%m-%d').date()
+            start_date_dt = end_date_dt.replace(day=1) - relativedelta(months=15)
+            start_date = start_date_dt.strftime('%Y-%m-%d')
+        else:
+            start_date = args.start_date
+            end_date = args.end_date
+            
         run_report(service, args.site_url, start_date, end_date)

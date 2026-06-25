@@ -51,6 +51,8 @@ def main():
         ["reports/seasonal_page_spike_report.py", site_url, "--last-month"],
         ["reports/seasonal_query_spike_report.py", site_url, "--last-month"],
         ["reports/url_inspection_report.py", site_url, "--last-month"],
+        ["reports/search_appearance_report.py", site_url, "--last-month"],
+        ["reports/consolidated_performance_overview_report.py", site_url, "--last-month"],
     ]
 
     for report in reports:
