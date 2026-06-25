@@ -257,18 +257,34 @@ def create_property_grouped_html(df_types, df_appearances, date_range_str):
     # Get a list of all unique site URLs across both tables
     all_sites = sorted(list(set(df_types_disp['site_url'].unique()) | set(df_apps_disp['site_url'].unique())))
     
-    # 1. Navigation Menu
-    nav_links = []
-    for site in all_sites:
-        slug = get_filename_slug(site)
-        nav_links.append(f'<a href="#prop-{slug}" class="btn btn-outline-secondary btn-sm m-1">{site}</a>')
+    # 1. Navigation Menu (Three Column List of Links)
+    chunk_size = (len(all_sites) + 2) // 3
+    col_chunks = [all_sites[i:i + chunk_size] for i in range(0, len(all_sites), chunk_size)]
+    col_htmls = []
+    for chunk in col_chunks:
+        chunk_links = []
+        for site in chunk:
+            slug = get_filename_slug(site)
+            chunk_links.append(f'<li class="mb-1"><a href="#prop-{slug}" class="text-decoration-none">{site}</a></li>')
+        col_htmls.append(f'<ul class="list-unstyled mb-0">{"".join(chunk_links)}</ul>')
     
+    while len(col_htmls) < 3:
+        col_htmls.append("")
+
     nav_html = f"""
     <div id="top" class="card mb-4 bg-light shadow-sm">
         <div class="card-body">
             <h5 class="card-title text-primary mb-3">Quick Navigation: Jump to Property</h5>
-            <div class="d-flex flex-wrap justify-content-center">
-                {"".join(nav_links)}
+            <div class="row">
+                <div class="col-md-4">
+                    {col_htmls[0]}
+                </div>
+                <div class="col-md-4">
+                    {col_htmls[1]}
+                </div>
+                <div class="col-md-4">
+                    {col_htmls[2]}
+                </div>
             </div>
         </div>
     </div>
