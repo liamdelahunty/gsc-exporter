@@ -36,6 +36,8 @@ All reports in the `reports/` directory support a standardised set of arguments:
 | `query_position_analysis.py` | Tracks ranking distribution over 16 months with trend charts. |
 | `snapshot_report.py` | Detailed single-period overview including device and country breakdowns. |
 | `keyword_cannibalisation_report.py` | Identifies queries where multiple pages are competing in search results. |
+| `search_appearance_report.py` | Shows clicks, impressions, CTR, and average position segmented by Search Appearance (rich results). |
+| `consolidated_performance_overview_report.py` | Account-wide overview of search types and search appearances across all properties. |
 
 ## Dynamic Runners
 
