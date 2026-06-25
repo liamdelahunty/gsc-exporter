@@ -376,7 +376,10 @@ def create_property_grouped_html(df_types, df_appearances, date_range_str):
         # C. Combined Property Section
         property_sections.append(f"""
         <div id="prop-{slug}" class="property-section mb-5 shadow-sm border rounded p-4 bg-white">
-            <h3 class="text-primary border-bottom pb-2 mb-4">{site}</h3>
+            <h3 class="text-primary border-bottom pb-2 mb-4 d-flex justify-content-between align-items-baseline">
+                <span>{site}</span>
+                <small class="text-muted fs-6">{date_range_str}</small>
+            </h3>
             
             <div class="row">
                 <div class="col-12 mb-4">
