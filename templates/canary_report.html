@@ -36,27 +36,6 @@
             --header-bg: rgba(255, 255, 255, 0.8);
         }
 
-        [data-theme="dark"] {
-            --bg-body: #0b0f19;
-            --bg-card: #151c2c;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --border-color: #222e45;
-            
-            --success-bg: #064e3b;
-            --success-color: #34d399;
-            --warning-bg: #78350f;
-            --warning-color: #fbbf24;
-            --danger-bg: #7f1d1d;
-            --danger-color: #f87171;
-            --info-bg: #0c4a6e;
-            --info-color: #38bdf8;
-            
-            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.2);
-            --header-bg: rgba(21, 28, 44, 0.8);
-        }
-
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-body);
@@ -195,25 +174,6 @@
             background-color: rgba(var(--primary-rgb), 0.02);
         }
 
-        /* Theme toggle switch */
-        .theme-toggle-btn {
-            background: none;
-            border: 1px solid var(--border-color);
-            padding: 8px 12px;
-            border-radius: 10px;
-            color: var(--text-primary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .theme-toggle-btn:hover {
-            background-color: var(--border-color);
-        }
-
         /* Canary warning banner */
         .canary-alert-banner {
             border-left: 5px solid var(--danger-color);
@@ -330,6 +290,97 @@
             background-color: var(--border-color);
             border-radius: 4px;
         }
+
+        /* Static Tables for Non-JS environments */
+        #static-tables {
+            margin-top: 20px;
+        }
+        
+        .static-top-container {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 20px;
+            gap: 40px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .static-period-table {
+            width: auto;
+            margin-bottom: 0;
+        }
+
+        .static-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 25px;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+        }
+        
+        .static-table th, .static-table td {
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+        
+        .static-table th {
+            background-color: var(--border-color);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        /* Styling for coloured cells in static tables */
+        .static-table td.amber {
+            background-color: #fff3cd !important;
+            color: #856404 !important;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .static-table td.red {
+            background-color: #f8d7da !important;
+            color: #721c24 !important;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .static-table td.positive-moderate-green {
+            background-color: #a3e0a3 !important;
+            color: #0a4c0a !important;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .static-table td.positive-strong-green {
+            background-color: #6aaa6a !important;
+            color: #052c05 !important;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* Styling for colour legend in static tables */
+        .static-color-scheme-legend {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+        }
+        
+        .static-color-scheme-legend table {
+            width: auto;
+            border: none;
+        }
+        
+        .static-color-scheme-legend th, .static-color-scheme-legend td {
+            border: none;
+            padding: 4px 8px;
+        }
+        
+        .static-color-box {
+            width: 40px;
+            height: 20px;
+            border: 1px solid var(--border-color);
+        }
     </style>
 </head>
 <body>
@@ -349,10 +400,6 @@
             
             <div class="d-flex align-items-center gap-3">
                 <span class="text-secondary small d-none d-md-inline">Generated: <strong>{{ report_timestamp }}</strong></span>
-                <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle dark mode">
-                    <i class="bi bi-moon-stars-fill" id="theme-icon"></i>
-                    <span id="theme-text" class="small">Dark Theme</span>
-                </button>
             </div>
         </div>
     </header>
@@ -378,6 +425,9 @@
                 </div>
             </div>
         </div>
+
+        <!-- Interactive Dashboard Wrapper (hidden by default, shown by JS) -->
+        <div id="interactive-dashboard" style="display: none;">
 
         <!-- Canary Warning Box (Dynamic alerts based on performance drop) -->
         <div id="canary-alerts-container" class="d-none">
@@ -727,6 +777,76 @@
             {% endfor %}
 
         </div>
+        </div> <!-- End of interactive-dashboard -->
+
+        <!-- Static View (rendered by default, hidden when JS runs successfully) -->
+        <div id="static-tables">
+            <div class="alert alert-warning mb-4" role="alert">
+                <h5 class="alert-heading fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Static View Enabled</h5>
+                <p class="mb-0">You are viewing a simplified, static version of this monitoring report. All metric comparison tables are displayed below for compatibility when JavaScript is disabled.</p>
+            </div>
+            
+            <div class="static-top-container">
+                <div>
+                    <h5 class="fw-bold mb-2">Time Periods</h5>
+                    <table class="static-period-table static-table">
+                        <thead>
+                            <tr><th>Period</th><th>Date Range</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for period, range in periods.items() %}
+                            <tr><td class="fw-semibold">{{ period }}</td><td>{{ range }}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="static-color-scheme-legend">
+                    <h5 class="fw-bold mb-2">Colour Scheme</h5>
+                    <table class="static-table" style="border: none;">
+                        <thead>
+                            <tr><th class="static-color-box" style="background-color: transparent;">Colour</th><th>Meaning</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td class="static-color-box" style="background-color: transparent;"></td><td>Change within &plusmn;10%</td></tr>
+                            <tr><td class="static-color-box" style="background-color: #fff3cd;"></td><td>Negative change between -10% and -25%</td></tr>
+                            <tr><td class="static-color-box" style="background-color: #f8d7da;"></td><td>Negative change &gt; -25%</td></tr>
+                            <tr><td class="static-color-box" style="background-color: #a3e0a3;"></td><td>Positive change between +10% and +25%</td></tr>
+                            <tr><td class="static-color-box" style="background-color: #6aaa6a;"></td><td>Positive change &gt; +25%</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {% for m_id, m_data in metrics_data.items() %}
+            <h4 class="fw-bold mt-4 mb-3">{{ m_data.title }}</h4>
+            <table class="static-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Current</th>
+                        <th>Last Week</th><th>Vs LW (%)</th>
+                        <th>Last Month</th><th>Vs LM (%)</th>
+                        <th>Last Year</th><th>Vs LY (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prop in m_data.properties %}
+                    <tr>
+                        <td class="fw-semibold">{{ prop.name }}</td>
+                        <td>{{ prop.cur }}{% if m_id == 'ctr' %}%{% endif %}</td>
+                        <td>{{ prop.lw }}{% if m_id == 'ctr' %}%{% endif %}</td>
+                        <td class="{{ prop.lw_class }}">{{ prop.lw_pct if prop.lw_pct is not none else 'N/A' }}{{ '%' if prop.lw_pct is not none }}</td>
+                        <td>{{ prop.lm }}{% if m_id == 'ctr' %}%{% endif %}</td>
+                        <td class="{{ prop.lm_class }}">{{ prop.lm_pct if prop.lm_pct is not none else 'N/A' }}{{ '%' if prop.lm_pct is not none }}</td>
+                        <td>{{ prop.ly }}{% if m_id == 'ctr' %}%{% endif %}</td>
+                        <td class="{{ prop.ly_class }}">{{ prop.ly_pct if prop.ly_pct is not none else 'N/A' }}{{ '%' if prop.ly_pct is not none }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endfor %}
+        </div>
 
     </main>
 
@@ -759,58 +879,23 @@
         // Property visibilities filter
         const visibleProperties = {};
 
-        // Theme management
-        function toggleTheme() {
-            const html = document.documentElement;
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('gsc-theme', newTheme);
-            
-            updateThemeUI(newTheme);
-            
-            // Re-render charts to adjust styles and fonts for dark/light grids
-            Object.keys(activeCharts).forEach(key => {
-                const chart = activeCharts[key];
-                if (chart) {
-                    chart.options.scales.x.grid.color = getGridColor();
-                    chart.options.scales.y.grid.color = getGridColor();
-                    chart.options.scales.x.ticks.color = getTickColor();
-                    chart.options.scales.y.ticks.color = getTickColor();
-                    chart.options.plugins.legend.labels.color = getTickColor();
-                    chart.update();
-                }
-            });
-        }
-
-        function updateThemeUI(theme) {
-            const icon = document.getElementById('theme-icon');
-            const text = document.getElementById('theme-text');
-            
-            if (theme === 'dark') {
-                icon.className = 'bi bi-sun-fill';
-                text.innerText = 'Light Theme';
-            } else {
-                icon.className = 'bi bi-moon-stars-fill';
-                text.innerText = 'Dark Theme';
-            }
-        }
-
-        // Color accessors for Chart.js depending on layout settings
+        // Colour accessors for Chart.js depending on layout settings
         function getTickColor() {
-            return document.documentElement.getAttribute('data-theme') === 'dark' ? '#94a3b8' : '#475569';
+            return '#475569';
         }
 
+        // Colour accessors for Chart.js depending on layout settings
         function getGridColor() {
-            return document.documentElement.getAttribute('data-theme') === 'dark' ? '#222e45' : '#e2e8f0';
+            return '#e2e8f0';
         }
 
         // Bootstrap loader
         window.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('gsc-theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeUI(savedTheme);
+            // Show interactive dashboard and hide static tables if JS runs successfully
+            const dashboard = document.getElementById('interactive-dashboard');
+            const staticTables = document.getElementById('static-tables');
+            if (dashboard) dashboard.style.display = 'block';
+            if (staticTables) staticTables.style.display = 'none';
             
             // Initialize structures
             Object.keys(metricsPayload).forEach(mId => {
