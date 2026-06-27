@@ -57,6 +57,17 @@ Here is the schema for both the default and bespoke branding configurations:
 
 ---
 
+## Bespoke Report Documentation
+
+When a report runs, the branding script dynamically detects the executing report module (e.g. `consolidated_traffic_report.py` or `snapshot_report.py`) and maps it to a corresponding documentation file under the [resources/reports/](file:///home/liamvictor/projects/gsc-exporter/resources/reports/) directory.
+
+If a documentation file matches the executing report, a highlighted **Report Documentation** link is constructed pointing to the file inside the GitHub repository. This link is placed last in the hamburger dropdown menu in the following order:
+1. Repository link
+2. General Documentation link
+3. Bespoke Report Documentation link
+
+---
+
 ## Layout Rules
 
 To ensure that the navigation bar sits cleanly above the report content and behaves correctly:

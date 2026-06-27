@@ -55,6 +55,46 @@ def load_branding_config() -> dict | None:
         print(f"Warning: Failed to load branding configuration from {config_path}: {e}")
         return None
 
+def find_report_doc_filename(filepath: str) -> str | None:
+    """
+    Determines the appropriate documentation filename for the running report.
+    Checks sys.argv[0] first, then falls back to matching keywords in the output filename.
+    """
+    import sys
+    
+    # 1. Check sys.argv[0] (running script)
+    script_name = os.path.basename(sys.argv[0])
+    if script_name.endswith('.py') and script_name != '__init__.py':
+        # E.g. reports/consolidated_traffic_report.py
+        doc_name = script_name[:-3].replace('_', '-') + '.md'
+        # Verify it exists
+        if os.path.exists(os.path.join('resources', 'reports', doc_name)):
+            return doc_name
+
+    # 2. Fallback: Match against files in resources/reports/ using output filename
+    docs_dir = os.path.join('resources', 'reports')
+    if os.path.exists(docs_dir):
+        html_basename = os.path.basename(filepath).lower()
+        html_name = os.path.splitext(html_basename)[0]
+        
+        # Sort doc files by length descending so longer matches take precedence
+        doc_files = sorted(os.listdir(docs_dir), key=len, reverse=True)
+        for doc_file in doc_files:
+            if doc_file.endswith('.md'):
+                doc_base = doc_file[:-3] # Remove '.md'
+                doc_parts = doc_base.split('-')
+                
+                # Ignore trailing 'report' word if there are other parts
+                if len(doc_parts) > 1 and doc_parts[-1] == 'report':
+                    match_prefix = '-'.join(doc_parts[:-1])
+                else:
+                    match_prefix = doc_base
+                    
+                if html_name.startswith(match_prefix):
+                    return doc_file
+                    
+    return None
+
 def apply_branding_to_html(html_content: str, filepath: str, config: dict) -> str:
     """
     Applies the custom branding configuration to the HTML content.
@@ -79,15 +119,59 @@ def apply_branding_to_html(html_content: str, filepath: str, config: dict) -> st
 
     header_brand_html = f'<a href="{link_url}" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; color: inherit;">{logo_html}<span style="font-weight: bold;">{text}</span></a>'
 
+    # Re-order and build menu links in the requested order:
+    # 1. Repository
+    # 2. General Documentation
+    # 3. Bespoke Report Documentation
+    repo_link_html = ""
+    general_doc_link_html = ""
+    
+    for link in links:
+        link_text = link.get('text', '')
+        link_url_val = link.get('url', '#')
+        text_lower = link_text.lower()
+        
+        if 'repository' in text_lower or 'repo' in text_lower:
+            repo_link_html = f'<a href="{link_url_val}" target="_blank">{link_text}</a>'
+        elif 'documentation' in text_lower or 'docs' in text_lower:
+            general_doc_link_html = f'<a href="{link_url_val}" target="_blank">{link_text}</a>'
+        else:
+            # Append other links to repository section by default
+            if repo_link_html:
+                repo_link_html += f'<a href="{link_url_val}" target="_blank">{link_text}</a>'
+            else:
+                repo_link_html = f'<a href="{link_url_val}" target="_blank">{link_text}</a>'
+
+    # Fallback to direct rendering if categorization keywords aren't found
+    if not repo_link_html and not general_doc_link_html and links:
+        fallback_links = ""
+        for link in links:
+            fallback_links += f'<a href="{link.get("url", "#")}" target="_blank">{link.get("text", "")}</a>'
+        repo_link_html = fallback_links
+
+    # Build bespoke documentation GitHub link
+    bespoke_doc_link_html = ""
+    doc_filename = find_report_doc_filename(filepath)
+    if doc_filename:
+        # Base repo URL from config or fallback
+        repo_base = config.get('link_url', 'https://github.com/liamdelahunty/gsc-exporter')
+        repo_base = repo_base.rstrip('/')
+        doc_github_url = f"{repo_base}/blob/main/resources/reports/{doc_filename}"
+        
+        bespoke_doc_link_html = f'<a href="{doc_github_url}" target="_blank" style="font-weight: bold; color: var(--branding-primary) !important;">Report Documentation</a>'
+
+    # Assemble links in specified order (no separator line)
+    all_links_html = ""
+    if repo_link_html:
+        all_links_html += repo_link_html
+    if general_doc_link_html:
+        all_links_html += general_doc_link_html
+    if bespoke_doc_link_html:
+        all_links_html += bespoke_doc_link_html
+
     # Build hamburger menu HTML fragment
     menu_wrapper_html = ""
-    if links:
-        links_html = ""
-        for link in links:
-            link_text = link.get('text', '')
-            link_url_val = link.get('url', '#')
-            links_html += f'<a href="{link_url_val}" target="_blank">{link_text}</a>'
-            
+    if all_links_html:
         menu_wrapper_html = f"""
         <div style="position: relative;">
             <button class="branded-hamburger-button" onclick="toggleBrandingMenu()" aria-label="Toggle Menu">
@@ -98,7 +182,7 @@ def apply_branding_to_html(html_content: str, filepath: str, config: dict) -> st
                 </svg>
             </button>
             <div id="branded-menu-dropdown" class="branded-menu-dropdown" style="display: none;">
-                {links_html}
+                {all_links_html}
             </div>
         </div>
         """
@@ -149,22 +233,25 @@ def apply_branding_to_html(html_content: str, filepath: str, config: dict) -> st
             top: 100%;
             right: 0;
             background-color: #ffffff !important;
-            border: 1px solid rgba(0,0,0,0.15);
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            padding: 8px 0;
-            min-width: 160px;
+            border: 1px solid #dadce0 !important;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            padding: 6px 0;
+            min-width: 170px;
             z-index: 1050;
             margin-top: 8px;
         }}
         .branded-menu-dropdown a {{
-            color: #333333 !important;
+            color: #3c4043 !important;
             display: block !important;
-            padding: 8px 16px;
+            padding: 6px 12px;
+            margin: 2px 6px;
+            border-radius: 4px;
             text-decoration: none;
             font-weight: 500;
-            font-size: 0.9rem;
+            font-size: 0.875rem;
             white-space: nowrap;
+            transition: background-color 0.15s ease, color 0.15s ease;
         }}
         .branded-menu-dropdown a:hover {{
             background-color: #f1f3f4 !important;
