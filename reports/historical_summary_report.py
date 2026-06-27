@@ -208,6 +208,6 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     # Parse dates for compatibility, even if not used for filtering yet
-    parse_standard_date_args(args, service, args.site_url)
+    parse_standard_date_args(args, site_url=args.site_url)
     
     run_report(args.site_url)

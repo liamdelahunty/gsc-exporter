@@ -213,19 +213,20 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
+    service = get_gsc_service()
+    if not service:
+        print("Error: Could not authenticate GSC service.")
+        sys.exit(1)
+        
     if args.start_date and args.end_date:
         start_date, end_date = args.start_date, args.end_date
     elif args.last_12_months:
         _, end_date = parse_standard_date_args(args, service, args.site_url)
         start_date, end_date = get_month_range_lookback(end_date, months=12)
     else:
-        # For GSC Wrapped, default to YTD if no specific dates provided
-        
+        start_date, end_date = parse_standard_date_args(args, service, args.site_url)
         if not args.start_date and not args.last_month:
             today = date.today()
             start_date = f"{today.year}-01-01"
 
-    service = get_gsc_service()
-    if service:
-        start_date, end_date = parse_standard_date_args(args, service, args.site_url)
-        run_report(service, args.site_url, start_date, end_date)
+    run_report(service, args.site_url, start_date, end_date)
