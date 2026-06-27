@@ -35,10 +35,18 @@ def load_branding_config() -> dict | None:
     """
     Loads the branding configuration from JSON.
     Uses original open to avoid recursion.
+    Checks config path, then defaults to config/branding.json, then config/branding.default.json.
     """
     config_path = get_config_path()
     if not os.path.exists(config_path):
-        return None
+        # If it was the default path, try falling back to branding.default.json
+        if config_path == os.path.join('config', 'branding.json'):
+            config_path = os.path.join('config', 'branding.default.json')
+            if not os.path.exists(config_path):
+                return None
+        else:
+            return None
+
     try:
         with _original_open(config_path, 'r', encoding='utf-8') as f:
             config = json.load(f)
@@ -50,15 +58,50 @@ def load_branding_config() -> dict | None:
 def apply_branding_to_html(html_content: str, filepath: str, config: dict) -> str:
     """
     Applies the custom branding configuration to the HTML content.
-    Injects custom CSS styling and inserts/replaces headers and footers.
+    Injects custom CSS/JS assets and prepends the branding bar with a dropdown menu at the top of the body.
     """
     if not config or not config.get('enabled', False):
         return html_content
 
     theme = config.get('theme', {})
-    primary_colour = theme.get('primary_colour', theme.get('primary_color', '#2c3e50'))
+    primary_colour = theme.get('primary_colour', theme.get('primary_color', '#1a73e8'))
     text_colour = theme.get('text_colour', theme.get('text_color', '#ffffff'))
     font_family = theme.get('font_family', "'Outfit', sans-serif")
+    logo_url = config.get('logo_url', '')
+    link_url = config.get('link_url', '#')
+    text = config.get('text', '')
+    links = config.get('links', [])
+
+    # Build logo/text HTML fragment
+    logo_html = ""
+    if logo_url:
+        logo_html = f'<img src="{logo_url}" alt="Logo" height="24" style="vertical-align: middle; margin-right: 10px;">'
+
+    header_brand_html = f'<a href="{link_url}" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; color: inherit;">{logo_html}<span style="font-weight: bold;">{text}</span></a>'
+
+    # Build hamburger menu HTML fragment
+    menu_wrapper_html = ""
+    if links:
+        links_html = ""
+        for link in links:
+            link_text = link.get('text', '')
+            link_url_val = link.get('url', '#')
+            links_html += f'<a href="{link_url_val}" target="_blank">{link_text}</a>'
+            
+        menu_wrapper_html = f"""
+        <div style="position: relative;">
+            <button class="branded-hamburger-button" onclick="toggleBrandingMenu()" aria-label="Toggle Menu">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <div id="branded-menu-dropdown" class="branded-menu-dropdown" style="display: none;">
+                {links_html}
+            </div>
+        </div>
+        """
 
     # Build CSS styling to be injected
     css_styles = f"""
@@ -73,199 +116,118 @@ def apply_branding_to_html(html_content: str, filepath: str, config: dict) -> st
             background-color: var(--branding-primary) !important;
             color: var(--branding-text) !important;
             font-family: var(--branding-font);
-            padding: 8px 24px;
-            font-size: 0.9rem;
+            padding: 10px 24px;
+            font-size: 0.95rem;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
         }}
         .branded-top-bar a {{
             color: var(--branding-text) !important;
             text-decoration: none;
             font-weight: 600;
+            display: inline-flex;
+            align-items: center;
         }}
-        .branded-bottom-bar {{
-            background-color: var(--branding-primary) !important;
+        .branded-hamburger-button {{
+            background: none !important;
+            border: none !important;
             color: var(--branding-text) !important;
-            font-family: var(--branding-font);
-            padding: 12px 24px;
-            font-size: 0.85rem;
-            text-align: center;
-            border-top: 1px solid rgba(0,0,0,0.1);
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            outline: none !important;
+            transition: opacity 0.15s ease;
         }}
-        .branded-bottom-bar a {{
-            color: var(--branding-text) !important;
+        .branded-hamburger-button:hover {{
+            opacity: 0.8;
+        }}
+        .branded-menu-dropdown {{
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: #ffffff !important;
+            border: 1px solid rgba(0,0,0,0.15);
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 8px 0;
+            min-width: 160px;
+            z-index: 1050;
+            margin-top: 8px;
+        }}
+        .branded-menu-dropdown a {{
+            color: #333333 !important;
+            display: block !important;
+            padding: 8px 16px;
             text-decoration: none;
-            margin: 0 10px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            white-space: nowrap;
         }}
-        /* Override standard bootstrap classes if configured */
-        header.branded-replaced-header {{
-            background-color: var(--branding-primary) !important;
-            color: var(--branding-text) !important;
-            font-family: var(--branding-font);
-            padding: 15px 24px;
+        .branded-menu-dropdown a:hover {{
+            background-color: #f1f3f4 !important;
+            color: var(--branding-primary) !important;
+            text-decoration: none !important;
         }}
-        header.branded-replaced-header a {{
-            color: var(--branding-text) !important;
+        /* Force standard Bootstrap fixed headers to flow naturally below the branding bar */
+        .fixed-top {{
+            position: static !important;
         }}
-        footer.branded-replaced-footer {{
-            background-color: var(--branding-primary) !important;
-            color: var(--branding-text) !important;
-            font-family: var(--branding-font);
-            padding: 20px 24px;
-            text-align: center;
-        }}
-        footer.branded-replaced-footer a {{
-            color: var(--branding-text) !important;
+        body {{
+            padding-top: 0 !important;
         }}
     </style>
     """
 
-    # Inject CSS before </head>
+    # Build Javascript to toggle dropdown and close when clicking outside
+    js_code = """
+    <script id="custom-branding-js">
+        function toggleBrandingMenu() {
+            var menu = document.getElementById('branded-menu-dropdown');
+            if (menu) {
+                if (menu.style.display === 'block') {
+                    menu.style.display = 'none';
+                } else {
+                    menu.style.display = 'block';
+                }
+            }
+        }
+        document.addEventListener('click', function(event) {
+            var menu = document.getElementById('branded-menu-dropdown');
+            var button = event.target.closest('.branded-hamburger-button');
+            if (menu && !button && !event.target.closest('.branded-menu-dropdown')) {
+                menu.style.display = 'none';
+            }
+        });
+    </script>
+    """
+
+    # Inject CSS & JS before </head>
+    injected_assets = f"{css_styles}\n{js_code}"
     if '</head>' in html_content:
-        html_content = html_content.replace('</head>', f'{css_styles}\n</head>', 1)
+        html_content = html_content.replace('</head>', f'{injected_assets}\n</head>', 1)
     elif '<head>' in html_content:
-        html_content = html_content.replace('<head>', f'<head>\n{css_styles}', 1)
+        html_content = html_content.replace('<head>', f'<head>\n{injected_assets}', 1)
 
-    # Process Header Branding
-    header_cfg = config.get('header', {})
-    if header_cfg.get('enabled', False):
-        mode = header_cfg.get('mode', 'inject')
-        logo_url = header_cfg.get('logo_url', '')
-        link_url = header_cfg.get('link_url', '#')
-        text = header_cfg.get('text', '')
-
-        # Build logo/text HTML fragment
-        logo_html = ""
-        if logo_url:
-            logo_html = f'<img src="{logo_url}" alt="Logo" height="30" style="vertical-align: middle; margin-right: 10px;">'
-
-        header_brand_html = f'<a href="{link_url}" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; color: inherit;">{logo_html}<span style="font-weight: bold;">{text}</span></a>'
-
-        if mode == 'replace':
-            pattern = re.compile(r'<header[^>]*>.*?</header>', re.DOTALL | re.IGNORECASE)
-            new_header = f"""
-            <header class="branded-replaced-header mb-4">
-                <div class="container-fluid d-flex justify-content-between align-items-center">
-                    {header_brand_html}
-                    <div>
-                        <span style="opacity: 0.85; font-size: 0.95rem;">Performance Report</span>
-                    </div>
-                </div>
-            </header>
-            """
-            if pattern.search(html_content):
-                html_content = pattern.sub(new_header, html_content, count=1)
-            else:
-                body_pattern = re.compile(r'(<body[^>]*>)', re.IGNORECASE)
-                if body_pattern.search(html_content):
-                    html_content = body_pattern.sub(r'\1' + new_header, html_content, count=1)
-
-        elif mode == 'bar':
-            top_bar_html = f"""
-            <div class="branded-top-bar">
-                <div>
-                    {header_brand_html}
-                </div>
-                <div>
-                    <span style="opacity: 0.85; font-size: 0.85rem;">Google Search Console Insights</span>
-                </div>
-            </div>
-            """
-            body_pattern = re.compile(r'(<body[^>]*>)', re.IGNORECASE)
-            if body_pattern.search(html_content):
-                html_content = body_pattern.sub(r'\1' + top_bar_html, html_content, count=1)
-
-        elif mode == 'inject':
-            # Prepend the brand inside the first div of the header
-            header_match = re.search(r'(<header[^>]*>.*?<div[^>]*>)', html_content, re.DOTALL | re.IGNORECASE)
-            if header_match:
-                matched_str = header_match.group(1)
-                injected_brand = f'<div class="me-3 d-inline-block align-self-center">{header_brand_html}</div>'
-                html_content = html_content.replace(matched_str, matched_str + injected_brand, 1)
-            else:
-                # Fallback to bar mode
-                top_bar_html = f"""
-                <div class="branded-top-bar">
-                    <div>
-                        {header_brand_html}
-                    </div>
-                    <div>
-                        <span style="opacity: 0.85; font-size: 0.85rem;">Google Search Console Insights</span>
-                    </div>
-                </div>
-                """
-                body_pattern = re.compile(r'(<body[^>]*>)', re.IGNORECASE)
-                if body_pattern.search(html_content):
-                    html_content = body_pattern.sub(r'\1' + top_bar_html, html_content, count=1)
-
-    # Process Footer Branding
-    footer_cfg = config.get('footer', {})
-    if footer_cfg.get('enabled', False):
-        mode = footer_cfg.get('mode', 'inject')
-        logo_url = footer_cfg.get('logo_url', '')
-        link_url = footer_cfg.get('link_url', '#')
-        text = footer_cfg.get('text', '')
-        links = footer_cfg.get('links', [])
-
-        logo_html = ""
-        if logo_url:
-            logo_html = f'<img src="{logo_url}" alt="Logo" height="20" style="vertical-align: middle; margin-right: 10px;">'
-
-        links_html = ""
-        if links:
-            links_html = " | ".join(f'<a href="{lnk.get("url", "#")}" target="_blank">{lnk.get("text", "")}</a>' for lnk in links)
-
-        footer_brand_html = f"""
-        <div class="d-inline-flex align-items-center">
-            {logo_html}
-            <span>{text}</span>
+    # Build navigation bar HTML
+    top_bar_html = f"""
+    <div class="branded-top-bar">
+        <div>
+            {header_brand_html}
         </div>
-        """
-        if links_html:
-            footer_brand_html += f'<div class="mt-2">{links_html}</div>'
+        {menu_wrapper_html}
+    </div>
+    """
 
-        if mode == 'replace':
-            pattern = re.compile(r'<footer[^>]*>.*?</footer>', re.DOTALL | re.IGNORECASE)
-            new_footer = f"""
-            <footer class="branded-replaced-footer mt-4">
-                <div class="container-fluid">
-                    {footer_brand_html}
-                </div>
-            </footer>
-            """
-            if pattern.search(html_content):
-                html_content = pattern.sub(new_footer, html_content, count=1)
-            else:
-                body_close_pattern = re.compile(r'(</body>)', re.IGNORECASE)
-                if body_close_pattern.search(html_content):
-                    html_content = body_close_pattern.sub(new_footer + r'\1', html_content, count=1)
-
-        elif mode == 'bar':
-            bottom_bar_html = f"""
-            <div class="branded-bottom-bar mt-4">
-                {footer_brand_html}
-            </div>
-            """
-            body_close_pattern = re.compile(r'(</body>)', re.IGNORECASE)
-            if body_close_pattern.search(html_content):
-                html_content = body_close_pattern.sub(bottom_bar_html + r'\1', html_content, count=1)
-
-        elif mode == 'inject':
-            footer_close_match = re.search(r'(</footer>)', html_content, re.IGNORECASE)
-            if footer_close_match:
-                injected_footer = f'<div class="container mt-2 border-top pt-2" style="border-color: rgba(0,0,0,0.1) !important;">{footer_brand_html}</div>'
-                html_content = html_content.replace('</footer>', injected_footer + '</footer>', 1)
-            else:
-                bottom_bar_html = f"""
-                <div class="branded-bottom-bar mt-4">
-                    {footer_brand_html}
-                </div>
-                """
-                body_close_pattern = re.compile(r'(</body>)', re.IGNORECASE)
-                if body_close_pattern.search(html_content):
-                    html_content = body_close_pattern.sub(bottom_bar_html + r'\1', html_content, count=1)
+    # Prepend branding navigation bar to body
+    body_pattern = re.compile(r'(<body[^>]*>)', re.IGNORECASE)
+    if body_pattern.search(html_content):
+        html_content = body_pattern.sub(r'\1' + top_bar_html, html_content, count=1)
+    else:
+        # Fallback if no body tag found
+        html_content = top_bar_html + html_content
 
     return html_content
 

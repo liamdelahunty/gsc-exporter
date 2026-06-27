@@ -1,0 +1,21 @@
+{
+  "enabled": true,
+  "theme": {
+    "primary_colour": "#2c3e50",
+    "text_colour": "#ffffff",
+    "font_family": "'Outfit', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+  },
+  "logo_url": "https://raw.githubusercontent.com/google/material-design-icons/master/png/action/analytics/materialicons/24dp/2x/baseline_analytics_black_24dp.png",
+  "link_url": "https://github.com/liamdelahunty/gsc-exporter",
+  "text": "My Custom GSC Exporter",
+  "links": [
+    {
+      "text": "Documentation",
+      "url": "https://github.com/liamdelahunty/gsc-exporter/blob/main/README.md"
+    },
+    {
+      "text": "Repository",
+      "url": "https://github.com/liamdelahunty/gsc-exporter"
+    }
+  ]
+}

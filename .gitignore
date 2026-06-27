@@ -34,7 +34,9 @@ venv.bak/
 token.json
 client_secret.json
 client_secret*.json
-config/
+config/*
+!config/branding.default.json
+config/branding.json
 config/token.json
 config/client_secret.json
 config/client_secret*.json
