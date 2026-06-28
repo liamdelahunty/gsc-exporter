@@ -13,7 +13,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from core.client import get_gsc_service
 from core.cache import fetch_with_cache
-from core.date_utils import get_latest_available_date, get_month_range_lookback, get_last_month_range
+from core.date_utils import (
+    get_latest_available_date, 
+    get_month_range_lookback, 
+    get_last_month_range,
+    get_first_available_gsc_date,
+    get_first_complete_month_start
+)
 
 # Define the "Golden" dimension sets
 GOLDEN_DIMENSIONS = [
@@ -38,6 +44,22 @@ def warm_site(service, site_url, lookback_months=16):
     # Get the start date for the lookback (e.g. 16 full months)
     start_date, _ = get_month_range_lookback(end_date, lookback_months)
     
+    # Get the first available date of the property to avoid caching partial months
+    first_avail = get_first_available_gsc_date(service, site_url, latest, verbose=False)
+    if first_avail:
+        first_complete_start = get_first_complete_month_start(first_avail)
+        if first_complete_start:
+            first_complete_start_str = first_complete_start.strftime('%Y-%m-%d')
+            # If the calculated start date is before the first complete month, adjust it forward
+            if start_date < first_complete_start_str:
+                print(f"  - First available GSC date is {first_avail.strftime('%Y-%m-%d')}.")
+                print(f"  - Adjusting warming start date from {start_date} to {first_complete_start_str} to avoid incomplete months.")
+                start_date = first_complete_start_str
+                
+    if start_date > end_date:
+        print(f"  - No complete calendar months available to warm (latest available date is {latest.strftime('%Y-%m-%d')}).")
+        return
+        
     print(f"Lookback: {lookback_months} full months ({start_date} to {end_date})")
     
     # 2. Iterate through Golden Dimensions

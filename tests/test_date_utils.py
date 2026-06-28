@@ -5,7 +5,9 @@ from core.date_utils import (
     get_latest_available_date,
     get_last_month_range,
     get_last_7_days_range,
-    parse_standard_date_args
+    parse_standard_date_args,
+    get_first_complete_month_start,
+    get_first_available_gsc_date
 )
 
 def test_get_latest_available_date_success(mocker):
@@ -82,3 +84,34 @@ def test_parse_standard_date_args_last_7_days(mocker):
     start, end = parse_standard_date_args(args, mock_service, 'sc-domain:example.com')
     assert start == '2026-05-24'
     assert end == '2026-05-30'
+
+def test_get_first_complete_month_start():
+    # If first available date is 1st of month, that month start should be returned
+    d1 = date(2025, 2, 1)
+    assert get_first_complete_month_start(d1) == date(2025, 2, 1)
+    
+    # If first available date is not 1st of month, next month start should be returned
+    d2 = date(2025, 2, 13)
+    assert get_first_complete_month_start(d2) == date(2025, 3, 1)
+    
+    # None input returns None
+    assert get_first_complete_month_start(None) is None
+
+def test_get_first_available_gsc_date(mocker):
+    mock_service = MagicMock()
+    
+    # Mock has_data_on_date call behaviour
+    # If checking >= 2025-02-13, return data, else no data
+    def side_effect(siteUrl, body):
+        check_date_str = body['startDate']
+        check_date = datetime.strptime(check_date_str, '%Y-%m-%d').date()
+        if check_date >= date(2025, 2, 13):
+            return MagicMock(execute=lambda: {'rows': [{'keys': ['2025-02-13']}]})
+        return MagicMock(execute=lambda: {})
+        
+    mock_service.searchanalytics().query.side_effect = side_effect
+    
+    latest_date = date(2026, 6, 26)
+    first_date = get_first_available_gsc_date(mock_service, 'sc-domain:example.com', latest_date)
+    assert first_date == date(2025, 2, 13)
+

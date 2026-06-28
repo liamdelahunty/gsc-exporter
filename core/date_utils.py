@@ -105,3 +105,66 @@ def parse_standard_date_args(args, service=None, site_url=None):
     # 3. Last month (or default)
     # If --last-month is requested, or if no date args are provided at all
     return get_last_month_range(latest_date)
+
+def has_data_on_date(service, site_url, check_date):
+    """Checks if there is any GSC data for a specific date."""
+    if not service:
+        return False
+    check_date_str = check_date.strftime('%Y-%m-%d')
+    try:
+        request = {
+            'startDate': check_date_str,
+            'endDate': check_date_str,
+            'dimensions': ['date'],
+            'rowLimit': 1
+        }
+        response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
+        return 'rows' in response and response['rows']
+    except HttpError as e:
+        if e.resp.status == 400: # No data for this date
+            return False
+        return False
+    except Exception:
+        return False
+
+def get_first_available_gsc_date(service, site_url, latest_date, verbose=False):
+    """
+    Determines the first date for which GSC data is available using binary search.
+    """
+    if verbose:
+        print("Searching for the first available date (this may take a moment)...")
+    
+    # GSC data is available for approx. 16 months. Search a wider range to be safe.
+    low = latest_date - relativedelta(months=17)
+    high = latest_date
+    
+    first_date = None
+    
+    while low <= high:
+        mid = low + (high - low) // 2
+        if verbose:
+            print(f"Searching around: {mid.strftime('%Y-%m-%d')}")
+        if has_data_on_date(service, site_url, mid):
+            first_date = mid
+            high = mid - timedelta(days=1) # Try to find an even earlier date
+        else:
+            low = mid + timedelta(days=1) # First date must be after mid
+            
+    return first_date
+
+def get_first_complete_month_start(first_available_date):
+    """
+    Returns the first date of the first complete calendar month 
+    on or after the first available GSC date.
+    
+    If the first available date is the 1st of a month, that month is complete.
+    Otherwise, the first complete month starts on the 1st of the next month.
+    """
+    if not first_available_date:
+        return None
+    if first_available_date.day == 1:
+        return first_available_date
+    else:
+        return (first_available_date + relativedelta(months=1)).replace(day=1)
+
+
