@@ -78,12 +78,14 @@ def _fetch_from_api(service, site_url, start_date, end_date, dimensions, search_
                     'rowLimit': row_limit,
                     'startRow': start_row
                 }
+                start_time = time.time()
                 response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
+                elapsed = time.time() - start_time
 
                 if 'rows' in response:
                     rows = response['rows']
                     all_data.extend(rows)
-                    print(f"    - Retrieved {len(rows)} rows (total: {len(all_data)})...")
+                    print(f"    - Retrieved {len(rows)} rows (total: {len(all_data)}) in {elapsed:.2f}s...")
                     if len(rows) < row_limit:
                         break
                     start_row += row_limit

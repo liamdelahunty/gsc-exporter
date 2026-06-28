@@ -93,8 +93,8 @@ def test_fetch_from_api_feedback(mocker, capsys):
     
     # Verify printed outputs
     captured = capsys.readouterr()
-    assert "Retrieved 10000 rows (total: 10000)..." in captured.out
-    assert "Retrieved 50 rows (total: 10050)..." in captured.out
+    assert "Retrieved 10000 rows (total: 10000) in " in captured.out
+    assert "Retrieved 50 rows (total: 10050) in " in captured.out
 
 def test_fetch_from_api_timeout_retry(mocker, capsys):
     import socket
@@ -131,4 +131,4 @@ def test_fetch_from_api_timeout_retry(mocker, capsys):
     
     captured = capsys.readouterr()
     assert "Timeout occurred. Retrying (attempt 1/3)..." in captured.out
-    assert "Retrieved 1 rows (total: 1)..." in captured.out
+    assert "Retrieved 1 rows (total: 1) in " in captured.out
