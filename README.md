@@ -77,6 +77,30 @@ Execute the suite of standard reports for the last calendar month using the batc
 python run-monthly-reports.py --sites-file site-lists/sites.txt
 ```
 
+### 3. Export and Import Cache between Machines
+To transfer cached responses to another machine (for example, to avoid duplicate API queries or rate-limiting), you can use the [utilities/cache_exporter.py](file:///home/liamvictor/projects/gsc-exporter/utilities/cache_exporter.py) utility:
+
+* **Export the cache** to a compressed archive (supporting `.tar.gz`, `.tgz`, or `.zip` formats):
+  ```bash
+  # Export the entire cache (defaults to a dated tarball in the root directory)
+  python utilities/cache_exporter.py export
+
+  # Export cache only for a specific domain/property substring
+  python utilities/cache_exporter.py export --property care-inform.com
+
+  # Export cache filtered by date range
+  python utilities/cache_exporter.py export --start-date 2026-01-01 --end-date 2026-05-31 --output my-cache.tar.gz
+  ```
+
+* **Import the cache** from an archive:
+  ```bash
+  # Import files without overwriting existing local cache
+  python utilities/cache_exporter.py import my-cache.tar.gz
+
+  # Import and overwrite existing local cache files
+  python utilities/cache_exporter.py import my-cache.tar.gz --overwrite
+  ```
+
 ## Setup
 
 1. **Credentials**: Place your Google Cloud OAuth `client_secret.json` in the `config/` directory.
