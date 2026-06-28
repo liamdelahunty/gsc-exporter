@@ -83,6 +83,7 @@ def _fetch_from_api(service, site_url, start_date, end_date, dimensions, search_
                 if 'rows' in response:
                     rows = response['rows']
                     all_data.extend(rows)
+                    print(f"    - Retrieved {len(rows)} rows (total: {len(all_data)})...")
                     if len(rows) < row_limit:
                         break
                     start_row += row_limit
@@ -91,6 +92,7 @@ def _fetch_from_api(service, site_url, start_date, end_date, dimensions, search_
                 success = True
                 break 
             except (socket.timeout, TimeoutError):
+                print(f"    - Timeout occurred. Retrying (attempt {attempt + 1}/3)...")
                 time.sleep(5 * (attempt + 1))
             except HttpError as e:
                 print(f"  - An HTTP error occurred: {e}")
