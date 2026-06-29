@@ -267,7 +267,7 @@ graph TD
     B --> C["Run Setup & dependencies<br>(.venv setup)"]
     C --> D{"Is config/token.json present?"}
     D -- "No" --> E["Run auth-cloud-shell.py"]
-    E --> F["Go to OAuth URL in browser<br>& copy authorization code"]
+    E --> F["Go to OAuth URL in browser<br>& copy authorisation code"]
     F --> G["Paste code to save token.json"]
     D -- "Yes" --> H["Read site list<br>(site-lists/sites.txt)"]
     G --> H
