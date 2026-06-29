@@ -385,6 +385,15 @@ def patched_parse_args(self, args=None, namespace=None):
     )
     if not has_branding:
         self.add_argument('--branding-config', help='Path to custom branding configuration JSON file.')
-    return _original_parse_args(self, args, namespace)
+    
+    parsed_args = _original_parse_args(self, args, namespace)
+    
+    # Strip leading/trailing whitespaces and non-breaking spaces from string arguments
+    for key, value in vars(parsed_args).items():
+        if isinstance(value, str):
+            cleaned = value.strip().strip('\xa0').strip('\udca0').strip()
+            setattr(parsed_args, key, cleaned)
+            
+    return parsed_args
 
 argparse.ArgumentParser.parse_args = patched_parse_args

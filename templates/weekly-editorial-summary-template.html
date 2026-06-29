@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts for premium editorial feel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0f172a;
+            --accent-color: #b45309;
+            --positive-color: #10b981;
+            --negative-color: #ef4444;
+            --neutral-color: #64748b;
+            --bg-light: #f8fafc;
+            --card-border: #e2e8f0;
+            --font-editorial: 'Playfair Display', Georgia, serif;
+            --font-sans: 'Inter', system-ui, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-light);
+            color: #1e293b;
+            padding: 2.5rem 1.5rem;
+            line-height: 1.5;
+        }
+
+        .dashboard-header {
+            margin-bottom: 2.5rem;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 1.5rem;
+        }
+
+        .dashboard-title {
+            font-family: var(--font-editorial);
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 2.5rem;
+        }
+
+        .dashboard-subtitle {
+            font-size: 1.1rem;
+            color: var(--neutral-color);
+        }
+
+        .kpi-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .search-type-card {
+            background-color: white;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .search-type-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-type-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 4px;
+            width: 100%;
+        }
+
+        .card-web::before { background-color: #3b82f6; }
+        .card-discover::before { background-color: #ec4899; }
+        .card-news::before { background-color: #f59e0b; }
+
+        .search-type-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid var(--bg-light);
+            padding-bottom: 0.75rem;
+        }
+
+        .search-type-title {
+            font-family: var(--font-editorial);
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .metric-badge {
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        .badge-web { background-color: #eff6ff; color: #1d4ed8; }
+        .badge-discover { background-color: #fdf2f8; color: #be185d; }
+        .badge-news { background-color: #fffbeb; color: #b45309; }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.75rem;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: var(--neutral-color);
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .delta-pill {
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+        }
+
+        .delta-positive { background-color: #ecfdf5; color: var(--positive-color); }
+        .delta-negative { background-color: #fef2f2; color: var(--negative-color); }
+        .delta-neutral { background-color: #f1f5f9; color: var(--neutral-color); }
+
+        .best-performing-box {
+            background-color: var(--bg-light);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-top: 1rem;
+            border-left: 3px solid var(--accent-color);
+        }
+
+        .best-performing-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--neutral-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .best-performing-link {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            text-decoration: none;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .best-performing-link:hover {
+            color: var(--accent-color);
+            text-decoration: underline;
+        }
+
+        .best-performing-clicks {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--neutral-color);
+            margin-top: 0.25rem;
+        }
+
+        .copypaste-container {
+            background-color: white;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+        .copypaste-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .copypaste-title {
+            font-family: var(--font-editorial);
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .copypaste-area {
+            background-color: #1e293b;
+            color: #f8fafc;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            padding: 1.25rem;
+            border-radius: 8px;
+            width: 100%;
+            height: 380px;
+            resize: none;
+            border: none;
+            margin-bottom: 0.75rem;
+        }
+
+        .top-pages-section {
+            background-color: white;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-title {
+            font-family: var(--font-editorial);
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            border-bottom: 2px solid var(--bg-light);
+            padding-bottom: 0.5rem;
+        }
+
+        .table-responsive {
+            max-height: 450px;
+            overflow-y: auto;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table thead th {
+            position: sticky;
+            top: 0;
+            background-color: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            border-bottom: 2px solid var(--card-border);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            z-index: 1;
+        }
+
+        .table td {
+            font-size: 0.9rem;
+            padding: 0.75rem;
+            vertical-align: middle;
+        }
+
+        .page-link-cell {
+            max-width: 450px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .page-link-cell a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .page-link-cell a:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            margin-top: 4rem;
+            text-align: center;
+            color: var(--neutral-color);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--card-border);
+            padding-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid max-width-1200 px-lg-5">
+        <header class="dashboard-header d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+            <div>
+                <h1 class="dashboard-title">{{ page_title }}</h1>
+                <p class="dashboard-subtitle mb-0">
+                    Reporting site: <strong>{{ site_url }}</strong> | Period: <strong>{{ current_period_str }}</strong> vs <strong>{{ previous_period_str }}</strong>
+                </p>
+            </div>
+            <div class="mt-3 mt-md-0 text-md-end">
+                <span class="badge bg-secondary p-2">Weekly Executive Summary</span>
+            </div>
+        </header>
+
+        <!-- KPI Grid Summary -->
+        <h2 class="section-title">Performance at a Glance</h2>
+        <div class="kpi-container">
+            <!-- Web Card -->
+            <div class="search-type-card card-web">
+                <div class="search-type-header">
+                    <h3 class="search-type-title">Web Search</h3>
+                    <span class="metric-badge badge-web">Web</span>
+                </div>
+                {% if web_metrics.empty %}
+                    <p class="text-muted">No Web Search traffic recorded.</p>
+                {% else %}
+                    <div class="metric-row">
+                        <span class="metric-label">Total Clicks</span>
+                        <div class="metric-value">
+                            {{ web_metrics.clicks | comma_format }}
+                            {{ web_metrics.clicks_delta | delta_pill | safe }}
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Total Impressions</span>
+                        <div class="metric-value">
+                            {{ web_metrics.impressions | comma_format }}
+                            {{ web_metrics.impressions_delta | delta_pill | safe }}
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Average CTR</span>
+                        <div class="metric-value">
+                            {{ web_metrics.ctr | pct_format }}
+                            {{ web_metrics.ctr_delta | delta_pill(is_pct_pts=True) | safe }}
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Average Position</span>
+                        <div class="metric-value">
+                            {{ web_metrics.position | float_format }}
+                            {{ web_metrics.position_delta | delta_pill(is_pos=True) | safe }}
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Unique Pages</span>
+                        <div class="metric-value">
+                            {{ web_metrics.pages | comma_format }}
+                            {{ web_metrics.pages_delta | delta_pill | safe }}
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Unique Queries</span>
+                        <div class="metric-value">
+                            {{ web_metrics.queries | comma_format }}
+                            {{ web_metrics.queries_delta | delta_pill | safe }}
+                        </div>
+                    </div>
+                    {% if web_metrics.best_performing_page %}
+                        <div class="best-performing-box">
+                            <div class="best-performing-label">Best Performing Article</div>
+                            <a href="{{ web_metrics.best_performing_page }}" target="_blank" class="best-performing-link" title="{{ web_metrics.best_performing_page }}">
+                                {{ web_metrics.best_performing_page }}
+                            </a>
+                            <div class="best-performing-clicks">
+                                <strong>{{ web_metrics.best_performing_clicks | comma_format }}</strong> clicks
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <!-- Discover Card -->
+            <div class="search-type-card card-discover">
+                <div class="search-type-header">
+                    <h3 class="search-type-title">Google Discover</h3>
+                    <span class="metric-badge badge-discover">Discover</span>
+                </div>
+                {% if discover_metrics.empty %}
+                    <p class="text-muted">No Google Discover traffic recorded.</p>
+                {% else %}
+                    <div class="metric-row">
+                        <span class="metric-label">Total Clicks</span>
+                        <div class="metric-value">
+                            {{ discover_metrics.clicks | comma_format }}
+                            {{ discover_metrics.clicks_delta | delta_pill | safe }}
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Total Impressions</span>
+                        <div class="metric-value">
+                            {{ discover_metrics.impressions | comma_format }}
+                            {{ discover_metrics.impressions_delta | delta_pill | safe }}
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Average CTR</span>
+                        <div class="metric-value">
+                            {{ discover_metrics.ctr | pct_format }}
+                            {{ discover_metrics.ctr_delta | delta_pill(is_pct_pts=True) | safe }}
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Unique Pages</span>
+                        <div class="metric-value">
+                            {{ discover_metrics.pages | comma_format }}
+                            {{ discover_metrics.pages_delta | delta_pill | safe }}
+                        </div>
+                    </div>
+                    {% if discover_metrics.best_performing_page %}
+                        <div class="best-performing-box">
+                            <div class="best-performing-label">Best Performing Article</div>
+                            <a href="{{ discover_metrics.best_performing_page }}" target="_blank" class="best-performing-link" title="{{ discover_metrics.best_performing_page }}">
+                                {{ discover_metrics.best_performing_page }}
+                            </a>
+                            <div class="best-performing-clicks">
+                                <strong>{{ discover_metrics.best_performing_clicks | comma_format }}</strong> clicks
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <!-- News Card -->
+            <div class="search-type-card card-news">
+                <div class="search-type-header">
+                    <h3 class="search-type-title">Google News</h3>
+                    <span class="metric-badge badge-news">News</span>
+                </div>
+                {% if news_metrics.empty %}
+                    <p class="text-muted">No Google News traffic recorded.</p>
+                {% else %}
+                    <div class="metric-row">
+                        <span class="metric-label">Total Clicks</span>
+                        <div class="metric-value">
+                            {{ news_metrics.clicks | comma_format }}
+                            {{ news_metrics.clicks_delta | delta_pill | safe }}
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Total Impressions</span>
+                        <div class="metric-value">
+                            {{ news_metrics.impressions | comma_format }}
+                            {{ news_metrics.impressions_delta | delta_pill | safe }}
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Average CTR</span>
+                        <div class="metric-value">
+                            {{ news_metrics.ctr | pct_format }}
+                            {{ news_metrics.ctr_delta | delta_pill(is_pct_pts=True) | safe }}
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Average Position</span>
+                        <div class="metric-value">
+                            {{ news_metrics.position | float_format }}
+                            {{ news_metrics.position_delta | delta_pill(is_pos=True) | safe }}
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Unique Pages</span>
+                        <div class="metric-value">
+                            {{ news_metrics.pages | comma_format }}
+                            {{ news_metrics.pages_delta | delta_pill | safe }}
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Unique Queries</span>
+                        <div class="metric-value">
+                            {{ news_metrics.queries | comma_format }}
+                            {{ news_metrics.queries_delta | delta_pill | safe }}
+                        </div>
+                    </div>
+                    {% if news_metrics.best_performing_page %}
+                        <div class="best-performing-box">
+                            <div class="best-performing-label">Best Performing Article</div>
+                            <a href="{{ news_metrics.best_performing_page }}" target="_blank" class="best-performing-link" title="{{ news_metrics.best_performing_page }}">
+                                {{ news_metrics.best_performing_page }}
+                            </a>
+                            <div class="best-performing-clicks">
+                                <strong>{{ news_metrics.best_performing_clicks | comma_format }}</strong> clicks
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Copy-Paste Section for Email -->
+        {% if is_internal %}
+        <div class="copypaste-container">
+            <div class="copypaste-header">
+                <h2 class="copypaste-title">Email Report Template</h2>
+                <button class="btn btn-primary btn-sm" onclick="copyToClipboard()">Copy to Clipboard</button>
+            </div>
+            <p class="text-muted small">This is formatted exactly as requested. Click "Copy to Clipboard" to paste directly into your email program (Outlook, Gmail, etc.) to share with stakeholders.</p>
+            <textarea id="emailText" class="copypaste-area" readonly>{{ email_summary_text }}</textarea>
+        </div>
+        {% endif %}
+
+        <!-- Top Pages Tables -->
+        <h2 class="section-title mt-5">Top Stories Performance Details</h2>
+        
+        <div class="row">
+            <!-- Top Web Pages -->
+            <div class="col-xl-6 mb-4">
+                <div class="top-pages-section">
+                    <h3 class="search-type-title mb-3">Top Web Stories (by Clicks)</h3>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Page</th>
+                                    <th class="text-end">Clicks</th>
+                                    <th class="text-end">Impressions</th>
+                                    <th class="text-end">CTR</th>
+                                    <th class="text-end">Pos</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if web_top_pages %}
+                                    {% for row in web_top_pages %}
+                                        <tr>
+                                            <td class="page-link-cell"><a href="{{ row.page }}" target="_blank" title="{{ row.page }}">{{ row.page }}</a></td>
+                                            <td class="text-end font-monospace">{{ row.clicks | comma_format(is_int=True) }}</td>
+                                            <td class="text-end font-monospace">{{ row.impressions | comma_format(is_int=True) }}</td>
+                                            <td class="text-end font-monospace">{{ row.ctr | pct_format }}</td>
+                                            <td class="text-end font-monospace">{{ row.position | float_format }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr><td colspan="5" class="text-center text-muted">No Web pages data.</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Discover Pages -->
+            <div class="col-xl-6 mb-4">
+                <div class="top-pages-section">
+                    <h3 class="search-type-title mb-3">Top Discover Stories (by Clicks)</h3>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Page</th>
+                                    <th class="text-end">Clicks</th>
+                                    <th class="text-end">Impressions</th>
+                                    <th class="text-end">CTR</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if discover_top_pages %}
+                                    {% for row in discover_top_pages %}
+                                        <tr>
+                                            <td class="page-link-cell"><a href="{{ row.page }}" target="_blank" title="{{ row.page }}">{{ row.page }}</a></td>
+                                            <td class="text-end font-monospace">{{ row.clicks | comma_format(is_int=True) }}</td>
+                                            <td class="text-end font-monospace">{{ row.impressions | comma_format(is_int=True) }}</td>
+                                            <td class="text-end font-monospace">{{ row.ctr | pct_format }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr><td colspan="4" class="text-center text-muted">No Discover pages data.</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top News Pages -->
+            <div class="col-xl-6 mb-4">
+                <div class="top-pages-section">
+                    <h3 class="search-type-title mb-3">Top News Stories (by Clicks)</h3>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Page</th>
+                                    <th class="text-end">Clicks</th>
+                                    <th class="text-end">Impressions</th>
+                                    <th class="text-end">CTR</th>
+                                    <th class="text-end">Pos</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if news_top_pages %}
+                                    {% for row in news_top_pages %}
+                                        <tr>
+                                            <td class="page-link-cell"><a href="{{ row.page }}" target="_blank" title="{{ row.page }}">{{ row.page }}</a></td>
+                                            <td class="text-end font-monospace">{{ row.clicks | comma_format(is_int=True) }}</td>
+                                            <td class="text-end font-monospace">{{ row.impressions | comma_format(is_int=True) }}</td>
+                                            <td class="text-end font-monospace">{{ row.ctr | pct_format }}</td>
+                                            <td class="text-end font-monospace">{{ row.position | float_format }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr><td colspan="5" class="text-center text-muted">No News pages data.</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Report generated on <strong>{{ generation_date }}</strong>. Powered by <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank" style="color: var(--primary-color); font-weight:600;">gsc-exporter</a></p>
+        </footer>
+    </div>
+
+    {% if is_internal %}
+    <script>
+        function copyToClipboard() {
+            var copyText = document.getElementById("emailText");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); /* For mobile devices */
+            
+            try {
+                var successful = document.execCommand('copy');
+                var msg = successful ? 'copied!' : 'unsuccessful';
+                alert('Email report summary ' + msg);
+            } catch (err) {
+                alert('Oops, unable to copy');
+            }
+        }
+    </script>
+    {% endif %}
+</body>
+</html>
