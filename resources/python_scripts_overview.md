@@ -40,7 +40,7 @@ These scripts provide helper functions, automation, or alternative ways to run r
 *   **`interactive-runner.py`**: An interactive CLI tool that guides you through selecting a property and a report.
 *   **`show_available_domains.py`**: Lists all properties in your account, grouped by root domain.
 *   **`show_data_range.py`**: Displays the first and last available data dates for a Google Search Console property.
-*   **`cache_warmer.py`**: Proactively fetches and caches Google Search Console data for multiple sites to prime 'Golden Caches' (Page, Query, Page+Query, and Date) for 16 months.
+*   **`cache_warmer.py`**: Proactively fetches and caches Google Search Console data for multiple sites to prime 'Golden Caches' (Page, Query, Page+Query, and Date) for 16 months. Automatically caps multi-dimensional granular queries to a default of 100,000 rows to prevent API pagination lag (configurable via the `--max-rows` flag).
 *   **`generate_cache_inventory.py`**: Generates an inventory of cached data to track storage usage and coverage.
 *   **`monthly_cache_manager.py`**: Helper utility for managing the monthly cache directory and files.
 *   **`auth-cloud-shell.py`**: Authenticates GSC Exporter specifically for Google Cloud Shell environments, allowing custom token naming.

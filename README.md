@@ -70,6 +70,7 @@ Prime the cache for your sites (defaulting to 16 months of historical data).
 ```bash
 python utilities/cache_warmer.py --file site-lists/sites.txt
 ```
+*Note: For multi-dimensional granular queries (like the page-query mapping), the cache warmer automatically caps the result to a default of 100,000 rows per month to prevent API pagination latency. You can adjust or disable this using the `--max-rows` flag (e.g., `--max-rows 50000` or `--max-rows 0` for unlimited).*
 
 ### 2. Run Batch Reports
 Execute the suite of standard reports for the last calendar month using the batch runner. Because the cache is warmed, this step will execute almost instantly.
