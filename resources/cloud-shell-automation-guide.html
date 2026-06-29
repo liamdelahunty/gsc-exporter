@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Step-by-step guide to running Google Search Console caching and reporting tasks inside Google Cloud Shell.">
+  <title>GSC Exporter - Cloud Shell Quickstart Guide</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #f9fafb;
+      --card-bg: #ffffff;
+      --card-border: #e5e7eb;
+      --text-color: #1f2937;
+      --text-muted: #4b5563;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --accent: #059669;
+      --warning: #d97706;
+      --gradient: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      --code-bg: #f3f4f6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding: 3rem 2rem;
+      background: var(--gradient);
+      border-radius: 16px;
+      border: 1px solid #bfdbfe;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: #1e3a8a;
+      letter-spacing: -0.025em;
+    }
+
+    header p {
+      font-size: 1.1rem;
+      color: #1d4ed8;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .intro-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .intro-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background-color: var(--primary);
+    }
+
+    h2 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: #111827;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    p {
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    a.btn {
+      display: inline-block;
+      background-color: var(--primary);
+      color: #ffffff;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+      margin: 0.5rem 0;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    a.btn:hover {
+      background-color: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+      min-width: 0; /* Prevents grid items from expanding past their tracks */
+    }
+
+    .step-list {
+      list-style-type: none;
+      margin-top: 1.5rem;
+    }
+
+    .step-list li {
+      position: relative;
+      padding-left: 2.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .step-list li::before {
+      content: attr(data-step);
+      position: absolute;
+      left: 0;
+      top: 0.1rem;
+      width: 1.75rem;
+      height: 1.75rem;
+      background-color: var(--primary);
+      color: #ffffff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .step-list strong {
+      color: #111827;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    pre {
+      background-color: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.9rem;
+      white-space: pre-wrap;       /* CSS3 */
+      white-space: -moz-pre-wrap;  /* Firefox */
+      white-space: -pre-wrap;      /* Opera <7 */
+      white-space: -o-pre-wrap;    /* Opera 7 */
+      word-wrap: break-word;       /* Internet Explorer 5.5+ */
+      max-width: 100%;
+    }
+
+    code {
+      color: #7c3aed;
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: 600;
+    }
+
+    pre code {
+      color: #1f2937;
+      font-weight: normal;
+    }
+
+    .alert {
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      margin: 1.5rem 0;
+      border-left: 4px solid;
+    }
+
+    .alert-important {
+      background-color: rgba(239, 68, 68, 0.05);
+      border-color: #ef4444;
+      color: #991b1b;
+    }
+
+    .alert-tip {
+      background-color: rgba(16, 185, 129, 0.05);
+      border-color: var(--accent);
+      color: #065f46;
+    }
+
+    .diagram-container {
+      background-color: #ffffff;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      display: flex;
+      justify-content: center;
+      box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .nav-links {
+      margin-top: 2rem;
+      border-top: 1px solid var(--card-border);
+      padding-top: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .nav-links a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+
+    .nav-links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+  <!-- Load Mermaid JS to render workflow charts directly -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'default' });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Cloud Shell Quickstart Guide</h1>
+      <p>A step-by-step visual workflow and helper guide to run Google Search Console caching and reports inside Google Cloud Shell.</p>
+    </header>
+
+    <div class="intro-card">
+      <h2>Introduction</h2>
+      <p>Google Cloud Shell provides an command-line workspace that runs in your browser. Since Cloud Shell does not support opening browser windows automatically to handle Google OAuth, you must use our custom script helper to authorise GSC API access manually.</p>
+      <p>Follow the steps below to configure your Cloud Shell workspace and gather cache files automatically.</p>
+    </div>
+
+    <!-- Workflow Diagram Card -->
+    <div class="card">
+      <h2>Visual Workflow</h2>
+      <div class="diagram-container">
+        <pre class="mermaid" style="background: none; border: none; padding: 0;">
+graph TD
+    A["Start Cloud Shell<br>(shell.cloud.google.com)"] --> B["Open Repository<br>(gsc-exporter)"]
+    B --> C["Run Setup & dependencies<br>(.venv setup)"]
+    C --> D{"Is config/token.json present?"}
+    D -- "No" --> E["Run auth-cloud-shell.py"]
+    E --> F["Go to OAuth URL in browser<br>& copy authorization code"]
+    F --> G["Paste code to save token.json"]
+    D -- "Yes" --> H["Read site list<br>(site-lists/sites.txt)"]
+    G --> H
+    H --> I["Run cache_warmer.py<br>(Fetch GSC API data)"]
+    I --> J["Run generate_cache_inventory.py<br>(Scan cache & list gaps)"]
+    J --> K{"Generate reports?"}
+    K -- "Yes" --> L["Run run-monthly-reports.py<br>(Output HTML & CSV)"]
+    K -- "No" --> M["Workflow Complete"]
+    L --> M
+        </pre>
+      </div>
+    </div>
+
+    <!-- Installation Card -->
+    <div class="card">
+      <h2>Step-by-Step Setup</h2>
+      
+      <a href="https://shell.cloud.google.com" target="_blank" class="btn">Open Google Cloud Shell</a>
+
+      <ol class="step-list">
+        <li data-step="1">
+          <strong>Prepare Environment</strong>
+          Log into Cloud Shell and navigate to your project directory. Setup a Python virtual environment and install all dependencies:
+          <pre><code>cd ~/gsc-exporter
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt</code></pre>
+        </li>
+        <li data-step="2">
+          <strong>Authorise GSC Access</strong>
+          Because Cloud Shell runs on a remote server, execute our specialized authorisation script:
+          <pre><code>python utilities/auth-cloud-shell.py</code></pre>
+          Follow the terminal steps:
+          <ul>
+            <li>Open the printed URL in your browser.</li>
+            <li>Select the Google Account having GSC permissions and grant access.</li>
+            <li>Copy the code parameter from the address bar of the redirected browser tab (the text after <code>code=</code>).</li>
+            <li>Paste this back into your Cloud Shell terminal.</li>
+          </ul>
+        </li>
+        <li data-step="3">
+          <strong>Define Sites List</strong>
+          Create or edit the <code>site-lists/sites.txt</code> file in your workspace to list the GSC properties you wish to manage (one URL per line):
+          <pre><code># Example format:
+sc-domain:example.com
+https://www.example.com/</code></pre>
+        </li>
+        <li data-step="4">
+          <strong>Execute Caching and Reporting</strong>
+          Run the custom automation shell script to warm your GSC cache and check cache completeness automatically:
+          <pre><code>./cloud-shell-automate.sh</code></pre>
+          You can also run it silently with no user input using command arguments:
+          <pre><code>./cloud-shell-automate.sh --non-interactive --run-reports</code></pre>
+        </li>
+      </ol>
+
+      <div class="alert alert-important">
+        <strong>Warning:</strong> Remember that Cloud Shell will automatically shut down after 20–30 minutes of inactivity. Do not close your browser tab while the cache warmer is running.
+      </div>
+    </div>
+
+    <div class="nav-links">
+      <a href="gsc-exporter-automation-guide.html">← Go to GSC Automation Alternatives Guide</a>
+      <a href="../README.md">Main Project Documentation →</a>
+    </div>
+  </div>
+</body>
+</html>

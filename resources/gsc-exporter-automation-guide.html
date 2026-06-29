@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">s 
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Step-by-step idiot-proof guide to automating Google Search Console caching and reporting using Google Cloud Platform (GCP) Compute Engine and Cloud Run.">
+  <title>GSC Exporter - Cloud Automation Guide</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #f9fafb;
+      --card-bg: #ffffff;
+      --card-border: #e5e7eb;
+      --text-color: #1f2937;
+      --text-muted: #4b5563;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent: #059669;
+      --warning: #d97706;
+      --gradient: linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%);
+      --code-bg: #f3f4f6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding: 3rem 2rem;
+      background: var(--gradient);
+      border-radius: 16px;
+      border: 1px solid #c7d2fe;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: #312e81;
+      letter-spacing: -0.025em;
+    }
+
+    header p {
+      font-size: 1.1rem;
+      color: #4338ca;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .intro-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .intro-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background-color: var(--primary);
+    }
+
+    h2 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: #111827;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    h3 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+      color: #111827;
+    }
+
+    p {
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    a.btn {
+      display: inline-block;
+      background-color: var(--primary);
+      color: #ffffff;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+      margin: 0.5rem 0;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    a.btn:hover {
+      background-color: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    @media (min-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      min-width: 0; /* Prevents grid items from expanding past their tracks */
+    }
+
+    .card:hover {
+      border-color: #d1d5db;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .step-list {
+      list-style-type: none;
+      margin-top: 1.5rem;
+    }
+
+    .step-list li {
+      position: relative;
+      padding-left: 2.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .step-list li::before {
+      content: attr(data-step);
+      position: absolute;
+      left: 0;
+      top: 0.1rem;
+      width: 1.75rem;
+      height: 1.75rem;
+      background-color: var(--primary);
+      color: #ffffff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .step-list strong {
+      color: #111827;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    pre {
+      background-color: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.9rem;
+      white-space: pre-wrap;       /* CSS3 */
+      white-space: -moz-pre-wrap;  /* Firefox */
+      white-space: -pre-wrap;      /* Opera <7 */
+      white-space: -o-pre-wrap;    /* Opera 7 */
+      word-wrap: break-word;       /* Internet Explorer 5.5+ */
+      max-width: 100%;
+    }
+
+    code {
+      color: #7c3aed;
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: 600;
+    }
+
+    pre code {
+      color: #1f2937;
+      font-weight: normal;
+    }
+
+    .alert {
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      margin: 1.5rem 0;
+      border-left: 4px solid;
+    }
+
+    .alert-important {
+      background-color: rgba(239, 68, 68, 0.05);
+      border-color: #ef4444;
+      color: #991b1b;
+    }
+
+    .alert-tip {
+      background-color: rgba(16, 185, 129, 0.05);
+      border-color: var(--accent);
+      color: #065f46;
+    }
+
+    .nav-links {
+      margin-top: 2rem;
+      border-top: 1px solid var(--card-border);
+      padding-top: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .nav-links a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+
+    .nav-links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>GSC Exporter Automation Guide</h1>
+      <p>A comprehensive, step-by-step guide to setting up automated, persistent Google Search Console caching and reporting tasks in Google Cloud Platform (GCP).</p>
+    </header>
+
+    <div class="intro-card">
+      <h2>Why Can't We Use Google Cloud Shell?</h2>
+      <p>While Google Cloud Shell is a fantastic environment for manual runs and configuration, it automatically shuts down after <strong>20 to 30 minutes of user inactivity</strong>. When the container goes to sleep, any scheduled background cron jobs are halted.</p>
+      <p>To run caching and reporting tasks automatically (such as every week or month), you must run them on a persistent platform. Below are two fully documented, idiot-proof options.</p>
+    </div>
+
+    <div class="grid">
+      <!-- Option 1: Compute Engine -->
+      <div class="card">
+        <h2>Option 1: 24/7 VM</h2>
+        <p>This is the simplest option. It runs a full virtual machine in the cloud that stays active 24/7. It is <strong>100% free</strong> if you select the E2-micro VM size which qualifies for the GCP Free Tier.</p>
+        
+        <a href="https://console.cloud.google.com/compute/instances" target="_blank" class="btn">Open Compute Engine Console</a>
+
+        <ol class="step-list">
+          <li data-step="1">
+            <strong>Create the VM Instance</strong>
+            Log into the Google Cloud Console and click "Create Instance". Name your VM (e.g., <code>gsc-exporter-vm</code>).
+          </li>
+          <li data-step="2">
+            <strong>Configure Free Tier Hardware</strong>
+            Choose one of these US Regions: <code>us-central1 (Iowa)</code>, <code>us-east1 (S. Carolina)</code>, or <code>us-west1 (Oregon)</code>.<br>
+            Under Machine configuration, select <strong>E2</strong> -> <strong>e2-micro</strong>. (This machine size has 1GB RAM, which is completely free).
+          </li>
+          <li data-step="3">
+            <strong>Set Boot Disk</strong>
+            Keep the default <code>Debian GNU/Linux</code> boot disk. Ensure the disk size does not exceed 30 GB to stay inside the Free Tier limits.
+          </li>
+          <li data-step="4">
+            <strong>Configure API Access Scopes</strong>
+            Under "Identity and API access", select <strong>Allow full access to all Cloud APIs</strong>. This enables easy API operations. Click <strong>Create</strong>.
+          </li>
+          <li data-step="5">
+            <strong>SSH Connect and Install Software</strong>
+            Once the VM starts, click the <strong>SSH</strong> button next to its name. In the terminal window that opens, paste these setup commands:
+            <pre><code>sudo apt-get update
+sudo apt-get install -y git python3-pip python3-venv
+git clone https://github.com/liamvictor/gsc-exporter.git ~/gsc-exporter
+cd ~/gsc-exporter
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt</code></pre>
+          </li>
+          <li data-step="6">
+            <strong>Upload Authentication Tokens</strong>
+            You must copy your authenticated <code>config/token.json</code> and <code>config/client_secret.json</code> files from your local workspace or Cloud Shell onto this VM. You can use the VM's SSH window "Upload File" tool to place them into the <code>~/gsc-exporter/config/</code> directory.
+          </li>
+          <li data-step="7">
+            <strong>Schedule with Cron</strong>
+            Open your user crontab configuration editor:
+            <pre><code>crontab -e</code></pre>
+            If prompted, select <code>nano</code> (option 1) as the editor. Scroll to the bottom and paste this cron rule to execute the automation script every Monday at 4:00 AM:
+            <pre><code>0 4 * * 1 /bin/bash /home/username/gsc-exporter/cloud-shell-automate.sh --non-interactive --run-reports >> /home/username/gsc-exporter/cache-run.log 2>&1</code></pre>
+            <em>(Make sure you replace <code>username</code> with your actual Linux user name).</em> Save the file by pressing <code>Ctrl+O</code>, <code>Enter</code>, and exit with <code>Ctrl+X</code>.
+          </li>
+        </ol>
+
+        <div class="alert alert-tip">
+          <strong>Tip:</strong> The E2-micro VM running Debian will consume zero credits and run your scheduler script indefinitely. You can review execution details in the <code>cache-run.log</code> file.
+        </div>
+      </div>
+
+      <!-- Option 2: Cloud Run -->
+      <div class="card">
+        <h2>Option 2: Cloud Run + Scheduler</h2>
+        <p>This is a serverless option. The script is packaged into a container. It runs only when triggered and scales down to zero, costing nothing unless your run duration exceeds GCP free quotas.</p>
+
+        <a href="https://console.cloud.google.com/run" target="_blank" class="btn">Open Cloud Run Console</a>
+
+        <ol class="step-list">
+          <li data-step="1">
+            <strong>Enable GCP Services</strong>
+            In your Cloud Shell, run this command to enable the required Build, Registry, Run, and Scheduler APIs:
+            <pre><code>gcloud services enable \
+  cloudbuild.googleapis.com \
+  artifactregistry.googleapis.com \
+  run.googleapis.com \
+  cloudscheduler.googleapis.com</code></pre>
+          </li>
+          <li data-step="2">
+            <strong>Create a Dockerfile</strong>
+            Create a file named <code>Dockerfile</code> in your project root with these exact contents:
+            <pre><code>FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+ENTRYPOINT ["/bin/bash", "./cloud-shell-automate.sh", "--non-interactive", "--run-reports"]</code></pre>
+          </li>
+          <li data-step="3">
+            <strong>Build Container Image</strong>
+            Submit a build request to Google Cloud Build to create your Docker container and store it in Artifact Registry:
+            <pre><code>gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/gsc-exporter</code></pre>
+            <em>(Replace <code>YOUR_PROJECT_ID</code> with your active Google Cloud project ID).</em>
+          </li>
+          <li data-step="4">
+            <strong>Deploy a Cloud Run Job</strong>
+            Go to the Cloud Run Console, click "Create Job" (do not select service, select <strong>Job</strong> because this is a background script, not a web server). Select your built container image. Set the timeout to <code>1800</code> seconds to allow large properties to cache.
+          </li>
+          <li data-step="5">
+            <strong>Create Cloud Scheduler Trigger</strong>
+            Go to <a href="https://console.cloud.google.com/cloudscheduler" target="_blank" style="color: #2563eb;">Cloud Scheduler Console</a> and click "Create Job".
+            <ul>
+              <li><strong>Frequency:</strong> <code>0 4 * * 1</code> (Every Monday at 4:00 AM)</li>
+              <li><strong>Target type:</strong> HTTP</li>
+              <li><strong>URL:</strong> The Cloud Run Job execution URL (from your Job settings page)</li>
+              <li><strong>HTTP Method:</strong> POST</li>
+              <li><strong>Auth Header:</strong> Add OIDC Token and select a service account with Cloud Run Invoker permissions.</li>
+            </ul>
+          </li>
+        </ol>
+
+        <div class="alert alert-important">
+          <strong>Important:</strong> Keep your <code>client_secret.json</code> and <code>token.json</code> packaged securely inside the built container image. Ensure the Artifact Registry repository remains private.
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-links">
+      <a href="cloud-shell-automation-guide.html">← Back to Cloud Shell Guide</a>
+      <a href="../README.md">Main Project Documentation →</a>
+    </div>
+  </div>
+</body>
+</html>
