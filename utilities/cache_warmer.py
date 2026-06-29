@@ -29,7 +29,7 @@ GOLDEN_DIMENSIONS = [
     (['page', 'query'], "Page-Query Mapping (Granular)")
 ]
 
-def warm_site(service, site_url, lookback_months=16):
+def warm_site(service, site_url, lookback_months=16, max_rows=100000):
     """Primes all golden dimension caches for a single site."""
     print(f"\n{'='*60}")
     print(f"WARMING CACHE FOR: {site_url}")
@@ -66,8 +66,10 @@ def warm_site(service, site_url, lookback_months=16):
     for dims, label in GOLDEN_DIMENSIONS:
         print(f"\n>>> Priming {label} (Dimensions: {dims})...")
         try:
+            # Cap the multi-dimensional (granular) mapping to prevent pagination latency issues
+            chunk_max_rows = max_rows if len(dims) > 1 else None
             # fetch_with_cache handles the monthly fragmentation and local saving
-            fetch_with_cache(service, site_url, start_date, end_date, dims, label=f"Warming {label}")
+            fetch_with_cache(service, site_url, start_date, end_date, dims, label=f"Warming {label}", max_rows=chunk_max_rows)
         except Exception as e:
             print(f"  [!] Error warming {label}: {e}")
 
@@ -76,6 +78,7 @@ def main():
     parser.add_argument('sites', nargs='*', help='Individual site URLs to warm.')
     parser.add_argument('--file', help='Path to a text file containing site URLs.')
     parser.add_argument('--months', type=int, default=16, help='Number of months to look back (default 16).')
+    parser.add_argument('--max-rows', type=int, default=100000, help='Maximum rows to fetch per month for multi-dimensional granular data (default 100000).')
     
     args = parser.parse_args()
     
@@ -100,7 +103,7 @@ def main():
     print(f"Starting Cache Warmer for {len(site_list)} sites...")
     
     for site in site_list:
-        warm_site(service, site, args.months)
+        warm_site(service, site, args.months, args.max_rows)
         
     print(f"\n{'='*60}")
     print("CACHE WARMING COMPLETE")

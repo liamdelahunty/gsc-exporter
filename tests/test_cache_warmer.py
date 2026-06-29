@@ -29,7 +29,8 @@ def test_warm_site(mocker):
         '2025-02-01', 
         '2026-05-31', 
         ['date'], 
-        label="Warming Daily Totals"
+        label="Warming Daily Totals",
+        max_rows=None
     )
     
     # Check the granular mapping call
@@ -39,7 +40,8 @@ def test_warm_site(mocker):
         '2025-02-01', 
         '2026-05-31', 
         ['page', 'query'], 
-        label="Warming Page-Query Mapping (Granular)"
+        label="Warming Page-Query Mapping (Granular)",
+        max_rows=100000
     )
 
 def test_warm_site_with_adjustment(mocker):
@@ -69,7 +71,8 @@ def test_warm_site_with_adjustment(mocker):
         '2025-03-01', 
         '2026-05-31', 
         ['date'], 
-        label="Warming Daily Totals"
+        label="Warming Daily Totals",
+        max_rows=None
     )
 
 def test_warm_site_no_complete_months(mocker):

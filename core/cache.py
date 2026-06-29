@@ -61,7 +61,7 @@ def _get_monthly_chunks(start_date, end_date):
         
     return chunks
 
-def _fetch_from_api(service, site_url, start_date, end_date, dimensions, search_type='web', row_limit=10000):
+def _fetch_from_api(service, site_url, start_date, end_date, dimensions, search_type='web', row_limit=10000, max_rows=None):
     """Fetches performance data from GSC with pagination and retries."""
     all_data = []
     start_row = 0
@@ -89,6 +89,9 @@ def _fetch_from_api(service, site_url, start_date, end_date, dimensions, search_
                     if len(rows) < row_limit:
                         break
                     start_row += row_limit
+                    if max_rows and start_row >= max_rows:
+                        print(f"    - Reached maximum row limit of {max_rows} rows. Stopping fetch.")
+                        break
                 else:
                     break
                 success = True
@@ -120,7 +123,7 @@ def _fetch_from_api(service, site_url, start_date, end_date, dimensions, search_
         
     return df
 
-def fetch_with_cache(service, site_url, start_date, end_date, dimensions, search_type='web', label=None):
+def fetch_with_cache(service, site_url, start_date, end_date, dimensions, search_type='web', label=None, max_rows=None):
     """
     Fetches GSC data, using monthly fragmentation for the cache.
     Reassembles data from multiple months if necessary.
@@ -156,7 +159,7 @@ def fetch_with_cache(service, site_url, start_date, end_date, dimensions, search
             all_dfs.append(chunk_df)
         else:
             print(f"  - [{i+1}/{total_chunks}] {property_name} {full_label}: Fetching from GSC API: {cache_key}.")
-            chunk_df = _fetch_from_api(service, site_url, s_str, e_str, dimensions, search_type)
+            chunk_df = _fetch_from_api(service, site_url, s_str, e_str, dimensions, search_type, max_rows=max_rows)
             if not chunk_df.empty:
                 chunk_df.to_csv(csv_path, index=False)
                 metadata = {
