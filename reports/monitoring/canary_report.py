@@ -198,7 +198,7 @@ def run_report(args, service):
     
     os.makedirs(args.output_dir, exist_ok=True)
     output_path = os.path.join(args.output_dir, f"gsc-monitoring-{datetime.date.today().isoformat()}.html")
-    with open(output_path, 'w') as f:
+    with open(output_path, 'w', encoding='utf-8') as f:
         f.write(html_output)
     
     print(f"Report generated at: {output_path}")
