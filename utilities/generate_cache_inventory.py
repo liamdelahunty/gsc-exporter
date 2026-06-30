@@ -349,6 +349,22 @@ def generate_reports(site_evals, file_suffix, last_month_str, output_dir_str, fo
             f.write("  <div class='container'>\n")
             f.write(f"    <h1 class='mb-4'>GSC Cache Inventory - {last_month_str}</h1>\n")
             
+            # Export/Import instructions
+            f.write("    <div class='card p-4 mb-4'>\n")
+            f.write("      <h4 class='mb-2'>Backup and Transfer Caches</h4>\n")
+            f.write("      <p class='text-muted mb-3'>Use the export and import utility to move caches between environments (such as Google Cloud Shell and your local machine):</p>\n")
+            f.write("      <div class='row'>\n")
+            f.write("        <div class='col-md-6 mb-3 mb-md-0'>\n")
+            f.write("          <strong>Export Cache (creates an archive of local caches):</strong>\n")
+            f.write("          <code class='d-block p-2 mt-1'>python utilities/cache_exporter.py export --output my-gsc-cache.tar.gz</code>\n")
+            f.write("        </div>\n")
+            f.write("        <div class='col-md-6'>\n")
+            f.write("          <strong>Import Cache (extracts an archive into local folder):</strong>\n")
+            f.write("          <code class='d-block p-2 mt-1'>python utilities/cache_exporter.py import --archive my-gsc-cache.tar.gz</code>\n")
+            f.write("        </div>\n")
+            f.write("      </div>\n")
+            f.write("    </div>\n")
+            
             # Overview Panel
             f.write("    <div class='card p-4 mb-4'>\n")
             f.write("      <div class='row align-items-center'>\n")
