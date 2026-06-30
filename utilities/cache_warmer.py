@@ -91,7 +91,7 @@ def main():
     
     if args.file:
         if os.path.exists(args.file):
-            with open(args.file, 'r') as f:
+            with open(args.file, 'r', encoding='utf-8') as f:
                 site_list.extend([line.strip() for line in f if line.strip() and not line.strip().startswith('#')])
         else:
             print(f"Error: File '{args.file}' not found.")

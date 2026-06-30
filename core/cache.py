@@ -170,7 +170,7 @@ def fetch_with_cache(service, site_url, start_date, end_date, dimensions, search
                     'search_type': search_type,
                     'fetched_at': datetime.now().isoformat()
                 }
-                with open(json_path, 'w') as f:
+                with open(json_path, 'w', encoding='utf-8') as f:
                     json.dump(metadata, f, indent=4)
                 all_dfs.append(chunk_df)
 
