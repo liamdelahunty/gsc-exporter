@@ -20,7 +20,7 @@ def get_property_name(site_url: str) -> str:
     
     parsed = urlparse(site_url)
     if parsed.netloc:
-        return parsed.netloc
+        return parsed.netloc.lstrip(':')
     
     # Fallback for unexpected formats, ensuring we don't have colons in paths
     return site_url.strip('/').replace(':', '.')

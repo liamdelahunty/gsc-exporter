@@ -385,10 +385,18 @@ def generate_reports(site_evals, file_suffix, last_month_str, output_dir_str, fo
                     site_id = get_filename_slug(site)
                     total = len(site_evals[site]['months'])
                     ok_count = sum(1 for m in site_evals[site]['months'] if m['status'] == 'OK')
-                    badge_class = "bg-success" if ok_count == total else "bg-warning text-dark"
+                    if ok_count == total:
+                        badge_class = "bg-success"
+                        badge_text = f"{ok_count}/{total} OK"
+                    elif ok_count >= 12:
+                        badge_class = "bg-warning text-dark"
+                        badge_text = f"{ok_count}/{total}"
+                    else:
+                        badge_class = "bg-danger"
+                        badge_text = f"{ok_count}/{total}"
                     f.write(f"            <li class='toc-item' data-property='{site}'>")
                     f.write(f"<a href='#{site_id}'>{site}</a> ")
-                    f.write(f"<span class='badge {badge_class}'>{ok_count}/{total} OK</span></li>\n")
+                    f.write(f"<span class='badge {badge_class}'>{badge_text}</span></li>\n")
                 f.write("          </ul>\n")
                 f.write("        </div>\n")
                 
@@ -402,9 +410,18 @@ def generate_reports(site_evals, file_suffix, last_month_str, output_dir_str, fo
                 ok_count = sum(1 for m in data['months'] if m['status'] == 'OK')
                 
                 f.write(f"    <div class='card property-card' id='{site_id}' data-property='{site}'>\n")
+                if ok_count == total:
+                    card_badge_class = "bg-success"
+                    card_badge_text = f"{ok_count}/{total} OK"
+                elif ok_count >= 12:
+                    card_badge_class = "bg-warning text-dark"
+                    card_badge_text = f"{ok_count}/{total} Complete"
+                else:
+                    card_badge_class = "bg-danger"
+                    card_badge_text = f"{ok_count}/{total} Complete"
                 f.write("      <div class='card-header'>\n")
                 f.write(f"        <h2 class='m-0'>{site}</h2>\n")
-                f.write(f"        <span class='badge bg-secondary'>{ok_count}/{total} Complete</span>\n")
+                f.write(f"        <span class='badge {card_badge_class}'>{card_badge_text}</span>\n")
                 f.write("      </div>\n")
                 f.write("      <div class='card-body p-0'>\n")
                 f.write("        <table class='table table-striped table-hover mb-0'>\n")

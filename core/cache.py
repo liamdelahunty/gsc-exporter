@@ -140,7 +140,8 @@ def fetch_with_cache(service, site_url, start_date, end_date, dimensions, search
         
         # Create a unique key for this specific month/request
         dims = sorted(dimensions)
-        cache_key_content = f"{site_url}|{s_str}|{e_str}|{','.join(dims)}|{search_type}"
+        standardised_url = site_url.rstrip('/')
+        cache_key_content = f"{standardised_url}|{s_str}|{e_str}|{','.join(dims)}|{search_type}"
         cache_key = hashlib.md5(cache_key_content.encode()).hexdigest()
         
         csv_path, json_path = _get_cache_paths(cache_key, site_url)
