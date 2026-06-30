@@ -224,7 +224,7 @@ def generate_reports(site_evals, file_suffix, last_month_str, output_dir_str, fo
                 'Status': m['status'],
                 'Cached_Dimensions': ";".join(m['cached_labels']),
                 'Missing_Dimensions': ";".join(m['missing_labels']),
-                'Warming_Command': f"python utilities/cache_warmer.py {site}"
+                'Warming_Command': f"python utilities/cache_warmer.py --month {m['month']} {site}"
             })
             
     df = pd.DataFrame(flat_rows)
@@ -350,17 +350,18 @@ def generate_reports(site_evals, file_suffix, last_month_str, output_dir_str, fo
             f.write(f"    <h1 class='mb-4'>GSC Cache Inventory - {last_month_str}</h1>\n")
             
             # Export/Import instructions
+            today_str = datetime.date.today().strftime('%Y-%m-%d')
             f.write("    <div class='card p-4 mb-4'>\n")
             f.write("      <h4 class='mb-2'>Backup and Transfer Caches</h4>\n")
             f.write("      <p class='text-muted mb-3'>Use the export and import utility to move caches between environments (such as Google Cloud Shell and your local machine):</p>\n")
             f.write("      <div class='row'>\n")
             f.write("        <div class='col-md-6 mb-3 mb-md-0'>\n")
             f.write("          <strong>Export Cache (creates an archive of local caches):</strong>\n")
-            f.write("          <code class='d-block p-2 mt-1'>python utilities/cache_exporter.py export --output my-gsc-cache.tar.gz</code>\n")
+            f.write(f"          <code class='d-block p-2 mt-1'>python utilities/cache_exporter.py export --output gsc-cache-export-{today_str}.tar.gz</code>\n")
             f.write("        </div>\n")
             f.write("        <div class='col-md-6'>\n")
             f.write("          <strong>Import Cache (extracts an archive into local folder):</strong>\n")
-            f.write("          <code class='d-block p-2 mt-1'>python utilities/cache_exporter.py import --archive my-gsc-cache.tar.gz</code>\n")
+            f.write(f"          <code class='d-block p-2 mt-1'>python utilities/cache_exporter.py import gsc-cache-export-{today_str}.tar.gz</code>\n")
             f.write("        </div>\n")
             f.write("      </div>\n")
             f.write("    </div>\n")
@@ -435,8 +436,16 @@ def generate_reports(site_evals, file_suffix, last_month_str, output_dir_str, fo
                 else:
                     card_badge_class = "bg-danger"
                     card_badge_text = f"{ok_count}/{total} Complete"
-                f.write("      <div class='card-header'>\n")
-                f.write(f"        <h2 class='m-0'>{site}</h2>\n")
+                f.write("      <div class='card-header d-flex justify-content-between align-items-center flex-wrap gap-2'>\n")
+                f.write("        <div class='d-flex align-items-center flex-wrap gap-3'>\n")
+                f.write(f"          <h3 class='m-0'>{site}</h3>\n")
+                generic_cmd = f"python utilities/cache_warmer.py {site}"
+                generic_cmd_id = f"cmd-generic-{site_id}"
+                f.write(f"          <div class='d-inline-flex align-items-center gap-1'>\n")
+                f.write(f"            <code>{generic_cmd}</code>\n")
+                f.write(f"            <button class='btn btn-copy' id='{generic_cmd_id}' onclick=\"copyCommand('{generic_cmd}', '{generic_cmd_id}')\">Copy</button>\n")
+                f.write(f"          </div>\n")
+                f.write("        </div>\n")
                 f.write(f"        <span class='badge {card_badge_class}'>{card_badge_text}</span>\n")
                 f.write("      </div>\n")
                 f.write("      <div class='card-body p-0'>\n")
@@ -452,7 +461,7 @@ def generate_reports(site_evals, file_suffix, last_month_str, output_dir_str, fo
                     cached_str = ", ".join(m['cached_labels']) if m['cached_labels'] else "-"
                     missing_str = ", ".join(m['missing_labels']) if m['missing_labels'] else "-"
                     
-                    cmd = f"python utilities/cache_warmer.py {site}"
+                    cmd = f"python utilities/cache_warmer.py --month {m['month']} {site}"
                     cmd_id = f"cmd-{site_id}-{m['month']}"
                     
                     f.write(f"            <tr class='inventory-row' data-status='{status}'>\n")

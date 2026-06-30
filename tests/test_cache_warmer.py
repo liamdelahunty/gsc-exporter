@@ -97,3 +97,50 @@ def test_warm_site_no_complete_months(mocker):
     # Since start_date ('2025-03-01') > end_date ('2025-01-31'), fetch_with_cache should not be called
     assert mock_fetch.call_count == 0
 
+def test_warm_site_with_custom_dates(mocker):
+    # Mock core utilities
+    mock_latest = date(2026, 6, 14)
+    mocker.patch('utilities.cache_warmer.get_latest_available_date', return_value=mock_latest)
+    
+    # Mock fetch_with_cache
+    mock_fetch = mocker.patch('utilities.cache_warmer.fetch_with_cache')
+    
+    service = MagicMock()
+    site_url = 'sc-domain:example.com'
+    
+    warm_site(service, site_url, start_date_str='2026-04-01', end_date_str='2026-04-30')
+    
+    # Verify fetch_with_cache was called with the custom dates
+    assert mock_fetch.call_count == len(GOLDEN_DIMENSIONS)
+    mock_fetch.assert_any_call(
+        service, 
+        site_url, 
+        '2026-04-01', 
+        '2026-04-30', 
+        ['date'], 
+        label="Warming Daily Totals",
+        max_rows=None
+    )
+
+def test_parse_month():
+    from utilities.cache_warmer import parse_month
+    import argparse
+    
+    # Test valid month formats
+    start, end = parse_month("2026-05")
+    assert start == "2026-05-01"
+    assert end == "2026-05-31"
+    
+    start, end = parse_month("2024-02") # Leap year
+    assert start == "2024-02-01"
+    assert end == "2024-02-29"
+    
+    # Test invalid month formats
+    with pytest.raises(argparse.ArgumentTypeError):
+        parse_month("invalid-date")
+        
+    with pytest.raises(argparse.ArgumentTypeError):
+        parse_month("2026-13")
+
+
+

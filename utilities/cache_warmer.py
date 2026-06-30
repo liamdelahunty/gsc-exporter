@@ -5,7 +5,8 @@ Primes the 'Golden Caches' (Page, Query, Page+Query, and Date) for 16 months.
 import os
 import sys
 import argparse
-from datetime import date
+import calendar
+from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 
 # Add project root to path
@@ -29,7 +30,20 @@ GOLDEN_DIMENSIONS = [
     (['page', 'query'], "Page-Query Mapping (Granular)")
 ]
 
-def warm_site(service, site_url, lookback_months=16, max_rows=100000):
+def parse_month(month_str):
+    """Parses a YYYY-MM string and returns a tuple (start_date, end_date) of YYYY-MM-DD strings."""
+    if not month_str:
+        return None
+    try:
+        dt = datetime.strptime(month_str, "%Y-%m")
+        last_day = calendar.monthrange(dt.year, dt.month)[1]
+        start_date = f"{dt.year:04d}-{dt.month:02d}-01"
+        end_date = f"{dt.year:04d}-{dt.month:02d}-{last_day:02d}"
+        return start_date, end_date
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Invalid month format: '{month_str}'. Use YYYY-MM.")
+
+def warm_site(service, site_url, lookback_months=16, max_rows=100000, start_date_str=None, end_date_str=None):
     """Primes all golden dimension caches for a single site."""
     print(f"\n{'='*60}")
     print(f"WARMING CACHE FOR: {site_url}")
@@ -38,12 +52,16 @@ def warm_site(service, site_url, lookback_months=16, max_rows=100000):
     # 1. Determine Date Range
     latest = get_latest_available_date(service, site_url)
     
-    # Get the last complete month range to ensure we only cache full months
-    _, end_date = get_last_month_range(latest)
-    
-    # Get the start date for the lookback (e.g. 16 full months)
-    start_date, _ = get_month_range_lookback(end_date, lookback_months)
-    
+    if start_date_str and end_date_str:
+        start_date = start_date_str
+        end_date = end_date_str
+    else:
+        # Get the last complete month range to ensure we only cache full months
+        _, end_date = get_last_month_range(latest)
+        
+        # Get the start date for the lookback (e.g. 16 full months)
+        start_date, _ = get_month_range_lookback(end_date, lookback_months)
+        
     # Get the first available date of the property to avoid caching partial months
     first_avail = get_first_available_gsc_date(service, site_url, latest, verbose=False)
     if first_avail:
@@ -60,7 +78,10 @@ def warm_site(service, site_url, lookback_months=16, max_rows=100000):
         print(f"  - No complete calendar months available to warm (latest available date is {latest.strftime('%Y-%m-%d')}).")
         return
         
-    print(f"Lookback: {lookback_months} full months ({start_date} to {end_date})")
+    if start_date_str and end_date_str:
+        print(f"Date Range: {start_date} to {end_date}")
+    else:
+        print(f"Lookback: {lookback_months} full months ({start_date} to {end_date})")
     
     # 2. Iterate through Golden Dimensions
     for dims, label in GOLDEN_DIMENSIONS:
@@ -78,6 +99,7 @@ def main():
     parser.add_argument('sites', nargs='*', help='Individual site URLs to warm.')
     parser.add_argument('--file', help='Path to a text file containing site URLs.')
     parser.add_argument('--months', type=int, default=16, help='Number of months to look back (default 16).')
+    parser.add_argument('--month', type=parse_month, help='Target calendar month to warm (YYYY-MM).')
     parser.add_argument('--max-rows', type=int, default=100000, help='Maximum rows to fetch per month for multi-dimensional granular data (default 100000).')
     
     args = parser.parse_args()
@@ -102,8 +124,13 @@ def main():
         
     print(f"Starting Cache Warmer for {len(site_list)} sites...")
     
+    start_date = None
+    end_date = None
+    if args.month:
+        start_date, end_date = args.month
+        
     for site in site_list:
-        warm_site(service, site, args.months, args.max_rows)
+        warm_site(service, site, args.months, args.max_rows, start_date, end_date)
         
     print(f"\n{'='*60}")
     print("CACHE WARMING COMPLETE")

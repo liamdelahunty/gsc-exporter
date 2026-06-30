@@ -207,6 +207,13 @@ def main():
     import_parser = subparsers.add_parser("import", help="Import cache files from an archive")
     import_parser.add_argument(
         "archive",
+        nargs="?",
+        help="Path to the archive file to import (.tar.gz, .tgz, or .zip)"
+    )
+    import_parser.add_argument(
+        "-a", "--archive",
+        dest="archive_opt",
+        metavar="ARCHIVE",
         help="Path to the archive file to import (.tar.gz, .tgz, or .zip)"
     )
     import_parser.add_argument(
@@ -258,7 +265,11 @@ def main():
             sys.exit(1)
             
     elif args.command == "import":
-        archive_path = Path(args.archive).resolve()
+        archive_file = args.archive_opt or args.archive
+        if not archive_file:
+            import_parser.error("the following arguments are required: archive or -a/--archive")
+            
+        archive_path = Path(archive_file).resolve()
         if not archive_path.exists():
             print(f"Error: Archive file '{archive_path}' does not exist.")
             sys.exit(1)
