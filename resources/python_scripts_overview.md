@@ -42,7 +42,6 @@ These scripts provide helper functions, automation, or alternative ways to run r
 *   **`show_data_range.py`**: Displays the first and last available data dates for a Google Search Console property.
 *   **`cache_warmer.py`**: Proactively fetches and caches Google Search Console data for multiple sites to prime 'Golden Caches' (Page, Query, Page+Query, and Date) for 16 months. Automatically caps multi-dimensional granular queries to a default of 100,000 rows to prevent API pagination lag (configurable via the `--max-rows` flag).
 *   **`generate_cache_inventory.py`**: Generates an inventory of cached data to track storage usage and coverage.
-*   **`monthly_cache_manager.py`**: Helper utility for managing the monthly cache directory and files.
 *   **`auth-cloud-shell.py`**: Authenticates GSC Exporter specifically for Google Cloud Shell environments, allowing custom token naming.
 *   **`generate_brand_files.py`**: Automatically generates default brand-term configuration files for your sites.
 *   **`gsc_pages_exporter.py`**: Exports a simple, bulk list of all discovered pages for a date range.

@@ -169,10 +169,14 @@ def run_report(service, page_url, site_url=None, start_date=None, end_date=None,
     all_monthly_data = []
     base_end_dt = datetime.strptime(end_date, '%Y-%m-%d')
 
+    first_of_end_month = base_end_dt.replace(day=1)
     for i in range(months):
-        month_dt = base_end_dt - relativedelta(months=i)
+        month_dt = first_of_end_month - relativedelta(months=i)
         m_start = month_dt.strftime('%Y-%m-01')
-        m_end = (month_dt + relativedelta(months=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+        
+        import calendar
+        last_day = calendar.monthrange(month_dt.year, month_dt.month)[1]
+        m_end = f"{month_dt.year:04d}-{month_dt.month:02d}-{last_day:02d}"
         if i == 0:
             m_end = end_date # Respect exact end_date for the target month
         
