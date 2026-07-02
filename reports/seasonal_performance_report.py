@@ -66,10 +66,13 @@ def run_report(service, site_url, start_date, end_date, years=3):
 
     for i in range(years):
         year_dt = target_dt - relativedelta(years=i)
+        first_of_month = year_dt.replace(day=1)
         
         # Calculate start and end date for the month
-        m_start = year_dt.replace(day=1).strftime('%Y-%m-%d')
-        m_end = (year_dt + relativedelta(months=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+        m_start = first_of_month.strftime('%Y-%m-%d')
+        import calendar
+        last_day = calendar.monthrange(first_of_month.year, first_of_month.month)[1]
+        m_end = f"{first_of_month.year:04d}-{first_of_month.month:02d}-{last_day:02d}"
         if i == 0:
             m_end = end_date # Respect exact end_date for the target year
         
