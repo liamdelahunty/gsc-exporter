@@ -182,6 +182,98 @@ def select_report():
             return reports[choice]
         print("Invalid selection.")
 
+def prompt_for_run_arguments(service, selected_site, selected_report):
+    """
+    Guides the user to build the date range and optional parameters interactively,
+    and returns a list of command arguments.
+    """
+    from datetime import datetime, timedelta
+    from dateutil.relativedelta import relativedelta
+    from core.date_utils import get_latest_available_date
+    
+    # 1. Fetch latest GSC date for dynamic calendar options
+    latest_date = get_latest_available_date(service, selected_site)
+    
+    # 2. Build list of last 6 calendar months
+    first_of_this_month = latest_date.replace(day=1)
+    months_options = []
+    for i in range(1, 7):
+        m_start = first_of_this_month - relativedelta(months=i)
+        m_end = (first_of_this_month - relativedelta(months=i-1)) - timedelta(days=1)
+        month_name = m_start.strftime("%B %Y")
+        months_options.append((month_name, m_start.strftime("%Y-%m-%d"), m_end.strftime("%Y-%m-%d")))
+        
+    print("\nSelect Date Range Option:")
+    print("  1: Last completed calendar month (Calculated automatically by GSC)")
+    for idx, (name, _, _) in enumerate(months_options):
+        print(f"  {idx + 2}: Specific calendar month: {name}")
+    print(f"  8: Last 7 days")
+    print(f"  9: Custom date range (Specify start and end dates)")
+    
+    date_flags = []
+    while True:
+        try:
+            choice = input(f"Enter option (1-9): ").strip()
+            if not choice:
+                date_flags = ["--last-month"]
+                break
+            choice_val = int(choice)
+            if choice_val == 1:
+                date_flags = ["--last-month"]
+                break
+            elif 2 <= choice_val <= 7:
+                month_info = months_options[choice_val - 2]
+                date_flags = ["--start-date", month_info[1], "--end-date", month_info[2]]
+                print(f"Selected period: {month_info[0]} ({month_info[1]} to {month_info[2]})")
+                break
+            elif choice_val == 8:
+                date_flags = ["--last-7-days"]
+                break
+            elif choice_val == 9:
+                start_date = ""
+                while True:
+                    s_input = input("Enter start date (YYYY-MM-DD): ").strip()
+                    try:
+                        datetime.strptime(s_input, "%Y-%m-%d")
+                        start_date = s_input
+                        break
+                    except ValueError:
+                        print("Invalid date format. Please use YYYY-MM-DD.")
+                
+                end_date = ""
+                while True:
+                    e_input = input("Enter end date (YYYY-MM-DD): ").strip()
+                    try:
+                        datetime.strptime(e_input, "%Y-%m-%d")
+                        end_date = e_input
+                        break
+                    except ValueError:
+                        print("Invalid date format. Please use YYYY-MM-DD.")
+                date_flags = ["--start-date", start_date, "--end-date", end_date]
+                break
+            else:
+                print("Invalid selection. Please enter a number between 1 and 9.")
+        except ValueError:
+            print("Invalid input. Please enter a valid number.")
+
+    # 3. Show help text of report briefly to let the user see optional parameter flags
+    print(f"\nAvailable optional flags for {selected_report['name']}:")
+    try:
+        help_output = subprocess.check_output(["python", selected_report['file'], "--help"], text=True)
+        options_match = re.search(r'(options:|optional arguments:)(.*)', help_output, re.DOTALL | re.IGNORECASE)
+        if options_match:
+            print(options_match.group(2).strip())
+        else:
+            print("  (No complex flags found. Refer to script documentation.)")
+    except Exception:
+        print("  (Could not load parameter flags.)")
+        
+    print("\nEnter any additional arguments (e.g. limit or special parameters, or press Enter to skip):")
+    extra_input = input("Optional arguments: ").strip()
+    extra_flags = extra_input.split() if extra_input else []
+    
+    return date_flags + extra_flags
+
 def main():
     service = get_gsc_service()
     if not service:
@@ -194,32 +286,10 @@ def main():
         
     selected_report = select_report()
     
-    # Show available flags for the selected report
-    print(f"\nAvailable flags for {selected_report['name']}:")
-    try:
-        help_output = subprocess.check_output(["python", selected_report['file'], "--help"], text=True)
-        # Extract only the options section
-        options_match = re.search(r'(options:|optional arguments:)(.*)', help_output, re.DOTALL | re.IGNORECASE)
-        if options_match:
-            print(options_match.group(2).strip())
-        else:
-            print("  (Could not parse help message. Refer to script documentation.)")
-    except Exception:
-        print("  (Could not load flags for this report.)")
+    additional_flags = prompt_for_run_arguments(service, selected_site, selected_report)
     
-    print("\nEnter any additional flags (e.g., --start-date YYYY-MM-DD --end-date YYYY-MM-DD, or --last-month).")
-    additional_flags = input("Flags: ")
+    command = ["python", selected_report['file'], selected_site] + additional_flags
     
-    # Since all reports are now standardised, we encourage using at least one date flag
-    if not any(f in additional_flags for f in ['--start-date', '--end-date', '--last-month', '--lookback-months']):
-        print(f"\n[!] Note: All reports now support standard date flags. Defaulting to --last-month for consistency.")
-        additional_flags = "--last-month " + additional_flags
-
-    command = ["python", selected_report['file'], selected_site]
-    
-    if additional_flags:
-        command.extend(additional_flags.split())
-        
     print(f"\nRunning: {' '.join(command)}\n")
     subprocess.run(command)
 
