@@ -87,38 +87,95 @@ def select_property(sites):
 def select_report():
     """Displays a list of available reports and prompts the user to select one."""
     reports_dir = 'reports'
-    # Exclude special, once-off reports from the interactive runner
     exclude_files = {'drupal_dato_migration_analysis.py', 'generate_gsc_wrapped.py'}
-    report_files = sorted([
-        f for f in os.listdir(reports_dir) 
-        if f.endswith('.py') and f != '__init__.py' and f not in exclude_files
-    ])
     
+    categories = [
+        "High-Level Performance Summary Reports",
+        "Multi-Month Trend & Historical Analysis",
+        "Granular Pages & Queries Audits",
+        "Specialized Traffic & Search Type Dashboards",
+        "Seasonality & Spike Detection",
+        "Technical SEO & Editorial Utilities",
+        "Other Reports"
+    ]
+    
+    category_mapping = {
+        "snapshot_report.py": "High-Level Performance Summary Reports",
+        "performance_analysis.py": "High-Level Performance Summary Reports",
+        "monthly_summary_report.py": "High-Level Performance Summary Reports",
+        "historical_summary_report.py": "High-Level Performance Summary Reports",
+        
+        "key_performance_metrics.py": "Multi-Month Trend & Historical Analysis",
+        "page_performance_over_time.py": "Multi-Month Trend & Historical Analysis",
+        "page_performance_single_page.py": "Multi-Month Trend & Historical Analysis",
+        
+        "page_level_report.py": "Granular Pages & Queries Audits",
+        "gsc_pages_queries.py": "Granular Pages & Queries Audits",
+        "queries_pages_analysis.py": "Granular Pages & Queries Audits",
+        "keyword_cannibalisation_report.py": "Granular Pages & Queries Audits",
+        "query_position_analysis.py": "Granular Pages & Queries Audits",
+        "query_segmentation_report.py": "Granular Pages & Queries Audits",
+        "gsc_pages_exporter.py": "Granular Pages & Queries Audits",
+        
+        "consolidated_traffic_report.py": "Specialized Traffic & Search Type Dashboards",
+        "discover_key_performance_metrics.py": "Specialized Traffic & Search Type Dashboards",
+        "image_performance_report.py": "Specialized Traffic & Search Type Dashboards",
+        "search_type_performance.py": "Specialized Traffic & Search Type Dashboards",
+        "monthly_search_type_performance_report.py": "Specialized Traffic & Search Type Dashboards",
+        "search_appearance_report.py": "Specialized Traffic & Search Type Dashboards",
+        
+        "seasonal_performance_report.py": "Seasonality & Spike Detection",
+        "seasonal_page_spike_report.py": "Seasonality & Spike Detection",
+        "seasonal_query_spike_report.py": "Seasonality & Spike Detection",
+        
+        "sitemap_generator.py": "Technical SEO & Editorial Utilities",
+        "url_inspection_report.py": "Technical SEO & Editorial Utilities",
+        "weekly_editorial_summary_report.py": "Technical SEO & Editorial Utilities"
+    }
+
+    # Dynamically read all report files
+    all_files = [f for f in os.listdir(reports_dir) if f.endswith('.py') and f != '__init__.py' and f not in exclude_files]
+    
+    # Group files into categories
+    grouped_reports = {cat: [] for cat in categories}
+    for filename in all_files:
+        cat = category_mapping.get(filename, "Other Reports")
+        grouped_reports[cat].append(filename)
+        
+    # Sort files alphabetically inside each category
+    for cat in categories:
+        grouped_reports[cat].sort()
+        
     reports = {}
     print("\nAvailable Reports:")
     
-    for i, filename in enumerate(report_files):
-        file_path = os.path.join(reports_dir, filename)
-        
-        # Default name is the filename
-        doc_description = ""
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-                # Simple docstring extraction
-                match = re.search(r'"""\s*(.*?)\s*"""', content, re.DOTALL)
-                if match:
-                    doc = match.group(1).split('\n')[0].strip()
-                    if doc:
-                        doc_description = f" - {doc.rstrip('.')}"
-        except Exception:
-            pass
+    global_idx = 1
+    for cat in categories:
+        files_in_cat = grouped_reports[cat]
+        if not files_in_cat:
+            continue
             
-        display_name = f"{filename}{doc_description}"
-        key = str(i + 1)
-        reports[key] = {'name': filename, 'file': file_path}
-        print(f"  {key:2}: {display_name}")
-        
+        print(f"\n* {cat}:")
+        for filename in files_in_cat:
+            file_path = os.path.join(reports_dir, filename)
+            doc_description = ""
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    match = re.search(r'"""\s*(.*?)\s*"""', content, re.DOTALL)
+                    if match:
+                        doc = match.group(1).split('\n')[0].strip()
+                        if doc:
+                            doc_description = f" - {doc.rstrip('.')}"
+            except Exception:
+                pass
+                
+            display_name = f"{filename}{doc_description}"
+            key = str(global_idx)
+            reports[key] = {'name': filename, 'file': file_path}
+            print(f"  {global_idx:2}: {display_name}")
+            global_idx += 1
+            
     while True:
         choice = input(f"\nSelect a report (1-{len(reports)}): ")
         if choice in reports:
