@@ -80,6 +80,7 @@ def load_dato_urls(slug):
 
 def create_html_report(df_drupal_grouped, df_drupal_detail, start_date, end_date, site_url, stats, limit=100, queries_limit=5):
     """Generates a styled, interactive HTML report with a migration progress dashboard."""
+    slug = get_filename_slug(site_url)
     
     # Extract stats
     dato_clicks = stats['dato_clicks']
@@ -257,6 +258,15 @@ def create_html_report(df_drupal_grouped, df_drupal_detail, start_date, end_date
         <div class="text-end">
             <span class="badge bg-secondary p-2">Report generated on {datetime.now().strftime("%Y-%m-%d")}</span>
         </div>
+    </div>
+
+    <!-- Navigation Menu -->
+    <div class="d-flex flex-wrap gap-2 justify-content-center mb-4 pb-3 border-bottom">
+        <a href="drupal-dato-migration-analysis-{slug}-{start_date}-to-{end_date}.html" class="btn btn-primary active px-4">Breakdown Dashboard (Query-Level)</a>
+        <a href="drupal-dato-migration-prioritisation-report-www-hr-inform-co-uk-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Top 50 Prioritisation Report</a>
+        <a href="drupal-dato-migration-page-level-report-www-hr-inform-co-uk-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Page-Level Report (All Clicks)</a>
+        <a href="dato-suggested-urls-alphabetical-www-hr-inform-co-uk-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Proposed Dato URLs (Alphabetical)</a>
+        <a href="gsc-data-comparison-www-hr-inform-co-uk-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">GSC Data Comparison</a>
     </div>
 
     <!-- Platform Breakdown Dashboard -->
