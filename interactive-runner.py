@@ -277,22 +277,59 @@ def prompt_for_run_arguments(service, selected_site, selected_report):
         except ValueError:
             print("Invalid input. Please enter a valid number.")
 
-    # 3. Show help text of report briefly to let the user see optional parameter flags
-    print(f"\nAvailable optional flags for {selected_report['name']}:")
+    # 3. Discover and prompt for report-specific options
+    discovered_flags = []
     try:
         help_output = subprocess.check_output(["python", selected_report['file'], "--help"], text=True)
         options_match = re.search(r'(options:|optional arguments:)(.*)', help_output, re.DOTALL | re.IGNORECASE)
         if options_match:
-            print(options_match.group(2).strip())
-        else:
-            print("  (No complex flags found. Refer to script documentation.)")
+            options_text = options_match.group(2)
+            # Find flag and metavar
+            arg_lines = re.findall(r'^\s*(--[a-zA-Z0-9_\-]+)(?:\s+([A-Z0-9_\-]+))?.*$', options_text, re.MULTILINE)
+            ignore_flags = {'--help', '--start-date', '--end-date', '--last-month', '--last-7-days'}
+            for flag, metavar in arg_lines:
+                if flag in ignore_flags:
+                    continue
+                if any(df['flag'] == flag for df in discovered_flags):
+                    continue
+                discovered_flags.append({
+                    'flag': flag,
+                    'metavar': metavar if metavar else None,
+                    'options_text': options_text
+                })
     except Exception:
-        print("  (Could not load parameter flags.)")
+        pass
+
+    extra_flags = []
+    if discovered_flags:
+        print("\nReport-Specific Parameters Discovered:")
+        for df in discovered_flags:
+            flag = df['flag']
+            metavar = df['metavar']
+            options_txt = df['options_text']
+            
+            # Match description
+            desc = ""
+            flag_escaped = re.escape(flag)
+            desc_match = re.search(rf'^\s*{flag_escaped}(?:\s+[A-Z0-9_\-]+)?\s+(.+)$', options_txt, re.MULTILINE)
+            if desc_match:
+                desc = desc_match.group(1).strip()
+                
+            desc_str = f" ({desc})" if desc else ""
+            if metavar:
+                user_val = input(f"  {flag}{desc_str} - Enter value (or press Enter to skip): ").strip()
+                if user_val:
+                    extra_flags.extend([flag, user_val])
+            else:
+                user_val = input(f"  {flag}{desc_str} - Enable? (y/N): ").strip().lower()
+                if user_val in ['y', 'yes']:
+                    extra_flags.append(flag)
+
+    print("\nEnter any remaining custom/positional arguments (or press Enter to skip):")
+    custom_input = input("Custom arguments: ").strip()
+    if custom_input:
+        extra_flags.extend(custom_input.split())
         
-    print("\nEnter any additional arguments (e.g. limit or special parameters, or press Enter to skip):")
-    extra_input = input("Optional arguments: ").strip()
-    extra_flags = extra_input.split() if extra_input else []
-    
     return date_flags + extra_flags
 
 def main():
