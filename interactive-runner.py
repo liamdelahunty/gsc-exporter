@@ -46,43 +46,64 @@ def get_sort_key(site_url):
         
     return (root_domain, priority, hostname)
 def select_property(sites):
-    """Displays a sorted list of sites with indentation for subdomains."""
+    """Displays a list of available sites (filtered by search term if requested)."""
     if not sites:
         return None
 
-    # Create a list of (site, sort_key) tuples
-    site_data = []
-    for site in sites:
-        site_data.append((site, get_sort_key(site)))
-
-    # Sort the list based on the hierarchical key
-    sorted_items = sorted(site_data, key=lambda x: x[1])
-
-    print("\nAvailable Google Search Console Properties:")
-
-    last_root = None
-    for i, (site, key) in enumerate(sorted_items):
-        root_domain, priority, hostname = key
-
-        # Determine indentation
-        # Indent if this isn't the first property we've seen for this root domain
-        indent = ""
-        if root_domain == last_root:
-            indent = "    "  # 4 spaces indentation
-
-        print(f"  {i + 1:2}: {indent}{site}")
-        last_root = root_domain
-
+    filter_term = input("Enter search term to filter properties (or press Enter to list all): ").strip().lower()
+    
     while True:
+        filtered_sites = sites
+        if filter_term:
+            filtered_sites = [s for s in sites if filter_term in s.lower()]
+            if not filtered_sites:
+                print(f"\n[!] No properties matched '{filter_term}'. Showing all properties instead.")
+                filtered_sites = sites
+                filter_term = ""
+        
+        # Build site list with keys
+        site_data = []
+        for site in filtered_sites:
+            site_data.append((site, get_sort_key(site)))
+            
+        sorted_items = sorted(site_data, key=lambda x: x[1])
+        
+        print("\nAvailable Google Search Console Properties:")
+        if filter_term:
+            print(f"(Filtered by: '{filter_term}')")
+            print("  0: Reset search filter")
+            
+        last_root = None
+        for i, (site, key) in enumerate(sorted_items):
+            root_domain, priority, hostname = key
+            indent = ""
+            # Only indent subdomains if we're not currently filtering
+            if not filter_term and root_domain == last_root:
+                indent = "    "
+            print(f"  {i + 1:2}: {indent}{site}")
+            last_root = root_domain
+            
+        prompt_limit = f"1-{len(sorted_items)}"
+        if filter_term:
+            prompt_limit = f"0-{len(sorted_items)}"
+            
+        choice = input(f"\nPlease select a property ({prompt_limit}): ").strip()
+        if not choice:
+            continue
+            
         try:
-            choice = input(f"\nPlease select a property (1-{len(sorted_items)}): ")
-            choice_index = int(choice) - 1
+            choice_index = int(choice)
+            if filter_term and choice_index == 0:
+                filter_term = input("\nEnter search term to filter properties (or press Enter to list all): ").strip().lower()
+                continue
+                
+            choice_index = choice_index - 1
             if 0 <= choice_index < len(sorted_items):
                 return sorted_items[choice_index][0]
             else:
                 print("Invalid selection. Please try again.")
         except ValueError:
-            print("Invalid input. Please enter a number.")
+            print("Invalid input. Please enter a valid number.")
 
 def select_report():
     """Displays a list of available reports and prompts the user to select one."""
