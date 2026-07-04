@@ -87,7 +87,12 @@ def select_property(sites):
 def select_report():
     """Displays a list of available reports and prompts the user to select one."""
     reports_dir = 'reports'
-    report_files = sorted([f for f in os.listdir(reports_dir) if f.endswith('.py') and f != '__init__.py'])
+    # Exclude special, once-off reports from the interactive runner
+    exclude_files = {'drupal_dato_migration_analysis.py', 'generate_gsc_wrapped.py'}
+    report_files = sorted([
+        f for f in os.listdir(reports_dir) 
+        if f.endswith('.py') and f != '__init__.py' and f not in exclude_files
+    ])
     
     reports = {}
     print("\nAvailable Reports:")

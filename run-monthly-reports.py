@@ -21,6 +21,8 @@ import argparse
 EXCLUDE_FROM_AUTO = [
     "reports/page_performance_single_page.py",
     "reports/url_inspection_report.py",
+    "reports/drupal_dato_migration_analysis.py",
+    "reports/generate_gsc_wrapped.py",
     "reports/__init__.py"
 ]
 
