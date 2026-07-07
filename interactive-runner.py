@@ -108,7 +108,7 @@ def select_property(sites):
 def select_report():
     """Displays a list of available reports and prompts the user to select one."""
     reports_dir = 'reports'
-    exclude_files = {'drupal_dato_migration_analysis.py', 'generate_gsc_wrapped.py'}
+    exclude_files = {'drupal_dato_migration_analysis.py', 'drupal_dato_gsc_comparison_report.py', 'generate_gsc_wrapped.py'}
     
     categories = [
         "High-Level Performance Summary Reports",
