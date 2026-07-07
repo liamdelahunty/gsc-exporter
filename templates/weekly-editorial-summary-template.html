@@ -511,9 +511,14 @@
             <!-- Top Web Pages -->
             <div class="col-xl-6 mb-4">
                 <div class="top-pages-section">
-                    <h3 class="search-type-title mb-3">Top Web Stories (by Clicks)</h3>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="search-type-title mb-0">Top Web Stories (by Clicks)</h3>
+                        {% if is_internal %}
+                        <button class="btn btn-outline-secondary btn-sm" onclick="copyTableData('web-table')">Copy Table</button>
+                        {% endif %}
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover">
+                        <table class="table table-striped table-hover" id="web-table">
                             <thead>
                                 <tr>
                                     <th>Page</th>
@@ -546,9 +551,14 @@
             <!-- Top Discover Pages -->
             <div class="col-xl-6 mb-4">
                 <div class="top-pages-section">
-                    <h3 class="search-type-title mb-3">Top Discover Stories (by Clicks)</h3>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="search-type-title mb-0">Top Discover Stories (by Clicks)</h3>
+                        {% if is_internal %}
+                        <button class="btn btn-outline-secondary btn-sm" onclick="copyTableData('discover-table')">Copy Table</button>
+                        {% endif %}
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover">
+                        <table class="table table-striped table-hover" id="discover-table">
                             <thead>
                                 <tr>
                                     <th>Page</th>
@@ -579,9 +589,14 @@
             <!-- Top News Pages -->
             <div class="col-xl-6 mb-4">
                 <div class="top-pages-section">
-                    <h3 class="search-type-title mb-3">Top News Stories (by Clicks)</h3>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="search-type-title mb-0">Top News Stories (by Clicks)</h3>
+                        {% if is_internal %}
+                        <button class="btn btn-outline-secondary btn-sm" onclick="copyTableData('news-table')">Copy Table</button>
+                        {% endif %}
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover">
+                        <table class="table table-striped table-hover" id="news-table">
                             <thead>
                                 <tr>
                                     <th>Page</th>
@@ -630,6 +645,105 @@
                 alert('Email report summary ' + msg);
             } catch (err) {
                 alert('Oops, unable to copy');
+            }
+        }
+
+        function copyTableData(tableId) {
+            var table = document.getElementById(tableId);
+            if (!table) return;
+            
+            var rows = table.querySelectorAll('tbody tr');
+            var htmlRows = [];
+            var plainTextLines = [['URL', 'Clicks', 'Impressions'].join('\t')];
+            
+            rows.forEach(function(row) {
+                var cells = row.querySelectorAll('td');
+                if (cells.length >= 3) {
+                    var aTag = cells[0].querySelector('a');
+                    var url = aTag ? aTag.getAttribute('href') : cells[0].textContent.trim();
+                    var clicks = cells[1].textContent.trim();
+                    var impressions = cells[2].textContent.trim();
+                    
+                    plainTextLines.push(url + '\t' + clicks + '\t' + impressions);
+                    
+                    htmlRows.push('<tr>' +
+                        '<td style="padding: 6px; border: 1px solid #ddd;"><a href="' + url + '">' + url + '</a></td>' +
+                        '<td style="padding: 6px; border: 1px solid #ddd; text-align: right;">' + clicks + '</td>' +
+                        '<td style="padding: 6px; border: 1px solid #ddd; text-align: right;">' + impressions + '</td>' +
+                        '</tr>');
+                }
+            });
+            
+            if (htmlRows.length === 0) {
+                alert('No data to copy');
+                return;
+            }
+            
+            var plainText = plainTextLines.join('\n');
+            var htmlText = '<table style="border-collapse: collapse; width: 100%; font-family: sans-serif; font-size: 14px;">' +
+                '<thead>' +
+                '<tr style="background-color: #f2f2f2;">' +
+                '<th style="padding: 8px; border: 1px solid #ddd; text-align: left;">URL</th>' +
+                '<th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Clicks</th>' +
+                '<th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Impressions</th>' +
+                '</tr>' +
+                '</thead>' +
+                '<tbody>' +
+                htmlRows.join('') +
+                '</tbody>' +
+                '</table>';
+                
+            // Check if clipboard API is supported to copy table content in HTML and plain text formats
+            if (navigator.clipboard && window.ClipboardItem) {
+                var clipboardData = {};
+                clipboardData['text/plain'] = new Blob([plainText], { type: 'text/plain' });
+                clipboardData['text/html'] = new Blob([htmlText], { type: 'text/html' });
+                
+                navigator.clipboard.write([new ClipboardItem(clipboardData)]).then(function() {
+                    showCopyFeedback(tableId);
+                }).catch(function(err) {
+                    console.error('Could not copy rich text: ', err);
+                    fallbackCopyText(plainText, tableId);
+                });
+            } else {
+                fallbackCopyText(plainText, tableId);
+            }
+        }
+
+        function fallbackCopyText(text, tableId) {
+            var textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                var successful = document.execCommand('copy');
+                if (successful) {
+                    showCopyFeedback(tableId);
+                } else {
+                    alert('Fallback copy failed.');
+                }
+            } catch (err) {
+                console.error('Fallback copy failed: ', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function showCopyFeedback(tableId) {
+            var btn = document.querySelector('button[onclick*="' + tableId + '"]');
+            if (btn) {
+                var originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.classList.remove('btn-outline-secondary');
+                btn.classList.add('btn-success');
+                setTimeout(function() {
+                    btn.textContent = originalText;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-outline-secondary');
+                }, 2000);
             }
         }
     </script>
