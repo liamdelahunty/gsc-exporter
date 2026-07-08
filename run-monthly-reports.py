@@ -22,6 +22,9 @@ EXCLUDE_FROM_AUTO = [
     "reports/page_performance_single_page.py",
     "reports/url_inspection_report.py",
     "reports/drupal_dato_migration_analysis.py",
+    "reports/drupal_dato_gsc_comparison_report.py",
+    "reports/dato_pages_performance_report.py",
+    "reports/generate_migration_index.py",
     "reports/generate_gsc_wrapped.py",
     "reports/__init__.py"
 ]

@@ -1,6 +1,6 @@
 """
-Report script to analyse GSC performance data for www.hr-inform.co.uk.
-Classifies pages into Drupal (Old / Purple) and Dato (New) platforms to assist with content prioritisation, migration, and redirection.
+Report script to analyse GSC performance data for DatoCMS (new platform) pages on www.hr-inform.co.uk.
+Lists the Dato pages, their clicks, impressions, CTR, average position, and top driving queries.
 """
 import os
 import sys
@@ -78,38 +78,43 @@ def load_dato_urls(slug):
         
     return {clean_url(u) for u in dato_urls}
 
-def create_html_report(df_drupal_grouped, df_drupal_detail, start_date, end_date, site_url, stats, limit=100, queries_limit=5):
-    """Generates a styled, interactive HTML report with a migration progress dashboard."""
+def is_dato_page(url, dato_clean_urls):
+    """Determines whether a URL belongs to the new DatoCMS platform."""
+    cleaned = clean_url(url)
+    if cleaned in dato_clean_urls:
+        return True
+    
+    # Also classify based on directory taxonomy
+    try:
+        parsed = urlparse(url)
+        path_parts = parsed.path.strip('/').split('/')
+        if path_parts and path_parts[0] in {'features', 'guides', 'resources', 'employment-rights-act', 'policies'}:
+            return True
+    except Exception:
+        pass
+        
+    return False
+
+def build_html_report(df_dato_grouped, df_dato_detail, start_date, end_date, site_url, stats, limit=100, queries_limit=5):
+    """Renders the HTML report dashboard for Dato pages."""
     slug = get_filename_slug(site_url)
     
-    # Extract stats
-    dato_clicks = stats['dato_clicks']
-    dato_impressions = stats['dato_impressions']
-    dato_pages = stats['dato_pages']
-    dato_ctr = stats['dato_ctr']
+    # Navigation Links (uniform across all reports)
+    nav_html = f"""
+    <div class="d-flex flex-wrap gap-2 justify-content-center mb-4 pb-3 border-bottom">
+        <a href="dato-drupal-index-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Migration Index</a>
+        <a href="drupal-dato-migration-analysis-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Breakdown Dashboard (Query-Level)</a>
+        <a href="drupal-dato-migration-page-level-report-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Page-Level Report (All Clicks)</a>
+        <a href="drupal-dato-migration-prioritisation-report-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Top 50 Prioritisation Report</a>
+        <a href="dato-suggested-urls-alphabetical-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Proposed Dato URLs (Alphabetical)</a>
+        <a href="gsc-data-comparison-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">GSC Data Comparison</a>
+        <a href="dato-pages-performance-report-{slug}-{start_date}-to-{end_date}.html" class="btn btn-primary active px-4">Dato Pages Performance</a>
+    </div>
+    """
     
-    drupal_clicks = stats['drupal_clicks']
-    drupal_impressions = stats['drupal_impressions']
-    drupal_pages = stats['drupal_pages']
-    drupal_ctr = stats['drupal_ctr']
-    
-    total_clicks = stats['total_clicks']
-    total_impressions = stats['total_impressions']
-    total_pages = stats['total_pages']
-    overall_ctr = stats['overall_ctr']
-    
-    # Progress percentages
-    clicks_progress = (dato_clicks / total_clicks * 100) if total_clicks > 0 else 0
-    pages_progress = (dato_pages / total_pages * 100) if total_pages > 0 else 0
-    
-    # Formatted stats
-    clicks_prog_str = f"{clicks_progress:.1f}%"
-    pages_prog_str = f"{pages_progress:.1f}%"
-    
-    # Generate HTML rows for the Drupal pages table
+    # Construct rows for the Dato pages table
     table_rows = []
-    
-    for i, row in df_drupal_grouped.head(limit).reset_index(drop=True).iterrows():
+    for i, row in df_dato_grouped.head(limit).reset_index(drop=True).iterrows():
         page_url = row['page']
         clicks = int(row['clicks'])
         impressions = int(row['impressions'])
@@ -118,7 +123,7 @@ def create_html_report(df_drupal_grouped, df_drupal_detail, start_date, end_date
         unique_queries = int(row['unique_queries'])
         
         # Get top queries for this page
-        page_queries = df_drupal_detail[df_drupal_detail['page'] == page_url].head(queries_limit)
+        page_queries = df_dato_detail[df_dato_detail['page'] == page_url].head(queries_limit)
         queries_list = page_queries['query'].tolist()
         queries_str_attr = html.escape(", ".join(queries_list))
         
@@ -191,12 +196,12 @@ def create_html_report(df_drupal_grouped, df_drupal_detail, start_date, end_date
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drupal to Dato Migration Analysis: {site_url}</title>
+    <title>DatoCMS Pages Performance: {html.escape(site_url)}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {{
             background-color: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Outfit', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: #333;
         }}
         .navbar-brand-custom {{
@@ -207,20 +212,11 @@ def create_html_report(df_drupal_grouped, df_drupal_detail, start_date, end_date
             border: none;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            background: #ffffff;
             transition: transform 0.2s;
         }}
         .metric-card:hover {{
             transform: translateY(-2px);
-        }}
-        .progress-bar-custom {{
-            height: 10px;
-            border-radius: 5px;
-            background-color: #e9ecef;
-            overflow: hidden;
-        }}
-        .progress-fill-dato {{
-            background: linear-gradient(90deg, #1a73e8, #34a853);
-            height: 100%;
         }}
         .collapse-row td {{
             background-color: #fcfcfc;
@@ -252,112 +248,57 @@ def create_html_report(df_drupal_grouped, df_drupal_detail, start_date, end_date
     <!-- Header -->
     <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-4">
         <div>
-            <h1 class="h3 mb-1 fw-bold text-dark">Drupal to Dato Migration Analysis</h1>
+            <h1 class="h3 mb-1 fw-bold text-dark">DatoCMS Pages Performance Report</h1>
             <p class="text-muted mb-0">Property: <strong>{html.escape(site_url)}</strong> | Reporting Period: <strong>{start_date} to {end_date}</strong></p>
         </div>
         <div class="text-end">
-            <span class="badge bg-secondary p-2">Report generated on {datetime.now().strftime("%Y-%m-%d")}</span>
+            <span class="badge bg-success p-2">Report generated on {datetime.now().strftime("%Y-%m-%d")}</span>
         </div>
     </div>
 
-    <!-- Navigation Menu -->
-    <div class="d-flex flex-wrap gap-2 justify-content-center mb-4 pb-3 border-bottom">
-        <a href="dato-drupal-index-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Migration Index</a>
-        <a href="drupal-dato-migration-analysis-{slug}-{start_date}-to-{end_date}.html" class="btn btn-primary active px-4">Breakdown Dashboard (Query-Level)</a>
-        <a href="drupal-dato-migration-page-level-report-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Page-Level Report (All Clicks)</a>
-        <a href="drupal-dato-migration-prioritisation-report-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Top 50 Prioritisation Report</a>
-        <a href="dato-suggested-urls-alphabetical-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Proposed Dato URLs (Alphabetical)</a>
-        <a href="gsc-data-comparison-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">GSC Data Comparison</a>
-        <a href="dato-pages-performance-report-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Dato Pages Performance</a>
-    </div>
+    {nav_html}
 
-    <!-- Platform Breakdown Dashboard -->
-    <h4 class="fw-bold mb-3 text-secondary">Platform Breakdown Summary</h4>
+    <!-- Performance Summary Cards -->
+    <h4 class="fw-bold mb-3 text-secondary">DatoCMS Platform Summary</h4>
     <div class="row g-4 mb-4">
-        <!-- Progress Bars Card -->
-        <div class="col-xl-4 col-md-12">
-            <div class="card h-100 metric-card p-4">
-                <h5 class="card-title fw-bold text-muted mb-4">Platform Distribution</h5>
-                
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span class="fw-semibold">Dato Clicks (New Content)</span>
-                        <span class="fw-bold text-success">{clicks_prog_str}</span>
-                    </div>
-                    <div class="progress-bar-custom">
-                        <div class="progress-fill-dato" style="width: {clicks_progress}%;"></div>
-                    </div>
-                    <small class="text-muted">{dato_clicks:,} / {total_clicks:,} total clicks</small>
-                </div>
-                
-                <div>
-                    <div class="d-flex justify-content-between mb-1">
-                        <span class="fw-semibold">Dato Pages (New Content)</span>
-                        <span class="fw-bold text-success">{pages_prog_str}</span>
-                    </div>
-                    <div class="progress-bar-custom">
-                        <div class="progress-fill-dato" style="width: {pages_progress}%;"></div>
-                    </div>
-                    <small class="text-muted">{dato_pages:,} / {total_pages:,} total organic landing pages</small>
-                </div>
+        <!-- Clicks Card -->
+        <div class="col-md-3">
+            <div class="card metric-card p-4 border-start border-primary border-4">
+                <small class="text-muted d-block text-uppercase fw-bold">Dato Clicks</small>
+                <span class="h2 fw-bold text-dark">{stats['dato_clicks']:,}</span>
+                <small class="text-muted d-block mt-1">{stats['dato_share_clicks']:.1%} of total site clicks</small>
             </div>
         </div>
-
-        <!-- Drupal Card -->
-        <div class="col-xl-4 col-md-6">
-            <div class="card h-100 metric-card p-4 border-start border-danger border-4">
-                <h5 class="card-title fw-bold text-danger mb-3">Drupal (Old Platform / "Purple")</h5>
-                <div class="row">
-                    <div class="col-6 mb-3">
-                        <small class="text-muted d-block">Organic Clicks</small>
-                        <span class="h3 fw-bold text-dark">{drupal_clicks:,}</span>
-                    </div>
-                    <div class="col-6 mb-3">
-                        <small class="text-muted d-block">Impressions</small>
-                        <span class="h3 fw-bold text-dark">{drupal_impressions:,}</span>
-                    </div>
-                    <div class="col-6">
-                        <small class="text-muted d-block">Average CTR</small>
-                        <span class="h4 fw-bold text-dark">{drupal_ctr:.2%}</span>
-                    </div>
-                    <div class="col-6">
-                        <small class="text-muted d-block">Remaining Pages</small>
-                        <span class="h4 fw-bold text-dark">{drupal_pages:,}</span>
-                    </div>
-                </div>
+        <!-- Impressions Card -->
+        <div class="col-md-3">
+            <div class="card metric-card p-4 border-start border-info border-4">
+                <small class="text-muted d-block text-uppercase fw-bold">Dato Impressions</small>
+                <span class="h2 fw-bold text-dark">{stats['dato_impressions']:,}</span>
+                <small class="text-muted d-block mt-1">{stats['dato_share_impressions']:.1%} of total site impressions</small>
             </div>
         </div>
-
-        <!-- Dato Card -->
-        <div class="col-xl-4 col-md-6">
-            <div class="card h-100 metric-card p-4 border-start border-success border-4">
-                <h5 class="card-title fw-bold text-success mb-3">DatoCMS (New Platform)</h5>
-                <div class="row">
-                    <div class="col-6 mb-3">
-                        <small class="text-muted d-block">Organic Clicks</small>
-                        <span class="h3 fw-bold text-dark">{dato_clicks:,}</span>
-                    </div>
-                    <div class="col-6 mb-3">
-                        <small class="text-muted d-block">Impressions</small>
-                        <span class="h3 fw-bold text-dark">{dato_impressions:,}</span>
-                    </div>
-                    <div class="col-6">
-                        <small class="text-muted d-block">Average CTR</small>
-                        <span class="h4 fw-bold text-dark">{dato_ctr:.2%}</span>
-                    </div>
-                    <div class="col-6">
-                        <small class="text-muted d-block">Active Pages</small>
-                        <span class="h4 fw-bold text-dark">{dato_pages:,}</span>
-                    </div>
-                </div>
+        <!-- CTR Card -->
+        <div class="col-md-3">
+            <div class="card metric-card p-4 border-start border-success border-4">
+                <small class="text-muted d-block text-uppercase fw-bold">Average CTR</small>
+                <span class="h2 fw-bold text-dark">{stats['dato_ctr']:.2%}</span>
+                <small class="text-muted d-block mt-1">vs {stats['overall_ctr']:.2%} site average</small>
+            </div>
+        </div>
+        <!-- Pages Card -->
+        <div class="col-md-3">
+            <div class="card metric-card p-4 border-start border-warning border-4">
+                <small class="text-muted d-block text-uppercase fw-bold">Active Dato Pages</small>
+                <span class="h2 fw-bold text-dark">{stats['dato_pages']:,}</span>
+                <small class="text-muted d-block mt-1">Organic landing pages recorded</small>
             </div>
         </div>
     </div>
 
-    <!-- Prioritised Pages List -->
+    <!-- Interactive Pages List -->
     <div class="d-flex align-items-center justify-content-between mb-3 mt-5">
         <div>
-            <h4 class="fw-bold text-dark mb-1">Prioritised Drupal Pages to Migrate &amp; Redirect</h4>
+            <h4 class="fw-bold text-dark mb-1">DatoCMS Pages Organic Performance</h4>
             <p class="text-muted mb-0">Sorted by organic clicks. Click any row to view the top search queries driving traffic to that page.</p>
         </div>
         <div style="width: 350px;">
@@ -366,11 +307,11 @@ def create_html_report(df_drupal_grouped, df_drupal_detail, start_date, end_date
     </div>
 
     <div class="table-responsive mb-5">
-        <table id="drupalPagesTable" class="table table-hover align-middle mb-0">
+        <table id="datoPagesTable" class="table table-hover align-middle mb-0">
             <thead class="table-dark">
                 <tr>
                     <th class="text-center" style="width: 60px;">Rank</th>
-                    <th>Drupal Page URL (Old Structure)</th>
+                    <th>DatoCMS Page URL</th>
                     <th class="text-end" style="width: 120px;">Clicks</th>
                     <th class="text-end" style="width: 150px;">Impressions</th>
                     <th class="text-end" style="width: 100px;">CTR</th>
@@ -392,7 +333,7 @@ def create_html_report(df_drupal_grouped, df_drupal_detail, start_date, end_date
     // Search function that filters rows based on page URL or their search queries
     document.getElementById('pageSearch').addEventListener('keyup', function() {{
         var filter = this.value.toLowerCase();
-        var rows = document.querySelectorAll('#drupalPagesTable tbody .main-row');
+        var rows = document.querySelectorAll('#datoPagesTable tbody .main-row');
         
         rows.forEach(function(row) {{
             var pageText = row.querySelector('.page-url-cell').textContent.toLowerCase();
@@ -419,7 +360,7 @@ def create_html_report(df_drupal_grouped, df_drupal_detail, start_date, end_date
     }});
 
     // Make the entire row clickable to toggle collapse except when clicking the actual link
-    document.querySelectorAll('#drupalPagesTable tbody .main-row').forEach(function(row) {{
+    document.querySelectorAll('#datoPagesTable tbody .main-row').forEach(function(row) {{
         row.addEventListener('click', function(e) {{
             if (e.target.tagName !== 'A') {{
                 var collapseId = row.getAttribute('data-collapse-target');
@@ -451,99 +392,86 @@ def create_html_report(df_drupal_grouped, df_drupal_detail, start_date, end_date
     return html_content
 
 def run_report(service, site_url, start_date, end_date, limit=100, queries_limit=5):
-    """Executes the Drupal to Dato migration analysis report."""
-    print(f"Running Drupal to Dato migration analysis for {site_url}...")
+    """Executes the DatoCMS pages organic performance report."""
+    print(f"Running DatoCMS pages organic performance report for {site_url}...")
     print(f"Period: {start_date} to {end_date}")
     
     # 1. Load Dato URLs configuration
     slug = get_filename_slug(site_url)
     dato_clean_urls = load_dato_urls(slug)
     
-    # 2. Fetch data (dimensions: query, page)
+    # 2. Fetch GSC data
     df = fetch_with_cache(service, site_url, start_date, end_date, ['query', 'page'])
     if df.empty:
-        print("Error: No data found in the cache or API for this period.")
+        print("Error: No GSC data found.")
         return None
         
     print(f"Retrieved {len(df):,} granular page-query rows.")
     
-    # 3. Classify pages into platforms
-    df['is_dato'] = df['page'].apply(lambda u: clean_url(u) in dato_clean_urls)
+    # 3. Classify pages into platforms and filter to Dato only
+    df['is_dato'] = df['page'].apply(lambda u: is_dato_page(u, dato_clean_urls))
     
-    # Separate dataframes
     df_dato = df[df['is_dato']]
-    df_drupal = df[~df['is_dato']]
-    
-    # Calculate stats
+    if df_dato.empty:
+        print("Warning: No DatoCMS pages recorded traffic during this period.")
+        
+    # Calculate comparative statistics
     total_clicks = int(df['clicks'].sum())
     total_impressions = int(df['impressions'].sum())
-    total_pages = int(df['page'].nunique())
     overall_ctr = total_clicks / total_impressions if total_impressions > 0 else 0
     
-    dato_clicks = int(df_dato['clicks'].sum())
-    dato_impressions = int(df_dato['impressions'].sum())
-    dato_pages = int(df_dato['page'].nunique())
+    dato_clicks = int(df_dato['clicks'].sum()) if not df_dato.empty else 0
+    dato_impressions = int(df_dato['impressions'].sum()) if not df_dato.empty else 0
+    dato_pages = int(df_dato['page'].nunique()) if not df_dato.empty else 0
     dato_ctr = dato_clicks / dato_impressions if dato_impressions > 0 else 0
-    
-    drupal_clicks = int(df_drupal['clicks'].sum())
-    drupal_impressions = int(df_drupal['impressions'].sum())
-    drupal_pages = int(df_drupal['page'].nunique())
-    drupal_ctr = drupal_clicks / drupal_impressions if drupal_impressions > 0 else 0
     
     stats = {
         'total_clicks': total_clicks,
         'total_impressions': total_impressions,
-        'total_pages': total_pages,
         'overall_ctr': overall_ctr,
         'dato_clicks': dato_clicks,
         'dato_impressions': dato_impressions,
         'dato_pages': dato_pages,
         'dato_ctr': dato_ctr,
-        'drupal_clicks': drupal_clicks,
-        'drupal_impressions': drupal_impressions,
-        'drupal_pages': drupal_pages,
-        'drupal_ctr': drupal_ctr
+        'dato_share_clicks': dato_clicks / total_clicks if total_clicks > 0 else 0,
+        'dato_share_impressions': dato_impressions / total_impressions if total_impressions > 0 else 0
     }
     
-    print("\n--- Platform Performance Overview ---")
-    print(f"Drupal (Old): Clicks: {drupal_clicks:,} | Impressions: {drupal_impressions:,} | Pages: {drupal_pages:,} | CTR: {drupal_ctr:.2%}")
-    print(f"Dato (New):   Clicks: {dato_clicks:,} | Impressions: {dato_impressions:,} | Pages: {dato_pages:,} | CTR: {dato_ctr:.2%}")
-    print(f"Total Site:   Clicks: {total_clicks:,} | Impressions: {total_impressions:,} | Pages: {total_pages:,} | CTR: {overall_ctr:.2%}")
-    if total_clicks > 0:
-        print(f"Dato share of Clicks: {dato_clicks / total_clicks:.2%}")
-    if total_pages > 0:
-        print(f"Dato share of Pages:  {dato_pages / total_pages:.2%}")
+    print("\n--- DatoCMS Performance Overview ---")
+    print(f"Dato (New): Clicks: {dato_clicks:,} | Impressions: {dato_impressions:,} | Pages: {dato_pages:,} | CTR: {dato_ctr:.2%}")
+    print(f"Total Site: Clicks: {total_clicks:,} | Impressions: {total_impressions:,} | CTR: {overall_ctr:.2%}")
+    print(f"Dato Share: Clicks: {stats['dato_share_clicks']:.2%} | Impressions: {stats['dato_share_impressions']:.2%}")
+    
+    # 4. Group Dato pages
+    if not df_dato.empty:
+        df_dato_grouped = df_dato.groupby('page').apply(
+            lambda group: pd.Series({
+                'clicks': group['clicks'].sum(),
+                'impressions': group['impressions'].sum(),
+                'position': (group['position'] * group['impressions']).sum() / group['impressions'].sum() if group['impressions'].sum() > 0 else group['position'].mean(),
+                'unique_queries': group['query'].nunique()
+            })
+        ).reset_index()
         
-    # 4. Group Drupal pages by performance
-    # Average position is weighted by impressions for accuracy
-    # Unique queries count is unique query values per page
-    df_drupal_grouped = df_drupal.groupby('page').apply(
-        lambda group: pd.Series({
-            'clicks': group['clicks'].sum(),
-            'impressions': group['impressions'].sum(),
-            'position': (group['position'] * group['impressions']).sum() / group['impressions'].sum() if group['impressions'].sum() > 0 else group['position'].mean(),
-            'unique_queries': group['query'].nunique()
-        })
-    ).reset_index()
-    
-    df_drupal_grouped['ctr'] = df_drupal_grouped['clicks'] / df_drupal_grouped['impressions']
-    df_drupal_grouped = df_drupal_grouped.sort_values(by='clicks', ascending=False)
-    
-    # 5. Get top queries list per page sorted by clicks
-    df_drupal_sorted = df_drupal.sort_values(by=['page', 'clicks'], ascending=[True, False])
-    
-    # 6. Save CSV
+        df_dato_grouped['ctr'] = df_dato_grouped['clicks'] / df_dato_grouped['impressions']
+        df_dato_grouped = df_dato_grouped.sort_values(by='clicks', ascending=False)
+        df_dato_sorted = df_dato.sort_values(by=['page', 'clicks'], ascending=[True, False])
+    else:
+        df_dato_grouped = pd.DataFrame(columns=['page', 'clicks', 'impressions', 'position', 'unique_queries', 'ctr'])
+        df_dato_sorted = pd.DataFrame(columns=['page', 'query', 'clicks', 'impressions', 'position', 'ctr'])
+        
+    # 5. Save paths setup
     output_dir = get_output_dir(site_url)
     os.makedirs(output_dir, exist_ok=True)
-    file_prefix = f"drupal-dato-migration-analysis-{slug}-{start_date}-to-{end_date}"
+    file_prefix = f"dato-pages-performance-report-{slug}-{start_date}-to-{end_date}"
     csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
     
-    # Construct rows for the prioritised CSV export
+    # Construct rows for CSV export
     csv_rows = []
-    for _, row in df_drupal_grouped.iterrows():
+    for _, row in df_dato_grouped.iterrows():
         page_url = row['page']
-        page_queries = df_drupal_sorted[df_drupal_sorted['page'] == page_url].head(5)
+        page_queries = df_dato_sorted[df_dato_sorted['page'] == page_url].head(5)
         
         row_dict = {
             'page': page_url,
@@ -580,10 +508,10 @@ def run_report(service, site_url, start_date, end_date, limit=100, queries_limit
     df_csv = pd.DataFrame(csv_rows)
     df_csv.to_csv(csv_path, index=False, encoding='utf-8')
     
-    # 7. Generate and save HTML
-    html_content = create_html_report(
-        df_drupal_grouped,
-        df_drupal_sorted,
+    # 6. Generate and save HTML
+    html_content = build_html_report(
+        df_dato_grouped,
+        df_dato_sorted,
         start_date,
         end_date,
         site_url,
@@ -600,13 +528,13 @@ def run_report(service, site_url, start_date, end_date, limit=100, queries_limit
     return csv_path, html_path
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Run Drupal to Dato migration analysis.')
+    parser = argparse.ArgumentParser(description='Run DatoCMS pages organic performance report.')
     parser.add_argument('site_url', nargs='?', default='sc-domain:hr-inform.co.uk', help='The site URL or property.')
     parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
     parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
     parser.add_argument('--last-7-days', action='store_true', help='Run for the last 7 available days.')
-    parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
-    parser.add_argument('--limit', type=int, default=100, help='Maximum number of Drupal pages to display in HTML.')
+    parser.add_argument('--last-month', action='store_true', help='Run for the last complete calendar month.')
+    parser.add_argument('--limit', type=int, default=100, help='Maximum number of Dato pages to display in HTML.')
     parser.add_argument('--queries-limit', type=int, default=5, help='Number of top search queries to display per page.')
     
     args = parser.parse_args()
@@ -614,5 +542,4 @@ if __name__ == '__main__':
     service = get_gsc_service()
     if service:
         start_date, end_date = parse_standard_date_args(args, service, args.site_url)
-        # Default date range logic has run, now run the analysis
         run_report(service, args.site_url, start_date, end_date, args.limit, args.queries_limit)
