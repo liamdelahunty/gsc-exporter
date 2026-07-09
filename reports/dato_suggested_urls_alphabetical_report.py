@@ -150,6 +150,34 @@ def suggest_dato_url(drupal_url, top_query):
     
     return default_url, keyword_url
 
+def generate_seo_metadata(url, top_query=None):
+    """Suggests an SEO title and meta description for a given proposed Dato URL."""
+    parsed = urlparse(url)
+    path = parsed.path.strip('/')
+    parts = path.split('/')
+    folder = parts[0] if parts else "features"
+    slug_str = parts[-1] if len(parts) > 1 else ""
+    
+    # Base readable name from slug
+    slug_clean = slug_str.replace('-template', '').replace('-', ' ').strip()
+    title_base = slug_clean.title()
+    
+    if top_query and isinstance(top_query, str):
+        clean_query = top_query.replace('-', ' ').strip()
+        title_base = clean_query.title()
+        
+    if folder in ['resources', 'policies'] or 'template' in slug_str:
+        suggested_title = f"{title_base} Template | HR-inform"
+        meta_desc = f"Download our free, customisable {title_base.lower()} template. Ensure your business remains fully compliant with UK employment law."
+    elif folder == 'guides':
+        suggested_title = f"Guide to {title_base} | HR-inform"
+        meta_desc = f"Explore our comprehensive employer guide to {title_base.lower()}. Learn about key legal requirements and best practices under UK law."
+    else:
+        suggested_title = f"{title_base} | Latest HR Updates & Analysis"
+        meta_desc = f"Read the latest updates, expert insights, and compliance analysis on {title_base.lower()} from the HR-inform editorial team."
+        
+    return suggested_title, meta_desc
+
 def run_report(service, site_url, start_date, end_date):
     """Executes the Alphabetical URL report."""
     print(f"Running Proposed Dato URLs Alphabetical Report for {site_url}...")
@@ -177,27 +205,30 @@ def run_report(service, site_url, start_date, end_date):
     df_migrate_no_login = df_migrate[df_migrate['page'] != 'https://www.hr-inform.co.uk/user/login'].copy()
     top_50 = df_migrate_no_login.head(50)
     
-    proposed_to_sources = {}
+    proposed_data = {}
     for idx, row in top_50.iterrows():
         page_url = row['page']
         top_query_val = row.get('top_query_1')
         default_url, keyword_url = suggest_dato_url(page_url, top_query_val)
         
         # Map default
-        if default_url not in proposed_to_sources:
-            proposed_to_sources[default_url] = set()
-        proposed_to_sources[default_url].add(page_url)
+        if default_url not in proposed_data:
+            proposed_data[default_url] = {'sources': set(), 'top_query': top_query_val}
+        proposed_data[default_url]['sources'].add(page_url)
         
         # Map keyword alternative
-        if keyword_url not in proposed_to_sources:
-            proposed_to_sources[keyword_url] = set()
-        proposed_to_sources[keyword_url].add(page_url)
+        if keyword_url not in proposed_data:
+            proposed_data[keyword_url] = {'sources': set(), 'top_query': top_query_val}
+        proposed_data[keyword_url]['sources'].add(page_url)
         
-    sorted_urls = sorted(list(proposed_to_sources.keys()))
+    sorted_urls = sorted(list(proposed_data.keys()))
     
     list_items = []
     for url in sorted_urls:
-        sources = sorted(list(proposed_to_sources[url]))
+        sources = sorted(list(proposed_data[url]['sources']))
+        top_query_val = proposed_data[url]['top_query']
+        suggested_title, suggested_meta = generate_seo_metadata(url, top_query_val)
+        
         source_links = [f'<a href="{s}" target="_blank" class="text-break">{html.escape(s)}</a>' for s in sources]
         source_links_str = ", ".join(source_links)
         
@@ -207,8 +238,12 @@ def run_report(service, site_url, start_date, end_date):
                 <span class="url-text fw-bold text-success text-break"><a href="{url}" target="_blank">{html.escape(url)}</a></span>
                 <button class="btn btn-sm btn-outline-secondary copy-btn px-3" onclick="copyToClipboard('{html.escape(url)}', this)" style="font-size: 0.8rem; border-radius: 6px;">Copy URL</button>
             </div>
-            <div class="text-muted" style="font-size: 0.82rem;">
+            <div class="text-muted mb-2" style="font-size: 0.82rem;">
                 <strong>Old Drupal Source(s):</strong> {source_links_str}
+            </div>
+            <div class="p-3 rounded border-start border-primary border-3" style="background-color: #fcfcfc; font-size: 0.85rem;">
+                <div class="mb-1"><strong>Suggested SEO Title:</strong> <span class="text-dark fw-semibold">{html.escape(suggested_title)}</span></div>
+                <div><strong>Suggested Meta Description:</strong> <span class="text-muted">{html.escape(suggested_meta)}</span></div>
             </div>
         </li>
         """
