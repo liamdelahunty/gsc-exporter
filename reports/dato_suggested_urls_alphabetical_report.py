@@ -150,6 +150,18 @@ def suggest_dato_url(drupal_url, top_query):
     
     return default_url, keyword_url
 
+def format_brand_names(text):
+    """Enforces proper styling of brand terms: 'HR-inform', 'HR', and 'CIPD'."""
+    if not text:
+        return text
+    # Replace any case variation of "cipd hr inform" with "CIPD HR-inform"
+    text = re.sub(r'\bcipd\s+hr\s+inform\b', 'CIPD HR-inform', text, flags=re.IGNORECASE)
+    # Replace other combinations
+    text = re.sub(r'\bhr\s+inform\b', 'HR-inform', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bcipd\b', 'CIPD', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bhr\b', 'HR', text, flags=re.IGNORECASE)
+    return text
+
 def generate_seo_metadata(url, top_query=None):
     """Suggests an SEO title and meta description for a given proposed Dato URL."""
     parsed = urlparse(url)
@@ -176,6 +188,10 @@ def generate_seo_metadata(url, top_query=None):
         suggested_title = f"{title_base} | HR Updates & Analysis"
         meta_desc = f"Read expert insights and compliance analysis on {title_base.lower()} from the HR-inform editorial team."
         
+    # Format brand names to match styling rules
+    suggested_title = format_brand_names(suggested_title)
+    meta_desc = format_brand_names(meta_desc)
+    
     return suggested_title, meta_desc
 
 def run_report(service, site_url, start_date, end_date):
