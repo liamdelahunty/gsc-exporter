@@ -173,8 +173,8 @@ def generate_seo_metadata(url, top_query=None):
         suggested_title = f"Guide to {title_base} | HR-inform"
         meta_desc = f"Explore our comprehensive employer guide to {title_base.lower()}. Learn about key legal requirements and best practices under UK law."
     else:
-        suggested_title = f"{title_base} | Latest HR Updates & Analysis"
-        meta_desc = f"Read the latest updates, expert insights, and compliance analysis on {title_base.lower()} from the HR-inform editorial team."
+        suggested_title = f"{title_base} | HR Updates & Analysis"
+        meta_desc = f"Read expert insights and compliance analysis on {title_base.lower()} from the HR-inform editorial team."
         
     return suggested_title, meta_desc
 
