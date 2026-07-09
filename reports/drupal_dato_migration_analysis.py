@@ -601,7 +601,7 @@ def run_report(service, site_url, start_date, end_date, limit=100, queries_limit
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run Drupal to Dato migration analysis.')
-    parser.add_argument('site_url', nargs='?', default='sc-domain:hr-inform.co.uk', help='The site URL or property.')
+    parser.add_argument('site_url', nargs='?', default='https://www.hr-inform.co.uk', help='The site URL or property.')
     parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
     parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
     parser.add_argument('--last-7-days', action='store_true', help='Run for the last 7 available days.')
