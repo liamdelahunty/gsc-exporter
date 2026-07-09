@@ -26,6 +26,8 @@ EXCLUDE_FROM_AUTO = [
     "reports/dato_pages_performance_report.py",
     "reports/generate_migration_index.py",
     "reports/generate_gsc_wrapped.py",
+    "reports/library_marketing_migration_prioritisation_report.py",
+    "reports/library_marketing_migration_analysis.py",
     "reports/__init__.py"
 ]
 
