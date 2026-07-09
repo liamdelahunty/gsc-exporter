@@ -143,6 +143,7 @@ def select_report():
         "query_position_analysis.py": "Granular Pages & Queries Audits",
         "query_segmentation_report.py": "Granular Pages & Queries Audits",
         "gsc_pages_exporter.py": "Granular Pages & Queries Audits",
+        "library_marketing_migration_prioritisation_report.py": "Granular Pages & Queries Audits",
         
         "consolidated_traffic_report.py": "Specialized Traffic & Search Type Dashboards",
         "discover_key_performance_metrics.py": "Specialized Traffic & Search Type Dashboards",
