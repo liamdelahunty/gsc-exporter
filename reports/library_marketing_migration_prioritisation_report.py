@@ -386,57 +386,76 @@ def run_report(service, site_url, start_date, end_date, limit=100, max_rows=1000
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {{
-            background-color: #0b0f19;
-            color: #f3f4f6;
+            background-color: #f4f6f9;
+            color: #1f2937;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             padding-bottom: 4rem;
         }}
         .hero-section {{
             background: linear-gradient(135deg, #1e3a8a, #0f172a);
-            border-bottom: 3px solid #3b82f6;
             padding: 3rem 1.5rem;
             margin-bottom: 2rem;
             border-radius: 0 0 24px 24px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }}
+        .hero-section h1 {{
+            color: #ffffff !important;
+        }}
+        .hero-section p {{
+            color: rgba(255, 255, 255, 0.7) !important;
         }}
         h1, h2, h3, h4 {{
             font-weight: 700;
+            color: #111827;
         }}
         .metric-card {{
-            background-color: #111827;
-            border: 1px solid #1f2937;
+            background-color: #ffffff;
+            border: none;
             border-radius: 16px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-            transition: transform 0.2s, border-color 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s, box-shadow 0.2s;
         }}
         .metric-card:hover {{
             transform: translateY(-2px);
-            border-color: #3b82f6;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }}
         .list-group-item {{
-            background-color: #111827;
-            border-color: #1f2937;
-            color: #e5e7eb;
+            background-color: #ffffff;
+            border-color: #e5e7eb;
+            color: #374151;
             transition: background-color 0.2s;
         }}
         .list-group-item:hover {{
-            background-color: #1f2937;
+            background-color: #f9fafb;
         }}
         .text-muted {{
-            color: #9ca3af !important;
+            color: #6b7280 !important;
+        }}
+        .text-secondary {{
+            color: #4b5563 !important;
         }}
         .w-70 {{
             width: 70%;
         }}
         a {{
-            color: #3b82f6;
+            color: #2563eb;
+            text-decoration: none;
         }}
         a:hover {{
-            color: #60a5fa;
+            color: #1d4ed8;
             text-decoration: underline;
         }}
         .badge-disconnect {{
-            background-color: #d97706;
-            color: #000;
+            background-color: #fef3c7;
+            color: #d97706;
+            border: 1px solid #fde68a;
+        }}
+        code {{
+            color: #db2777;
+            background-color: #f3f4f6;
+            padding: 0.15rem 0.3rem;
+            border-radius: 4px;
+            font-size: 0.9em;
         }}
     </style>
 </head>
@@ -480,7 +499,7 @@ def run_report(service, site_url, start_date, end_date, limit=100, max_rows=1000
     </div>
 
     <!-- Explanatory Note -->
-    <div class="card metric-card mb-4 p-4 border-start border-blue border-4">
+    <div class="card metric-card mb-4 p-4 border-start border-primary border-4">
         <h4 class="fw-bold mb-2">💡 Migration Intent</h4>
         <p class="text-secondary mb-0">
             We want to see the best performing pages on the deep research portal <code>library.croneri.co.uk</code>, and propose
@@ -493,14 +512,14 @@ def run_report(service, site_url, start_date, end_date, limit=100, max_rows=1000
     {audit_card_html}
 
     <!-- Top Pages List -->
-    <h2 class="fw-bold text-light mb-3">Top Performing Library Pages to Migrate</h2>
+    <h2 class="fw-bold text-dark mb-3">Top Performing Library Pages to Migrate</h2>
     <p class="text-muted mb-3">Below are the top library pages ranked by organic clicks, displaying their primary search queries and proposed target URLs on www.croneri.co.uk.</p>
     
     <ul class="list-group">
         {list_items_html}
     </ul>
 
-    <h2 class="fw-bold text-light mt-5 mb-3">Next Steps &amp; Exports</h2>
+    <h2 class="fw-bold text-dark mt-5 mb-3">Next Steps &amp; Exports</h2>
     <p class="text-muted">The complete dataset of library pages, GSC metrics, and proposed target marketing URLs has been exported to the following location:</p>
     <ul>
         <li><strong>Actionable CSV Export:</strong> <a href="file://{csv_path}">{csv_filename}</a></li>
