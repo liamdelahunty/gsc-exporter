@@ -108,7 +108,17 @@ def select_property(sites):
 def select_report():
     """Displays a list of available reports and prompts the user to select one."""
     reports_dir = 'reports'
-    exclude_files = {'drupal_dato_migration_analysis.py', 'drupal_dato_gsc_comparison_report.py', 'generate_gsc_wrapped.py'}
+    exclude_files = {
+        'drupal_dato_migration_analysis.py',
+        'drupal_dato_gsc_comparison_report.py',
+        'generate_gsc_wrapped.py',
+        'dato_pages_performance_report.py',
+        'generate_migration_index.py',
+        'library_marketing_migration_prioritisation_report.py',
+        'library_marketing_migration_analysis.py',
+        'library_quick_links_performance_report.py',
+        'generate_library_migration_index.py'
+    }
     
     categories = [
         "High-Level Performance Summary Reports",
@@ -137,8 +147,12 @@ def select_report():
         "query_position_analysis.py": "Granular Pages & Queries Audits",
         "query_segmentation_report.py": "Granular Pages & Queries Audits",
         "gsc_pages_exporter.py": "Granular Pages & Queries Audits",
+        "library_marketing_migration_prioritisation_report.py": "Granular Pages & Queries Audits",
+        "library_marketing_migration_analysis.py": "Granular Pages & Queries Audits",
+        "library_quick_links_performance_report.py": "Granular Pages & Queries Audits",
         
         "consolidated_traffic_report.py": "Specialized Traffic & Search Type Dashboards",
+        "daily_performance_matrix.py": "Specialized Traffic & Search Type Dashboards",
         "discover_key_performance_metrics.py": "Specialized Traffic & Search Type Dashboards",
         "image_performance_report.py": "Specialized Traffic & Search Type Dashboards",
         "search_type_performance.py": "Specialized Traffic & Search Type Dashboards",
@@ -154,14 +168,24 @@ def select_report():
         "weekly_editorial_summary_report.py": "Technical SEO & Editorial Utilities"
     }
 
-    # Dynamically read all report files
-    all_files = [f for f in os.listdir(reports_dir) if f.endswith('.py') and f != '__init__.py' and f not in exclude_files]
+    # Dynamically read all report files recursively
+    all_files = []
+    for root, dirs, files in os.walk(reports_dir):
+        if '__pycache__' in root or 'monitoring' in root:
+            continue
+        for file in files:
+            if file.endswith('.py') and file != '__init__.py':
+                rel_path = os.path.relpath(os.path.join(root, file), reports_dir)
+                filename = os.path.basename(rel_path)
+                if filename not in exclude_files:
+                    all_files.append(rel_path)
     
     # Group files into categories
     grouped_reports = {cat: [] for cat in categories}
-    for filename in all_files:
+    for rel_path in all_files:
+        filename = os.path.basename(rel_path)
         cat = category_mapping.get(filename, "Other Reports")
-        grouped_reports[cat].append(filename)
+        grouped_reports[cat].append(rel_path)
         
     # Sort files alphabetically inside each category
     for cat in categories:

@@ -22,10 +22,11 @@ def build_index_html(site_url, start_date, end_date, slug):
     <div class="d-flex flex-wrap gap-2 justify-content-center mb-4 pb-3 border-bottom">
         <a href="dato-drupal-index-{slug}-{start_date}-to-{end_date}.html" class="btn btn-primary active px-4">Migration Index</a>
         <a href="drupal-dato-migration-analysis-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Breakdown Dashboard (Query-Level)</a>
-        <a href="drupal-dato-migration-prioritisation-report-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Top 50 Prioritisation Report</a>
         <a href="drupal-dato-migration-page-level-report-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Page-Level Report (All Clicks)</a>
+        <a href="drupal-dato-migration-prioritisation-report-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Top 50 Prioritisation Report</a>
         <a href="dato-suggested-urls-alphabetical-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Proposed Dato URLs (Alphabetical)</a>
         <a href="gsc-data-comparison-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">GSC Data Comparison</a>
+        <a href="dato-pages-performance-report-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Dato Pages Performance</a>
     </div>
     """
 
@@ -39,6 +40,15 @@ def build_index_html(site_url, start_date, end_date, slug):
             "html_file": f"drupal-dato-migration-analysis-{slug}-{start_date}-to-{end_date}.html",
             "csv_file": f"drupal-dato-migration-analysis-{slug}-{start_date}-to-{end_date}.csv",
             "icon": "bi-speedometer2"
+        },
+        {
+            "id": "dato-performance",
+            "title": "DatoCMS Pages Performance",
+            "purpose": "Provides detailed organic search performance (clicks, impressions, CTR, average position) for all pages migrated to the new DatoCMS platform.",
+            "metrics": "Tracks organic landing page performance and lists the top search queries driving traffic to each DatoCMS page.",
+            "html_file": f"dato-pages-performance-report-{slug}-{start_date}-to-{end_date}.html",
+            "csv_file": f"dato-pages-performance-report-{slug}-{start_date}-to-{end_date}.csv",
+            "icon": "bi-graph-up-arrow"
         },
         {
             "id": "prioritisation-report",

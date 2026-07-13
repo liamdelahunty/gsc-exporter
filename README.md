@@ -29,6 +29,7 @@ All reports in the `reports/` directory support a standardised set of arguments:
 | Report | Description |
 | --- | --- |
 | `period_comparison_report.py` | **NEW:** Compare performance between two periods with interactive charts and query deltas. |
+| `daily_performance_matrix.py` | **NEW:** Tabular calendar matrix mapping page-level clicks and impressions daily trends for Discover, Web, or News. |
 | `performance_analysis.py` | Detailed comparison highlighting rising stars, content decay, and high-value opportunities. |
 | `page_level_report.py` | Page-centric view with unique query counts and core performance metrics. |
 | `gsc_pages_queries.py` | Interactive "drill-down" report exploring the relationship between pages and queries. |

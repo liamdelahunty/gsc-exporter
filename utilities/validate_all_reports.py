@@ -32,6 +32,7 @@ def main():
         ["reports/page_level_report.py", site_url, "--last-month"],
         ["reports/gsc_pages_queries.py", site_url, "--last-month"],
         ["reports/key_performance_metrics.py", site_url, "--last-month"],
+        ["reports/daily_performance_matrix.py", site_url, "--last-month"],
         ["reports/discover_key_performance_metrics.py", site_url, "--last-month"],
         ["reports/queries_pages_analysis.py", site_url, "--last-month"],
         ["reports/query_position_analysis.py", site_url, "--last-month"],
@@ -53,10 +54,15 @@ def main():
         ["reports/url_inspection_report.py", site_url, "--last-month"],
         ["reports/search_appearance_report.py", site_url, "--last-month"],
         ["reports/consolidated_performance_overview_report.py", site_url, "--last-month"],
+        # Library Migration Reports
+        ["reports/migrations/library_marketing_migration_prioritisation_report.py", "https://library.croneri.co.uk/", "--last-month"],
+        ["reports/migrations/library_marketing_migration_analysis.py", "https://library.croneri.co.uk/", "--last-month"],
+        ["reports/migrations/library_quick_links_performance_report.py", "https://library.croneri.co.uk/", "--last-month"],
+        ["reports/migrations/generate_library_migration_index.py", "https://library.croneri.co.uk/", "--last-month"],
     ]
 
     for report in reports:
-        run_command(["python"] + report)
+        run_command([sys.executable] + report)
 
 if __name__ == "__main__":
     main()
