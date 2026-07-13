@@ -575,7 +575,7 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_cli
 
     <!-- Header -->
     <header class="dashboard-header">
-        <div class="container">
+        <div class="container-fluid px-4 px-md-5">
             <div class="row align-items-center">
                 <div class="col-lg-8 text-center text-lg-start">
                     <h1 class="site-title">{report_title}</h1>
@@ -592,7 +592,7 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_cli
     </header>
 
     <!-- Main Content -->
-    <main class="container py-5">
+    <main class="container-fluid py-5 px-4 px-md-5">
         
         <!-- About This Report Section -->
         <div class="row mb-5">
@@ -738,7 +738,7 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_cli
 
     <!-- Footer -->
     <footer class="footer">
-        <div class="container text-center">
+        <div class="container-fluid text-center px-4 px-md-5">
             <span>Report generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}. Powered by <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></span>
         </div>
     </footer>
