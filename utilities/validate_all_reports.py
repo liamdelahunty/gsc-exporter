@@ -56,7 +56,7 @@ def main():
     ]
 
     for report in reports:
-        run_command(["python"] + report)
+        run_command([sys.executable] + report)
 
 if __name__ == "__main__":
     main()

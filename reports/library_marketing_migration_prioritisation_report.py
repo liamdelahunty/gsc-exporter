@@ -1,8 +1,10 @@
 """
 Report script to generate the Library to Marketing Migration Prioritisation Report.
 Queries Google Search Console data for library.croneri.co.uk, maps deep technical reference
-articles to proposed marketing URLs on www.croneri.co.uk under the appropriate folder structure,
-and checks for semantic search disconnects.
+articles to proposed marketing URLs on www.croneri.co.uk, and checks for semantic search disconnects.
+Generates two versions:
+1. Standard report (with queries, keyword-level data).
+2. Page-only report (without queries, showing unfiltered page-level traffic data).
 """
 import os
 import sys
@@ -12,7 +14,7 @@ import argparse
 import html
 import re
 import urllib.parse
-from datetime import datetime, date, timedelta
+from datetime import datetime
 from urllib.parse import urlparse
 
 # Add parent directory to sys.path to allow importing core
@@ -95,8 +97,6 @@ def suggest_marketing_url(library_url, top_query):
     # Categorise folder based on URL path parts
     folder = "tax-audit-accounting"  # default marketing folder
     found_folder = False
-    
-    path_lower = path.lower()
     
     # Category indicators
     tax_indicators = {'pctm', 'btr', 'mot', 'etc', 'it', 'vat', 'dt', 'ct', 'cgt', 'sdlt', 'nics', 'tax', 'income-tax', 'capital-gains'}
@@ -207,31 +207,72 @@ def check_url_disconnect(library_url, top_query):
         
     return False, ""
 
+def get_navbar(slug, start_date, end_date, active_page):
+    """Shared navigation menu across all library migration reports."""
+    files = {
+        'index': f"library-migration-index-{slug}-{start_date}-to-{end_date}.html",
+        'prio_kw': f"library-marketing-migration-prioritisation-report-{slug}-{start_date}-to-{end_date}.html",
+        'prio_po': f"library-marketing-migration-prioritisation-page-only-{slug}-{start_date}-to-{end_date}.html",
+        'anal_kw': f"library-marketing-migration-analysis-{slug}-{start_date}-to-{end_date}.html",
+        'anal_po': f"library-marketing-migration-analysis-page-only-{slug}-{start_date}-to-{end_date}.html",
+        'ql_hl_kw': f"library-quick-links-highlighted-report-{slug}-{start_date}-to-{end_date}.html",
+        'ql_hl_po': f"library-quick-links-highlighted-page-only-{slug}-{start_date}-to-{end_date}.html",
+        'ql_all_kw': f"library-quick-links-all-report-{slug}-{start_date}-to-{end_date}.html",
+        'ql_all_po': f"library-quick-links-all-page-only-{slug}-{start_date}-to-{end_date}.html",
+    }
+    
+    def btn_class(key):
+        return "btn btn-primary active" if key == active_page else "btn btn-outline-primary"
+        
+    return f"""
+    <div class="d-flex flex-wrap gap-2 justify-content-center mb-4 pb-3 border-bottom">
+        <a href="{files['index']}" class="{btn_class('index')} px-3">Migration Index</a>
+        
+        <div class="btn-group">
+            <a href="{files['prio_kw']}" class="{btn_class('prio_kw')}">Prioritisation (Keywords)</a>
+            <a href="{files['prio_po']}" class="{btn_class('prio_po')}">Prioritisation (Page-only)</a>
+        </div>
+        
+        <div class="btn-group">
+            <a href="{files['anal_kw']}" class="{btn_class('anal_kw')}">Analysis (Keywords)</a>
+            <a href="{files['anal_po']}" class="{btn_class('anal_po')}">Analysis (Page-only)</a>
+        </div>
+        
+        <div class="btn-group">
+            <a href="{files['ql_hl_kw']}" class="{btn_class('ql_hl_kw')}">Quick Links Highlighted (Keywords)</a>
+            <a href="{files['ql_hl_po']}" class="{btn_class('ql_hl_po')}">Quick Links Highlighted (Page-only)</a>
+        </div>
+        
+        <div class="btn-group">
+            <a href="{files['ql_all_kw']}" class="{btn_class('ql_all_kw')}">Quick Links All (Keywords)</a>
+            <a href="{files['ql_all_po']}" class="{btn_class('ql_all_po')}">Quick Links All (Page-only)</a>
+        </div>
+    </div>
+    """
+
 def run_report(service, site_url, start_date, end_date, limit=100, max_rows=10000):
-    """Executes the Library to Marketing Prioritisation Report."""
-    print(f"Running Library to Marketing Migration Prioritisation Report for {site_url}...")
-    print(f"Retrieving GSC data (limit: {max_rows} rows)...")
+    """Executes standard and page-only versions of the Library to Marketing Prioritisation Report."""
+    print(f"Running Library to Marketing Migration Prioritisation Reports for {site_url}...")
     
     slug = get_filename_slug(site_url)
     output_dir = get_output_dir(site_url)
     os.makedirs(output_dir, exist_ok=True)
     
-    # Fetch query and page dimensions
+    # -------------------------------------------------------------------------
+    # REPORT 1: Standard Keyword-Level Report (includes search query context)
+    # -------------------------------------------------------------------------
+    print("Retrieving GSC keyword-level data...")
     df_raw = fetch_with_cache(service, site_url, start_date, end_date, ['query', 'page'], max_rows=max_rows)
     if df_raw.empty:
-        print("Error: No data found in GSC API or cache for this period.")
-        return None
+        print("Error: No keyword-level data found.")
+        return
         
-    print(f"Retrieved {len(df_raw):,} query-page rows from GSC.")
-    
-    # Aggregate data by page
     df_pages = df_raw.groupby('page').agg(
         clicks=('clicks', 'sum'),
         impressions=('impressions', 'sum'),
         unique_queries=('query', 'nunique')
     ).reset_index()
     
-    # Calculate position (weighted by impressions)
     weighted_pos = df_raw.groupby('page').apply(
         lambda g: (g['position'] * g['impressions']).sum() / g['impressions'].sum() if g['impressions'].sum() > 0 else g['position'].mean()
     ).reset_index(name='position')
@@ -240,17 +281,13 @@ def run_report(service, site_url, start_date, end_date, limit=100, max_rows=1000
     df_pages['ctr'] = df_pages['clicks'] / df_pages['impressions']
     df_pages = df_pages.sort_values(by='clicks', ascending=False)
     
-    # Sort raw details to extract top queries per page
     df_raw_sorted = df_raw.sort_values(by=['page', 'clicks'], ascending=[True, False])
     
-    # Construct rows for prioritisation report
     csv_rows = []
     list_items = []
     disconnect_items = []
     
     top_n_pages = df_pages.head(limit).copy()
-    
-    # Cumulative stats for the top list
     total_group_clicks = int(top_n_pages['clicks'].sum())
     total_group_imps = int(top_n_pages['impressions'].sum())
     group_ctr = total_group_clicks / total_group_imps if total_group_imps > 0 else 0
@@ -270,7 +307,6 @@ def run_report(service, site_url, start_date, end_date, limit=100, max_rows=1000
         default_url, keyword_url = suggest_marketing_url(page_url, top_query_val)
         has_disconnect, disconnect_reason = check_url_disconnect(page_url, top_query_val)
         
-        # Add to CSV row structure
         row_dict = {
             'library_page': page_url,
             'clicks': clicks,
@@ -284,7 +320,6 @@ def run_report(service, site_url, start_date, end_date, limit=100, max_rows=1000
             'disconnect_reason': disconnect_reason
         }
         
-        # Collect top 3 queries for display
         top_queries_display = []
         for i in range(5):
             q_val = ""
@@ -300,7 +335,6 @@ def run_report(service, site_url, start_date, end_date, limit=100, max_rows=1000
             
         csv_rows.append(row_dict)
         
-        # Build HTML list item
         badge_html = ""
         warning_class = ""
         note_html = ""
@@ -349,9 +383,7 @@ def run_report(service, site_url, start_date, end_date, limit=100, max_rows=1000
     csv_filename = f"library-marketing-migration-prioritisation-report-{slug}-{start_date}-to-{end_date}.csv"
     csv_path = os.path.join(output_dir, csv_filename)
     df_csv.to_csv(csv_path, index=False, encoding='utf-8')
-    print(f"CSV saved to: {csv_path}")
     
-    # Generate disconnect cards
     audit_card_html = ""
     if disconnect_items:
         audit_rows = []
@@ -368,7 +400,7 @@ def run_report(service, site_url, start_date, end_date, limit=100, max_rows=1000
         audit_card_html = f"""
         <div class="card border-warning border-3 mb-4 p-4" style="background-color: #fffdf5; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
             <h4 class="fw-bold text-warning mb-2">⚠️ SEO Disconnects Audit (Action Required)</h4>
-            <p class="text-muted">During our check, we identified library pages where the search intent (the queries driving organic traffic) is disconnected from the library URL path slug. In these cases, we should review the proposed URL slug to ensure it aligns with user intent rather than simply translating the old path.</p>
+            <p class="text-muted">During our check, we identified library pages where the search intent (the queries driving organic traffic) is disconnected from the library URL path slug.</p>
             <div class="mt-2" style="font-size: 0.9rem; max-height: 400px; overflow-y: auto;">
                 {"".join(audit_rows)}
             </div>
@@ -376,6 +408,7 @@ def run_report(service, site_url, start_date, end_date, limit=100, max_rows=1000
         """
         
     list_items_html = "\n".join(list_items)
+    nav_html = get_navbar(slug, start_date, end_date, "prio_kw")
     
     html_content = f"""<!DOCTYPE html>
 <html lang="en-GB">
@@ -385,78 +418,20 @@ def run_report(service, site_url, start_date, end_date, limit=100, max_rows=1000
     <title>Library to Marketing Migration Prioritisation Report</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {{
-            background-color: #f4f6f9;
-            color: #1f2937;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding-bottom: 4rem;
-        }}
-        .hero-section {{
-            background: linear-gradient(135deg, #1e3a8a, #0f172a);
-            padding: 3rem 1.5rem;
-            margin-bottom: 2rem;
-            border-radius: 0 0 24px 24px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }}
-        .hero-section h1 {{
-            color: #ffffff !important;
-        }}
-        .hero-section p {{
-            color: rgba(255, 255, 255, 0.7) !important;
-        }}
-        h1, h2, h3, h4 {{
-            font-weight: 700;
-            color: #111827;
-        }}
-        .metric-card {{
-            background-color: #ffffff;
-            border: none;
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }}
-        .metric-card:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }}
-        .list-group-item {{
-            background-color: #ffffff;
-            border-color: #e5e7eb;
-            color: #374151;
-            transition: background-color 0.2s;
-        }}
-        .list-group-item:hover {{
-            background-color: #f9fafb;
-        }}
-        .text-muted {{
-            color: #6b7280 !important;
-        }}
-        .text-secondary {{
-            color: #4b5563 !important;
-        }}
-        .w-70 {{
-            width: 70%;
-        }}
-        a {{
-            color: #2563eb;
-            text-decoration: none;
-        }}
-        a:hover {{
-            color: #1d4ed8;
-            text-decoration: underline;
-        }}
-        .badge-disconnect {{
-            background-color: #fef3c7;
-            color: #d97706;
-            border: 1px solid #fde68a;
-        }}
-        code {{
-            color: #db2777;
-            background-color: #f3f4f6;
-            padding: 0.15rem 0.3rem;
-            border-radius: 4px;
-            font-size: 0.9em;
-        }}
+        body {{ background-color: #f4f6f9; color: #1f2937; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding-bottom: 4rem; }}
+        .hero-section {{ background: linear-gradient(135deg, #1e3a8a, #0f172a); padding: 3rem 1.5rem; margin-bottom: 2rem; border-radius: 0 0 24px 24px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }}
+        .hero-section h1 {{ color: #ffffff !important; }}
+        .hero-section p {{ color: rgba(255, 255, 255, 0.7) !important; }}
+        h1, h2, h3, h4 {{ font-weight: 700; color: #111827; }}
+        .metric-card {{ background-color: #ffffff; border: none; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: transform 0.2s; }}
+        .metric-card:hover {{ transform: translateY(-2px); }}
+        .list-group-item {{ background-color: #ffffff; border-color: #e5e7eb; color: #374151; }}
+        .text-muted {{ color: #6b7280 !important; }}
+        .text-secondary {{ color: #4b5563 !important; }}
+        .w-70 {{ width: 70%; }}
+        a {{ color: #2563eb; text-decoration: none; }}
+        a:hover {{ color: #1d4ed8; text-decoration: underline; }}
+        code {{ color: #db2777; background-color: #f3f4f6; padding: 0.15rem 0.3rem; border-radius: 4px; font-size: 0.9em; }}
     </style>
 </head>
 <body>
@@ -464,13 +439,13 @@ def run_report(service, site_url, start_date, end_date, limit=100, max_rows=1000
 <div class="hero-section text-center">
     <div class="container-fluid">
         <h1 class="display-5 mb-2">Library to Marketing Migration Prioritisation Report</h1>
-        <p class="lead text-muted">Property: <strong>{html.escape(site_url)}</strong> | Reporting Period: <strong>{start_date} to {end_date}</strong></p>
-        <span class="badge bg-primary p-2">Report generated on {datetime.now().strftime("%Y-%m-%d")}</span>
+        <p class="lead text-muted">Property: <strong>{html.escape(site_url)}</strong> | Reporting Period: <strong>{start_date} to {end_date}</strong> (Keyword-Level Data)</p>
     </div>
 </div>
 
 <div class="container-fluid px-4">
-    <!-- Highlight Cards -->
+    {nav_html}
+
     <div class="row g-4 mb-4">
         <div class="col-md-3">
             <div class="card metric-card p-4 text-center">
@@ -498,50 +473,198 @@ def run_report(service, site_url, start_date, end_date, limit=100, max_rows=1000
         </div>
     </div>
 
-    <!-- Explanatory Note -->
     <div class="card metric-card mb-4 p-4 border-start border-primary border-4">
-        <h4 class="fw-bold mb-2">💡 Migration Intent</h4>
+        <h4 class="fw-bold mb-2">💡 Migration Intent (Keywords Mode)</h4>
         <p class="text-secondary mb-0">
-            We want to see the best performing pages on the deep research portal <code>library.croneri.co.uk</code>, and propose
-            marketing versions on the core business site <code>www.croneri.co.uk</code>. By reviewing the top performing reference
-            content, we can capture high-intent search traffic and redirect it to dedicated lead-generation landing pages.
+            This report prioritises pages based on GSC keyword data. Note that GSC applies privacy filters to low-volume searches, causing the sums above to be lower than true page-level totals.
         </p>
     </div>
 
-    <!-- SEO Disconnects Audit Section -->
     {audit_card_html}
 
-    <!-- Top Pages List -->
     <h2 class="fw-bold text-dark mb-3">Top Performing Library Pages to Migrate</h2>
-    <p class="text-muted mb-3">Below are the top library pages ranked by organic clicks, displaying their primary search queries and proposed target URLs on www.croneri.co.uk.</p>
-    
     <ul class="list-group">
         {list_items_html}
     </ul>
 
     <h2 class="fw-bold text-dark mt-5 mb-3">Next Steps &amp; Exports</h2>
-    <p class="text-muted">The complete dataset of library pages, GSC metrics, and proposed target marketing URLs has been exported to the following location:</p>
     <ul>
         <li><strong>Actionable CSV Export:</strong> <a href="file://{csv_path}">{csv_filename}</a></li>
     </ul>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>"""
     
-    html_filename = f"library-marketing-migration-prioritisation-report-{slug}-{start_date}-to-{end_date}.html"
-    html_path = os.path.join(output_dir, html_filename)
-    with open(html_path, "w", encoding="utf-8") as f:
+    html_high_path = os.path.join(output_dir, f"library-marketing-migration-prioritisation-report-{slug}-{start_date}-to-{end_date}.html")
+    with open(html_high_path, "w", encoding="utf-8") as f:
         f.write(html_content)
+    print(f"Standard HTML Report generated at: {html_high_path}")
+
+    # -------------------------------------------------------------------------
+    # REPORT 2: Page-Only Report (Unfiltered Clicks & Impressions)
+    # -------------------------------------------------------------------------
+    print("Retrieving GSC page-only data for unfiltered impressions & clicks...")
+    df_raw_page = fetch_with_cache(service, site_url, start_date, end_date, ['page'], max_rows=max_rows)
+    if df_raw_page.empty:
+        print("Warning: No page-only data found.")
+        return
         
-    print(f"HTML report generated successfully at: {html_path}")
-    print(f"Exported files are located at:\n  CSV:  [CSV File](file://{csv_path})\n  HTML: [HTML Report](file://{html_path})")
+    df_pages_only = df_raw_page.groupby('page').agg(
+        clicks=('clicks', 'sum'),
+        impressions=('impressions', 'sum'),
+        position=('position', 'mean')
+    ).reset_index()
     
-    return csv_path, html_path
+    df_pages_only['ctr'] = df_pages_only['clicks'] / df_pages_only['impressions']
+    df_pages_only = df_pages_only.sort_values(by='clicks', ascending=False)
+    
+    csv_rows_po = []
+    list_items_po = []
+    top_n_pages_po = df_pages_only.head(limit).copy()
+    
+    total_clicks_po = int(top_n_pages_po['clicks'].sum())
+    total_imps_po = int(top_n_pages_po['impressions'].sum())
+    group_ctr_po = total_clicks_po / total_imps_po if total_imps_po > 0 else 0
+    
+    for idx, row in top_n_pages_po.reset_index(drop=True).iterrows():
+        page_url = row['page']
+        clicks = int(row['clicks'])
+        impressions = int(row['impressions'])
+        ctr = float(row['ctr'])
+        position = float(row['position'])
+        
+        # Suggest URLs (without top query context)
+        default_url, _ = suggest_marketing_url(page_url, "")
+        
+        row_dict_po = {
+            'library_page': page_url,
+            'clicks': clicks,
+            'impressions': impressions,
+            'ctr': ctr,
+            'position': position,
+            'proposed_marketing_url': default_url
+        }
+        csv_rows_po.append(row_dict_po)
+        
+        item_html_po = f"""
+        <li class="list-group-item py-3">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="ms-2 me-auto w-70">
+                    <div class="fw-bold mb-1"><span class="badge bg-dark me-2">{idx + 1}</span><a href="{page_url}" target="_blank" class="text-break">{html.escape(page_url)}</a></div>
+                    <div class="text-success mb-0" style="font-size: 0.85rem;">
+                        <strong>Proposed Marketing URL:</strong> <a href="{default_url}" target="_blank" class="text-success text-decoration-none">{default_url}</a>
+                    </div>
+                </div>
+                <div class="text-end border-start ps-3" style="min-width: 180px;">
+                    <div class="fw-bold text-dark">{clicks:,} <span class="text-muted fw-normal" style="font-size: 0.8rem;">clicks</span></div>
+                    <div class="text-muted" style="font-size: 0.85rem;">{impressions:,} <span class="fw-normal" style="font-size: 0.8rem;">imps</span></div>
+                    <div class="text-muted" style="font-size: 0.85rem;">{ctr:.2%} <span class="fw-normal" style="font-size: 0.8rem;">CTR</span></div>
+                    <div class="text-muted" style="font-size: 0.85rem;">{position:.2f} <span class="fw-normal" style="font-size: 0.8rem;">position</span></div>
+                </div>
+            </div>
+        </li>
+        """
+        list_items_po.append(item_html_po)
+        
+    df_csv_po = pd.DataFrame(csv_rows_po)
+    csv_po_filename = f"library-marketing-migration-prioritisation-page-only-{slug}-{start_date}-to-{end_date}.csv"
+    csv_po_path = os.path.join(output_dir, csv_po_filename)
+    df_csv_po.to_csv(csv_po_path, index=False, encoding='utf-8')
+    
+    list_items_po_html = "\n".join(list_items_po)
+    nav_po_html = get_navbar(slug, start_date, end_date, "prio_po")
+    
+    html_po_content = f"""<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library to Marketing Migration Prioritisation (Page-Only)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {{ background-color: #f4f6f9; color: #1f2937; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding-bottom: 4rem; }}
+        .hero-section {{ background: linear-gradient(135deg, #1e3a8a, #0f172a); padding: 3rem 1.5rem; margin-bottom: 2rem; border-radius: 0 0 24px 24px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }}
+        .hero-section h1 {{ color: #ffffff !important; }}
+        .hero-section p {{ color: rgba(255, 255, 255, 0.7) !important; }}
+        h1, h2, h3, h4 {{ font-weight: 700; color: #111827; }}
+        .metric-card {{ background-color: #ffffff; border: none; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: transform 0.2s; }}
+        .metric-card:hover {{ transform: translateY(-2px); }}
+        .list-group-item {{ background-color: #ffffff; border-color: #e5e7eb; color: #374151; }}
+        .text-muted {{ color: #6b7280 !important; }}
+        .text-secondary {{ color: #4b5563 !important; }}
+        .w-70 {{ width: 70%; }}
+        a {{ color: #2563eb; text-decoration: none; }}
+        a:hover {{ color: #1d4ed8; text-decoration: underline; }}
+    </style>
+</head>
+<body>
+
+<div class="hero-section text-center">
+    <div class="container-fluid">
+        <h1 class="display-5 mb-2">Library to Marketing Migration Prioritisation Report (Page-Only)</h1>
+        <p class="lead text-muted">Property: <strong>{html.escape(site_url)}</strong> | Reporting Period: <strong>{start_date} to {end_date}</strong> (Unfiltered Page-Level Data)</p>
+    </div>
+</div>
+
+<div class="container-fluid px-4">
+    {nav_po_html}
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card metric-card p-4 text-center">
+                <small class="text-muted d-block uppercase fw-bold mb-1">Top Pages Analysed</small>
+                <span class="h2 fw-bold text-primary">{len(top_n_pages_po)}</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card metric-card p-4 text-center">
+                <small class="text-muted d-block fw-bold mb-1">Cumulative Clicks</small>
+                <span class="h2 fw-bold text-success">{total_clicks_po:,}</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card metric-card p-4 text-center">
+                <small class="text-muted d-block fw-bold mb-1">Cumulative Impressions</small>
+                <span class="h2 fw-bold text-info">{total_imps_po:,}</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card metric-card p-4 text-center">
+                <small class="text-muted d-block fw-bold mb-1">Average CTR</small>
+                <span class="h2 fw-bold text-warning">{group_ctr_po:.2%}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card metric-card mb-4 p-4 border-start border-primary border-4">
+        <h4 class="fw-bold mb-2">💡 Unfiltered Page-Level Traffic</h4>
+        <p class="text-secondary mb-0">
+            This report represents the true, unfiltered clicks and impressions for library URLs, without GSC keyword privacy threshold exclusions.
+        </p>
+    </div>
+
+    <h2 class="fw-bold text-dark mb-3">Top Performing Library Pages to Migrate</h2>
+    <ul class="list-group">
+        {list_items_po_html}
+    </ul>
+
+    <h2 class="fw-bold text-dark mt-5 mb-3">Next Steps &amp; Exports</h2>
+    <ul>
+        <li><strong>Actionable CSV Export:</strong> <a href="file://{csv_po_path}">{csv_po_filename}</a></li>
+    </ul>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>"""
+    
+    html_po_path = os.path.join(output_dir, f"library-marketing-migration-prioritisation-page-only-{slug}-{start_date}-to-{end_date}.html")
+    with open(html_po_path, "w", encoding="utf-8") as f:
+        f.write(html_po_content)
+    print(f"Page-Only HTML Report generated successfully at: {html_po_path}")
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Run Library to Marketing Prioritisation Report.')
+    parser = argparse.ArgumentParser(description='Run Library to Marketing Prioritisation Reports.')
     parser.add_argument('site_url', nargs='?', default='https://library.croneri.co.uk/', help='The library site URL or GSC property.')
     parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
     parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')

@@ -28,6 +28,8 @@ EXCLUDE_FROM_AUTO = [
     "reports/generate_gsc_wrapped.py",
     "reports/library_marketing_migration_prioritisation_report.py",
     "reports/library_marketing_migration_analysis.py",
+    "reports/library_quick_links_performance_report.py",
+    "reports/generate_library_migration_index.py",
     "reports/__init__.py"
 ]
 

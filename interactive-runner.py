@@ -113,7 +113,11 @@ def select_report():
         'drupal_dato_gsc_comparison_report.py',
         'generate_gsc_wrapped.py',
         'dato_pages_performance_report.py',
-        'generate_migration_index.py'
+        'generate_migration_index.py',
+        'library_marketing_migration_prioritisation_report.py',
+        'library_marketing_migration_analysis.py',
+        'library_quick_links_performance_report.py',
+        'generate_library_migration_index.py'
     }
     
     categories = [
@@ -145,6 +149,7 @@ def select_report():
         "gsc_pages_exporter.py": "Granular Pages & Queries Audits",
         "library_marketing_migration_prioritisation_report.py": "Granular Pages & Queries Audits",
         "library_marketing_migration_analysis.py": "Granular Pages & Queries Audits",
+        "library_quick_links_performance_report.py": "Granular Pages & Queries Audits",
         
         "consolidated_traffic_report.py": "Specialized Traffic & Search Type Dashboards",
         "discover_key_performance_metrics.py": "Specialized Traffic & Search Type Dashboards",
