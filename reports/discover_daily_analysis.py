@@ -1,5 +1,6 @@
 """
-Generates a daily analysis of Google Discover Traffic, showing performance trends and top daily stories.
+Generates a daily analysis matrix of Google Search Console performance data (such as Discover, Web, or News traffic),
+showing daily trends, daily clicks/impressions matrices, and popular days tracking.
 """
 import os
 import sys
@@ -16,144 +17,106 @@ from core.date_utils import (
     get_last_7_days_range
 )
 
-def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top_stories, top_stories_limit):
-    """
-    Generates a premium, highly interactive HTML dashboard of Discover Traffic.
-    """
-    # Calculate global KPIs
+def format_cell_value(val):
+    """Formats values for matrix cells. Displays as blank if missing/NaN."""
+    if pd.isna(val) or val is None:
+        return ""
+    return f"{int(val):,}"
+
+def generate_matrix_headers(df_matrix, value_col_name):
+    """Generates the HTML table headers for the matrix table."""
+    headers = []
+    # Sticky page column
+    headers.append('<th class="col-sticky-page">Page URL</th>')
+    # Popular Days
+    headers.append('<th class="text-center" title="Number of days this page was in the top X stories">Popular Days</th>')
+    # Total Clicks / Total Impressions
+    headers.append(f'<th class="text-end">{value_col_name}</th>')
+    
+    # Date headers
+    date_cols = [col for col in df_matrix.columns if col not in ['page', 'Popular Days', value_col_name]]
+    for date_col in date_cols:
+        try:
+            dt = datetime.strptime(date_col, "%Y-%m-%d")
+            formatted_date = dt.strftime("%d<br>%b")
+        except Exception:
+            formatted_date = date_col
+        headers.append(f'<th class="text-end font-monospace date-header" title="Full date: {date_col}">{formatted_date}</th>')
+        
+    return f'<tr>{"".join(headers)}</tr>'
+
+def generate_matrix_rows(df_matrix, value_col_name):
+    """Generates the HTML table body rows for the matrix table."""
+    rows_html = []
+    for _, row in df_matrix.iterrows():
+        page = row['page']
+        pop_days = int(row['Popular Days'])
+        total_val = int(row[value_col_name])
+        
+        display_page = page.replace("https://", "").replace("http://", "")
+        if len(display_page) > 75:
+            display_page = display_page[:72] + "..."
+            
+        cells = []
+        # Page cell (sticky)
+        cells.append(f"""
+        <td class="col-sticky-page">
+            <a href="{page}" target="_blank" title="{page}" class="story-link">
+                {display_page}
+                <svg class="external-link-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            </a>
+        </td>
+        """)
+        # Popular Days
+        cells.append(f'<td class="text-center fw-semibold text-accent">{pop_days}</td>')
+        # Total Value
+        cells.append(f'<td class="text-end fw-semibold">{total_val:,}</td>')
+        
+        # Date cells
+        date_cols = [col for col in df_matrix.columns if col not in ['page', 'Popular Days', value_col_name]]
+        for date_col in date_cols:
+            val = row[date_col]
+            formatted_val = format_cell_value(val)
+            cell_class = "cell-empty" if formatted_val == "" else "cell-value"
+            cells.append(f'<td class="text-end {cell_class}">{formatted_val}</td>')
+            
+        rows_html.append(f'<tr class="matrix-row">{"".join(cells)}</tr>')
+        
+    return "\n".join(rows_html)
+
+def create_html_report(site_url, start_date, end_date, df_daily_complete, df_clicks_matrix, df_impressions_matrix, search_type):
+    """Generates a premium light-mode HTML dashboard displaying daily GSC trends and matrices."""
+    # Global KPIs
     total_clicks = int(df_daily_complete['clicks'].sum())
     total_impressions = int(df_daily_complete['impressions'].sum())
     avg_ctr = total_clicks / total_impressions if total_impressions > 0 else 0
-    days_count = len(df_daily_complete)
+    collated_stories_count = len(df_clicks_matrix)
 
-    # Format KPI values
     clicks_str = f"{total_clicks:,}"
     impressions_str = f"{total_impressions:,}"
     ctr_str = f"{avg_ctr:.2%}"
 
-    # Prepare chart data (chronological)
+    # Trend Chart Data
     chart_data = df_daily_complete.sort_values('date_dt').copy()
     chart_dates = chart_data['date'].tolist()
     chart_clicks = chart_data['clicks'].tolist()
     chart_impressions = chart_data['impressions'].tolist()
 
-    # Generate daily top stories HTML
-    # We sort days in reverse chronological order for display
-    unique_days = sorted(df_daily_complete['date'].unique(), reverse=True)
-    daily_cards_html = []
+    # Generate matrix HTML contents
+    clicks_headers = generate_matrix_headers(df_clicks_matrix, 'Total Clicks')
+    clicks_rows = generate_matrix_rows(df_clicks_matrix, 'Total Clicks')
+    impressions_headers = generate_matrix_headers(df_impressions_matrix, 'Total Impressions')
+    impressions_rows = generate_matrix_rows(df_impressions_matrix, 'Total Impressions')
 
-    for day_str in unique_days:
-        day_dt = pd.to_datetime(day_str)
-        day_formatted = day_dt.strftime("%A, %d %B %Y")
-        
-        # Get daily totals
-        day_total_row = df_daily_complete[df_daily_complete['date'] == day_str]
-        if not day_total_row.empty:
-            day_clicks = int(day_total_row.iloc[0]['clicks'])
-            day_impressions = int(day_total_row.iloc[0]['impressions'])
-            day_ctr = day_total_row.iloc[0]['ctr']
-        else:
-            day_clicks, day_impressions, day_ctr = 0, 0, 0.0
-
-        day_clicks_str = f"{day_clicks:,}"
-        day_impressions_str = f"{day_impressions:,}"
-        day_ctr_str = f"{day_ctr:.2%}"
-
-        # Get top stories for this day
-        day_stories = df_top_stories[df_top_stories['date'] == day_str].sort_values('clicks', ascending=False)
-        
-        if day_stories.empty:
-            table_rows_html = """
-            <tr>
-                <td colspan="5" class="text-center text-muted py-4">No Discover stories recorded on this day.</td>
-            </tr>
-            """
-        else:
-            rows = []
-            for _, row in day_stories.iterrows():
-                rank = int(row['rank'])
-                page_url = row['page']
-                clicks = int(row['clicks'])
-                impressions = int(row['impressions'])
-                ctr = float(row['ctr'])
-                
-                # Truncate page URL for display but keep full in link
-                display_url = page_url.replace("https://", "").replace("http://", "")
-                if len(display_url) > 85:
-                    display_url = display_url[:82] + "..."
-
-                rows.append(f"""
-                <tr class="story-row">
-                    <td class="col-rank">#{rank}</td>
-                    <td class="col-page">
-                        <a href="{page_url}" target="_blank" title="{page_url}" class="story-link text-break">
-                            {display_url}
-                            <svg class="external-link-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                        </a>
-                    </td>
-                    <td class="col-clicks text-end fw-semibold text-clicks">{clicks:,}</td>
-                    <td class="col-impressions text-end text-impressions">{impressions:,}</td>
-                    <td class="col-ctr text-end text-ctr">{ctr:.2%}</td>
-                </tr>
-                """)
-            table_rows_html = "\n".join(rows)
-
-        # Generate unique ID for accordion/collapsible
-        day_id = f"day-{day_str}"
-        
-        daily_cards_html.append(f"""
-        <div class="card daily-card mb-4" data-date="{day_str}">
-            <div class="card-header d-flex flex-wrap justify-content-between align-items-center cursor-pointer" onclick="toggleCard('{day_id}')">
-                <div class="d-flex align-items-center">
-                    <span class="collapse-icon me-3" id="icon-{day_id}">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </span>
-                    <h3 class="h5 mb-0 text-main fw-bold">{day_formatted}</h3>
-                </div>
-                <div class="d-flex align-items-center gap-3 mt-2 mt-sm-0 daily-badges-container">
-                    <span class="badge badge-clicks py-2 px-3">
-                        <span class="badge-label">Clicks</span>
-                        <span class="badge-value">{day_clicks_str}</span>
-                    </span>
-                    <span class="badge badge-impressions py-2 px-3">
-                        <span class="badge-label">Impressions</span>
-                        <span class="badge-value">{day_impressions_str}</span>
-                    </span>
-                    <span class="badge badge-ctr py-2 px-3">
-                        <span class="badge-label">CTR</span>
-                        <span class="badge-value">{day_ctr_str}</span>
-                    </span>
-                </div>
-            </div>
-            <div class="card-body collapsible-body" id="{day_id}">
-                <div class="table-responsive">
-                    <table class="table table-borderless story-table mb-0">
-                        <thead>
-                            <tr>
-                                <th class="col-rank">Rank</th>
-                                <th class="col-page">Story URL</th>
-                                <th class="col-clicks text-end">Clicks</th>
-                                <th class="col-impressions text-end">Impressions</th>
-                                <th class="col-ctr text-end">CTR</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {table_rows_html}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        """)
-
-    daily_cards_joined = "\n".join(daily_cards_html)
+    # Dynamic titles based on search type
+    report_title = f"{search_type.capitalize()} Daily Performance Matrix" if search_type != 'discover' else "Google Discover Daily Analysis"
 
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Discover Daily Analysis for {site_url}</title>
+    <title>{report_title} for {site_url}</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -168,22 +131,22 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
 
     <style>
         :root {{
-            --bg-primary: #0b0f19;
-            --bg-secondary: #131a2d;
-            --bg-card: rgba(22, 30, 49, 0.7);
-            --border-color: rgba(38, 52, 85, 0.6);
-            --text-main: #f8fafc;
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --bg-card: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #0f172a;
             --text-muted: #64748b;
-            --text-muted-light: #94a3b8;
-            --accent-blue: #0ea5e9;
-            --accent-blue-rgb: 14, 165, 233;
-            --accent-purple: #d946ef;
-            --accent-purple-rgb: 217, 70, 239;
-            --accent-green: #10b981;
-            --accent-green-rgb: 16, 185, 129;
+            --text-muted-light: #475569;
+            --accent-blue: #0284c7;
+            --accent-blue-rgb: 2, 132, 199;
+            --accent-purple: #7c3aed;
+            --accent-purple-rgb: 124, 58, 237;
+            --accent-green: #059669;
+            --accent-green-rgb: 5, 150, 105;
             --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -4px rgba(0, 0, 0, 0.15);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
             --font-outfit: 'Outfit', sans-serif;
             --font-inter: 'Inter', sans-serif;
         }}
@@ -195,34 +158,21 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            padding-bottom: 0;
             overflow-x: hidden;
         }}
 
-        /* Header Style */
         .dashboard-header {{
-            background: linear-gradient(180deg, #111827 0%, var(--bg-primary) 100%);
+            background: linear-gradient(180deg, #ffffff 0%, var(--bg-primary) 100%);
             border-bottom: 1px solid var(--border-color);
             padding: 2.5rem 0;
             position: relative;
-        }}
-
-        .dashboard-header::after {{
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80%;
-            height: 1px;
-            background: linear-gradient(90deg, rgba(14, 165, 233, 0) 0%, rgba(14, 165, 233, 0.4) 50%, rgba(14, 165, 233, 0) 100%);
         }}
 
         .site-title {{
             font-family: var(--font-outfit);
             font-weight: 800;
             letter-spacing: -0.025em;
-            background: linear-gradient(135deg, #fff 30%, #93c5fd 100%);
+            background: linear-gradient(135deg, #0f172a 30%, #0284c7 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-size: 2.25rem;
@@ -230,10 +180,10 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
         }}
 
         .date-range-pill {{
-            background: rgba(30, 41, 59, 0.8);
+            background: #ffffff;
             border: 1px solid var(--border-color);
             color: var(--accent-blue);
-            font-weight: 500;
+            font-weight: 600;
             font-size: 0.875rem;
             padding: 0.4rem 1rem;
             border-radius: 9999px;
@@ -241,9 +191,9 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
             align-items: center;
             gap: 0.5rem;
             font-family: var(--font-outfit);
+            box-shadow: var(--shadow-sm);
         }}
 
-        /* Cards and Layout */
         .kpi-card {{
             background-color: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -252,34 +202,33 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
-            backdrop-filter: blur(12px);
+            box-shadow: var(--shadow-sm);
         }}
 
         .kpi-card:hover {{
             transform: translateY(-4px);
-            border-color: rgba(14, 165, 233, 0.4);
-            box-shadow: 0 10px 20px -10px rgba(14, 165, 233, 0.2);
+            box-shadow: var(--shadow-md);
         }}
 
-        .kpi-card.clicks-card:hover {{
-            border-color: var(--accent-blue);
-            box-shadow: 0 10px 20px -10px rgba(var(--accent-blue-rgb), 0.25);
+        .kpi-card.clicks-card {{
+            background-color: #f0f9ff;
+            border-color: #bae6fd;
         }}
 
-        .kpi-card.impressions-card:hover {{
-            border-color: var(--accent-purple);
-            box-shadow: 0 10px 20px -10px rgba(var(--accent-purple-rgb), 0.25);
+        .kpi-card.impressions-card {{
+            background-color: #f5f3ff;
+            border-color: #ddd6fe;
         }}
 
-        .kpi-card.ctr-card:hover {{
-            border-color: var(--accent-green);
-            box-shadow: 0 10px 20px -10px rgba(var(--accent-green-rgb), 0.25);
+        .kpi-card.ctr-card {{
+            background-color: #ecfdf5;
+            border-color: #a7f3d0;
         }}
 
         .kpi-label {{
-            color: var(--text-muted-light);
+            color: var(--text-muted);
             font-size: 0.875rem;
-            font-weight: 500;
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 0.5rem;
@@ -297,39 +246,12 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
         .text-impressions {{ color: var(--accent-purple); }}
         .text-ctr {{ color: var(--accent-green); }}
 
-        /* Glow Elements */
-        .kpi-card::before {{
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            pointer-events: none;
-            transition: all 0.3s;
-        }}
-
-        .clicks-card::before {{
-            background: radial-gradient(circle, rgba(14, 165, 233, 0.12) 0%, rgba(14, 165, 233, 0) 70%);
-        }}
-
-        .impressions-card::before {{
-            background: radial-gradient(circle, rgba(217, 70, 239, 0.12) 0%, rgba(217, 70, 239, 0) 70%);
-        }}
-
-        .ctr-card::before {{
-            background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0) 70%);
-        }}
-
-        /* Chart container */
         .chart-card {{
             background-color: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 1rem;
             padding: 1.75rem;
-            box-shadow: var(--shadow-lg);
-            backdrop-filter: blur(12px);
+            box-shadow: var(--shadow-sm);
         }}
 
         .chart-card-header {{
@@ -340,65 +262,74 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
             font-family: var(--font-outfit);
             font-weight: 700;
             font-size: 1.25rem;
+            color: var(--text-main);
         }}
 
         .chart-container {{
             position: relative;
-            height: 380px;
+            height: 350px;
             width: 100%;
         }}
 
-        /* Daily Cards Breakdown */
-        .section-title-bar {{
+        /* Tabs and Tables */
+        .matrix-section {{
             margin-top: 3.5rem;
-            margin-bottom: 1.5rem;
+        }}
+
+        .matrix-controls-bar {{
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
             border-bottom: 1px solid var(--border-color);
-            padding-bottom: 0.75rem;
+            padding-bottom: 1rem;
         }}
 
-        .section-title {{
-            font-family: var(--font-outfit);
-            font-weight: 700;
-            font-size: 1.5rem;
-            margin-bottom: 0;
-            background: linear-gradient(135deg, #fff 60%, #94a3b8 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .nav-tabs-custom {{
+            border-bottom: none;
+            display: flex;
+            gap: 0.5rem;
         }}
 
-        .control-btn {{
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid var(--border-color);
+        .tab-btn {{
+            background: transparent;
+            border: 1px solid transparent;
             color: var(--text-muted-light);
-            font-size: 0.825rem;
-            font-weight: 500;
-            padding: 0.35rem 0.85rem;
+            font-family: var(--font-outfit);
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 0.5rem 1.25rem;
             border-radius: 0.5rem;
             transition: all 0.2s;
             cursor: pointer;
         }}
 
-        .control-btn:hover {{
-            background: var(--bg-secondary);
-            border-color: var(--accent-blue);
+        .tab-btn:hover {{
             color: var(--text-main);
+            background: rgba(0, 0, 0, 0.05);
+        }}
+
+        .tab-btn.active {{
+            background: var(--bg-secondary);
+            border-color: var(--border-color);
+            color: var(--accent-blue);
+            box-shadow: var(--shadow-sm);
         }}
 
         .search-bar {{
-            max-width: 320px;
+            max-width: 360px;
             width: 100%;
         }}
 
         .search-input {{
-            background: rgba(15, 23, 42, 0.6);
+            background: #ffffff;
             border: 1px solid var(--border-color);
             border-radius: 0.5rem;
             color: var(--text-main);
             font-size: 0.875rem;
-            padding: 0.45rem 1rem;
+            padding: 0.5rem 1.25rem;
             width: 100%;
             transition: all 0.2s;
         }}
@@ -406,146 +337,84 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
         .search-input:focus {{
             outline: none;
             border-color: var(--accent-blue);
-            box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
-            background: rgba(15, 23, 42, 0.8);
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
         }}
 
-        .daily-card {{
+        .matrix-table-wrapper {{
             background-color: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 0.75rem;
-            overflow: hidden;
+            border-radius: 1rem;
+            overflow-x: auto;
+            max-height: 650px;
+            overflow-y: auto;
             box-shadow: var(--shadow-sm);
-            transition: border-color 0.2s, box-shadow 0.2s;
         }}
 
-        .daily-card:hover {{
-            border-color: rgba(14, 165, 233, 0.3);
-            box-shadow: var(--shadow-md);
+        .matrix-table {{
+            width: max-content;
+            min-width: 100%;
+            margin-bottom: 0;
+            border-collapse: separate;
+            border-spacing: 0;
         }}
 
-        .daily-card .card-header {{
-            background-color: rgba(30, 41, 59, 0.3);
-            border-bottom: 1px solid transparent;
-            padding: 1.25rem 1.5rem;
-            user-select: none;
-            transition: background-color 0.2s, border-color 0.2s;
-        }}
-
-        .daily-card .card-header:hover {{
-            background-color: rgba(30, 41, 59, 0.5);
-        }}
-
-        .daily-card.active .card-header {{
-            border-bottom-color: var(--border-color);
-            background-color: rgba(30, 41, 59, 0.4);
-        }}
-
-        .collapse-icon {{
-            color: var(--text-muted-light);
-            transition: transform 0.25s ease;
-            display: inline-block;
-        }}
-
-        .daily-card.active .collapse-icon {{
-            transform: rotate(180deg);
-            color: var(--accent-blue);
-        }}
-
-        .badge-clicks, .badge-impressions, .badge-ctr {{
-            background: rgba(15, 23, 42, 0.5);
-            border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            display: inline-flex;
-            flex-direction: column;
-            align-items: flex-end;
-            min-width: 90px;
-            font-size: 0.75rem;
-        }}
-
-        .badge-clicks {{ border-left: 3px solid var(--accent-blue); }}
-        .badge-impressions {{ border-left: 3px solid var(--accent-purple); }}
-        .badge-ctr {{ border-left: 3px solid var(--accent-green); }}
-
-        .badge-label {{
+        .matrix-table th {{
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #f8fafc;
             color: var(--text-muted);
-            font-size: 0.65rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.1rem;
-        }}
-
-        .badge-clicks .badge-value {{ color: var(--accent-blue); font-weight: 700; }}
-        .badge-impressions .badge-value {{ color: var(--accent-purple); font-weight: 700; }}
-        .badge-ctr .badge-value {{ color: var(--accent-green); font-weight: 700; }}
-
-        .collapsible-body {{
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s cubic-bezier(0, 1, 0, 1);
-        }}
-
-        .daily-card.active .collapsible-body {{
-            max-height: 2000px;
-            transition: max-height 0.3s cubic-bezier(1, 0, 1, 0);
-        }}
-
-        .story-table {{
-            margin: 0;
-        }}
-
-        .story-table th {{
-            color: var(--text-muted-light);
             font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            font-weight: 600;
-            padding: 1rem 1.25rem;
-            border-bottom: 1px solid var(--border-color);
+            font-weight: 700;
+            padding: 1rem 0.85rem;
+            border-bottom: 2px solid var(--border-color);
         }}
 
-        .story-table td {{
-            padding: 0.85rem 1.25rem;
+        .matrix-table td {{
+            padding: 0.75rem 0.85rem;
             vertical-align: middle;
-            border-bottom: 1px solid rgba(51, 65, 85, 0.2);
-            font-size: 0.875rem;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.825rem;
         }}
 
-        .story-row {{
+        .matrix-row {{
             transition: background-color 0.15s;
         }}
 
-        .story-row:hover {{
-            background-color: rgba(30, 41, 59, 0.25);
+        .matrix-row:hover {{
+            background-color: #f8fafc;
         }}
 
-        .col-rank {{
-            width: 70px;
-            font-weight: 700;
-            color: var(--text-muted-light);
+        /* Sticky Columns */
+        .matrix-table th.col-sticky-page,
+        .matrix-table td.col-sticky-page {{
+            position: sticky;
+            left: 0;
+            z-index: 2;
+            background-color: #ffffff;
+            border-right: 2px solid var(--border-color);
+            box-shadow: 4px 0 8px rgba(0, 0, 0, 0.03);
+            max-width: 320px;
+            min-width: 280px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }}
 
-        .col-page {{
-            min-width: 250px;
+        .matrix-table th.col-sticky-page {{
+            background-color: #f8fafc;
+            z-index: 11;
         }}
 
-        .col-clicks {{
-            width: 110px;
-        }}
-
-        .col-impressions {{
-            width: 140px;
-        }}
-
-        .col-ctr {{
-            width: 100px;
+        .matrix-table tr:hover td.col-sticky-page {{
+            background-color: #f8fafc;
         }}
 
         .story-link {{
-            color: #93c5fd;
+            color: #0284c7;
             text-decoration: none;
-            font-weight: 400;
             transition: color 0.15s;
             display: inline-flex;
             align-items: center;
@@ -553,20 +422,44 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
         }}
 
         .story-link:hover {{
-            color: var(--accent-blue);
+            color: #0369a1;
             text-decoration: underline;
         }}
 
         .external-link-icon {{
             opacity: 0;
-            transform: translateY(1px);
-            transition: opacity 0.15s, transform 0.15s;
+            transition: opacity 0.15s;
             color: var(--accent-blue);
         }}
 
         .story-link:hover .external-link-icon {{
             opacity: 0.8;
-            transform: translateY(0);
+        }}
+
+        .text-accent {{
+            color: var(--accent-blue);
+        }}
+
+        .cell-empty {{
+            color: #cbd5e1;
+            font-weight: 300;
+        }}
+
+        .cell-value {{
+            font-weight: 500;
+        }}
+
+        .tab-content-panel {{
+            display: none;
+        }}
+
+        .tab-content-panel.show {{
+            display: block;
+        }}
+
+        .date-header {{
+            min-width: 65px;
+            line-height: 1.2;
         }}
 
         /* Footer */
@@ -574,7 +467,7 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
             margin-top: auto;
             padding: 2.5rem 0;
             border-top: 1px solid var(--border-color);
-            background-color: rgba(17, 24, 39, 0.4);
+            background-color: #ffffff;
             font-size: 0.825rem;
             color: var(--text-muted);
             font-family: var(--font-outfit);
@@ -590,11 +483,6 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
         }}
 
         @media (max-width: 768px) {{
-            .daily-badges-container {{
-                width: 100%;
-                justify-content: flex-start;
-                margin-top: 0.75rem;
-            }}
             .site-title {{
                 font-size: 1.75rem;
             }}
@@ -603,9 +491,6 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
             }}
             .chart-container {{
                 height: 280px;
-            }}
-            .story-table th, .story-table td {{
-                padding: 0.75rem 0.75rem;
             }}
         }}
     </style>
@@ -617,8 +502,8 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-lg-8 text-center text-lg-start">
-                    <h1 class="site-title">Google Discover Daily Report</h1>
-                    <p class="text-muted-light mb-0">Discover Traffic performance analysis for <span class="fw-semibold text-white">{site_url}</span></p>
+                    <h1 class="site-title">{report_title}</h1>
+                    <p class="text-muted mb-0">Daily performance metrics matrix for <span class="fw-semibold text-dark">{site_url}</span></p>
                 </div>
                 <div class="col-lg-4 text-center text-lg-end mt-3 mt-lg-0">
                     <div class="date-range-pill">
@@ -655,8 +540,8 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
             </div>
             <div class="col-md-3">
                 <div class="kpi-card">
-                    <div class="kpi-label">Days Analysed</div>
-                    <div class="kpi-value text-white">{days_count}</div>
+                    <div class="kpi-label">Collated Stories</div>
+                    <div class="kpi-value text-dark">{collated_stories_count}</div>
                 </div>
             </div>
         </div>
@@ -666,8 +551,8 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
             <div class="col-12">
                 <div class="chart-card">
                     <div class="chart-card-header d-flex justify-content-between align-items-center">
-                        <h2 class="chart-card-title text-white mb-0">Daily Trends</h2>
-                        <span class="text-muted-light small">Hover on lines to view details</span>
+                        <h2 class="chart-card-title mb-0">Daily Trends</h2>
+                        <span class="text-muted small">Hover on lines to view details</span>
                     </div>
                     <div class="chart-container">
                         <canvas id="dailyPerformanceChart"></canvas>
@@ -676,21 +561,45 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
             </div>
         </div>
 
-        <!-- Daily Breakdown Header -->
-        <div class="section-title-bar">
-            <h2 class="section-title">Daily Breakdown</h2>
-            <div class="d-flex align-items-center gap-2">
-                <button class="control-btn" onclick="toggleAllCards(true)">Expand All</button>
-                <button class="control-btn" onclick="toggleAllCards(false)">Collapse All</button>
-                <div class="search-bar ms-2">
-                    <input type="text" id="storySearch" class="search-input" placeholder="Search stories..." oninput="filterStories()">
+        <!-- Matrix Breakdown Section -->
+        <div class="matrix-section">
+            <div class="matrix-controls-bar">
+                <div class="nav-tabs-custom">
+                    <button class="tab-btn active" onclick="switchTab('clicksPanel', this)">Clicks Matrix</button>
+                    <button class="tab-btn" onclick="switchTab('impressionsPanel', this)">Impressions Matrix</button>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="matrixSearch" class="search-input" placeholder="Search pages..." oninput="filterMatrix()">
                 </div>
             </div>
-        </div>
 
-        <!-- Daily Cards -->
-        <div class="daily-cards-container">
-            {daily_cards_joined}
+            <!-- Clicks Matrix Panel -->
+            <div id="clicksPanel" class="tab-content-panel show">
+                <div class="matrix-table-wrapper">
+                    <table class="table table-borderless matrix-table">
+                        <thead>
+                            {clicks_headers}
+                        </thead>
+                        <tbody>
+                            {clicks_rows}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Impressions Matrix Panel -->
+            <div id="impressionsPanel" class="tab-content-panel">
+                <div class="matrix-table-wrapper">
+                    <table class="table table-borderless matrix-table">
+                        <thead>
+                            {impressions_headers}
+                        </thead>
+                        <tbody>
+                            {impressions_rows}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
     </main>
@@ -702,76 +611,45 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
         </div>
     </footer>
 
-    <!-- Interactive Logic Scripts -->
+    <!-- Interactive Scripts -->
     <script>
-        // Toggle Card Visibility
-        function toggleCard(cardId) {{
-            const card = document.getElementById(cardId).parentElement;
-            card.classList.toggle('active');
-        }}
-
-        // Expand or Collapse All Cards
-        function toggleAllCards(expand) {{
-            const cards = document.querySelectorAll('.daily-card');
-            cards.forEach(card => {{
-                if (expand) {{
-                    card.classList.add('active');
-                }} else {{
-                    card.classList.remove('active');
-                }}
-            }});
-        }}
-
-        // Filter Stories Dynamically in HTML
-        function filterStories() {{
-            const query = document.getElementById('storySearch').value.toLowerCase().trim();
-            const dailyCards = document.querySelectorAll('.daily-card');
+        // Tab switching
+        function switchTab(panelId, btn) {{
+            document.querySelectorAll('.tab-content-panel').forEach(p => p.classList.remove('show'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             
-            dailyCards.forEach(card => {{
-                const rows = card.querySelectorAll('.story-row');
-                let dayHasMatches = false;
-                
-                rows.forEach(row => {{
-                    const linkText = row.querySelector('.story-link').textContent.toLowerCase();
-                    if (linkText.includes(query)) {{
+            document.getElementById(panelId).classList.add('show');
+            btn.classList.add('active');
+        }}
+
+        // Row filtering
+        function filterMatrix() {{
+            const query = document.getElementById('matrixSearch').value.toLowerCase().trim();
+            const rows = document.querySelectorAll('.matrix-row');
+            
+            rows.forEach(row => {{
+                const pageLink = row.querySelector('.story-link');
+                if (pageLink) {{
+                    const title = pageLink.getAttribute('title').toLowerCase();
+                    if (title.includes(query)) {{
                         row.style.display = '';
-                        dayHasMatches = true;
                     }} else {{
                         row.style.display = 'none';
                     }}
-                }});
-
-                // If query is empty, show all cards and reset active state
-                if (query === '') {{
-                    card.style.display = '';
-                }} else if (dayHasMatches) {{
-                    card.style.display = '';
-                    card.classList.add('active'); // Expand matching days
-                }} else {{
-                    card.style.display = 'none';
                 }}
             }});
         }}
-
-        // Expand first card by default on load
-        window.addEventListener('DOMContentLoaded', () => {{
-            const firstCard = document.querySelector('.daily-card');
-            if (firstCard) {{
-                firstCard.classList.add('active');
-            }}
-        }});
 
         // Chart.js Setup
         const chartCtx = document.getElementById('dailyPerformanceChart').getContext('2d');
         
-        // Define gradients for chart fills
-        const blueGradient = chartCtx.createLinearGradient(0, 0, 0, 350);
-        blueGradient.addColorStop(0, 'rgba(14, 165, 233, 0.25)');
-        blueGradient.addColorStop(1, 'rgba(14, 165, 233, 0.00)');
+        const blueGradient = chartCtx.createLinearGradient(0, 0, 0, 320);
+        blueGradient.addColorStop(0, 'rgba(2, 132, 199, 0.10)');
+        blueGradient.addColorStop(1, 'rgba(2, 132, 199, 0.00)');
 
-        const purpleGradient = chartCtx.createLinearGradient(0, 0, 0, 350);
-        purpleGradient.addColorStop(0, 'rgba(217, 70, 239, 0.20)');
-        purpleGradient.addColorStop(1, 'rgba(217, 70, 239, 0.00)');
+        const purpleGradient = chartCtx.createLinearGradient(0, 0, 0, 320);
+        purpleGradient.addColorStop(0, 'rgba(124, 58, 237, 0.08)');
+        purpleGradient.addColorStop(1, 'rgba(124, 58, 237, 0.00)');
 
         const chartLabels = {json.dumps(chart_dates)};
         const clicksData = {json.dumps(chart_clicks)};
@@ -781,7 +659,6 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
             type: 'line',
             data: {{
                 labels: chartLabels.map(d => {{
-                    // Format date labels for chart: "DD MMM"
                     const dateObj = new Date(d);
                     return dateObj.toLocaleDateString('en-GB', {{ day: 'numeric', month: 'short' }});
                 }}),
@@ -789,13 +666,13 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
                     {{
                         label: 'Clicks',
                         data: clicksData,
-                        borderColor: '#0ea5e9',
+                        borderColor: '#0284c7',
                         backgroundColor: blueGradient,
                         borderWidth: 3,
-                        pointBackgroundColor: '#0ea5e9',
-                        pointBorderColor: '#0b0f19',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: '#0ea5e9',
+                        pointBackgroundColor: '#0284c7',
+                        pointBorderColor: '#ffffff',
+                        pointHoverBackgroundColor: '#ffffff',
+                        pointHoverBorderColor: '#0284c7',
                         pointRadius: 4,
                         pointHoverRadius: 6,
                         yAxisID: 'yClicks',
@@ -805,13 +682,13 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
                     {{
                         label: 'Impressions',
                         data: impressionsData,
-                        borderColor: '#d946ef',
+                        borderColor: '#7c3aed',
                         backgroundColor: purpleGradient,
                         borderWidth: 3,
-                        pointBackgroundColor: '#d946ef',
-                        pointBorderColor: '#0b0f19',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: '#d946ef',
+                        pointBackgroundColor: '#7c3aed',
+                        pointBorderColor: '#ffffff',
+                        pointHoverBackgroundColor: '#ffffff',
+                        pointHoverBorderColor: '#7c3aed',
                         pointRadius: 4,
                         pointHoverRadius: 6,
                         yAxisID: 'yImpressions',
@@ -831,7 +708,7 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
                     legend: {{
                         position: 'top',
                         labels: {{
-                            color: '#94a3b8',
+                            color: '#475569',
                             font: {{
                                 family: "'Outfit', sans-serif",
                                 size: 12,
@@ -843,10 +720,10 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
                         }}
                     }},
                     tooltip: {{
-                        backgroundColor: '#1e293b',
-                        titleColor: '#fff',
-                        bodyColor: '#e2e8f0',
-                        borderColor: 'rgba(255,255,255,0.1)',
+                        backgroundColor: '#ffffff',
+                        titleColor: '#0f172a',
+                        bodyColor: '#334155',
+                        borderColor: '#e2e8f0',
                         borderWidth: 1,
                         padding: 12,
                         boxPadding: 6,
@@ -875,11 +752,11 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
                 scales: {{
                     x: {{
                         grid: {{
-                            color: 'rgba(51, 65, 85, 0.15)',
-                            tickColor: 'rgba(51, 65, 85, 0.3)'
+                            color: 'rgba(226, 232, 240, 0.8)',
+                            tickColor: 'rgba(226, 232, 240, 0.8)'
                         }},
                         ticks: {{
-                            color: '#94a3b8',
+                            color: '#64748b',
                             font: {{
                                 family: "'Inter', sans-serif",
                                 size: 11
@@ -891,10 +768,10 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
                         display: true,
                         position: 'left',
                         grid: {{
-                            color: 'rgba(51, 65, 85, 0.2)'
+                            color: 'rgba(226, 232, 240, 0.8)'
                         }},
                         ticks: {{
-                            color: '#0ea5e9',
+                            color: '#0284c7',
                             font: {{
                                 family: "'Outfit', sans-serif",
                                 weight: '500'
@@ -906,7 +783,7 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
                         title: {{
                             display: true,
                             text: 'Clicks',
-                            color: '#0ea5e9',
+                            color: '#0284c7',
                             font: {{
                                 family: "'Outfit', sans-serif",
                                 size: 12,
@@ -922,7 +799,7 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
                             drawOnChartArea: false
                         }},
                         ticks: {{
-                            color: '#d946ef',
+                            color: '#7c3aed',
                             font: {{
                                 family: "'Outfit', sans-serif",
                                 weight: '500'
@@ -934,7 +811,7 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
                         title: {{
                             display: true,
                             text: 'Impressions',
-                            color: '#d946ef',
+                            color: '#7c3aed',
                             font: {{
                                 family: "'Outfit', sans-serif",
                                 size: 12,
@@ -951,30 +828,37 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_top
 """
     return html_content
 
-def run_report(service, site_url, start_date, end_date, top_stories=10):
+def run_report(service, site_url, start_date, end_date, search_type='discover', top_stories=10):
     """
-    Executes the Google Discover Daily Analysis Report.
-    Queries the Search Console API for Discover data, aggregates daily totals,
-    extracts the top stories per day, and exports to CSV and HTML.
+    Executes the Daily Performance Matrix Report.
+    Queries GSC performance data, computes rankings, collates popular pages,
+    pivots daily clicks/impressions into matrices, and saves CSV and HTML outputs.
     """
-    print(f"Running Discover Daily Analysis Report for {site_url} ({start_date} to {end_date})...")
+    print(f"Running Daily Performance Matrix ({search_type}) for {site_url} ({start_date} to {end_date})...")
     
-    # Fetch granular Discover data with dimensions=['date', 'page']
-    df = fetch_with_cache(service, site_url, start_date, end_date, ['date', 'page'], 'discover')
+    # 1. Fetch daily performance data for page dimension
+    df = fetch_with_cache(service, site_url, start_date, end_date, ['date', 'page'], search_type)
     
     if df.empty:
-        print(f"No Discover data found for {site_url} during the period {start_date} to {end_date}.")
+        print(f"No {search_type} data found for {site_url} during the period {start_date} to {end_date}.")
         return None
 
-    # Sort and compute daily ranks for stories
+    # Sort and compute daily rankings
     df['date_dt'] = pd.to_datetime(df['date'])
     df_sorted = df.sort_values(by=['date_dt', 'clicks'], ascending=[True, False])
     df_sorted['rank'] = df_sorted.groupby('date').cumcount() + 1
     
-    # Filter to only the top X stories
-    df_top_stories = df_sorted[df_sorted['rank'] <= top_stories].copy()
+    # 2. Extract unique pages that hit the top X popular list on at least one day
+    df_popular_only = df_sorted[df_sorted['rank'] <= top_stories].copy()
+    popular_pages = df_popular_only['page'].unique()
+    
+    # Count how many days each page was "popular" (rank <= top_stories)
+    popular_days_count = df_popular_only.groupby('page')['date'].nunique().to_dict()
 
-    # Compute daily totals
+    # Filter original data to include only the popular pages
+    df_matrix_source = df[df['page'].isin(popular_pages)].copy()
+    
+    # 3. Create Daily Totals for Chart
     df_daily = df.groupby('date').agg({
         'clicks': 'sum',
         'impressions': 'sum'
@@ -982,7 +866,7 @@ def run_report(service, site_url, start_date, end_date, top_stories=10):
     df_daily['ctr'] = df_daily['clicks'] / df_daily['impressions']
     df_daily['date_dt'] = pd.to_datetime(df_daily['date'])
     
-    # Complete date range to avoid gaps in chart
+    # Backfill missing dates to ensure smooth chronological lines
     start_dt = pd.to_datetime(start_date)
     end_dt = pd.to_datetime(end_date)
     all_dates = pd.date_range(start=start_dt, end=end_dt, freq='D')
@@ -996,33 +880,59 @@ def run_report(service, site_url, start_date, end_date, top_stories=10):
     df_daily_complete['ctr'] = df_daily_complete['ctr'].fillna(0.0)
     df_daily_complete = df_daily_complete.sort_values('date_dt', ascending=True)
 
-    # Output Paths
+    # 4. Construct Clicks and Impressions Matrices
+    # Pivot dates into columns
+    clicks_pivot = df_matrix_source.pivot(index='page', columns='date', values='clicks')
+    impressions_pivot = df_matrix_source.pivot(index='page', columns='date', values='impressions')
+    
+    # Map Popular Days count and Total clicks/impressions
+    clicks_pivot['Popular Days'] = clicks_pivot.index.map(popular_days_count).fillna(0).astype(int)
+    clicks_pivot['Total Clicks'] = df_matrix_source.groupby('page')['clicks'].sum()
+    
+    impressions_pivot['Popular Days'] = impressions_pivot.index.map(popular_days_count).fillna(0).astype(int)
+    impressions_pivot['Total Impressions'] = df_matrix_source.groupby('page')['impressions'].sum()
+    
+    # Sort by popularity days count (descending) then by metric totals
+    clicks_pivot = clicks_pivot.sort_values(by=['Popular Days', 'Total Clicks'], ascending=[False, False])
+    impressions_pivot = impressions_pivot.sort_values(by=['Popular Days', 'Total Impressions'], ascending=[False, False])
+
+    # Reorder columns: Page URL (index), Popular Days, Total, followed by sorted Date columns
+    date_cols = sorted([c for c in clicks_pivot.columns if c not in ['Popular Days', 'Total Clicks']])
+    
+    df_clicks_matrix = clicks_pivot[['Popular Days', 'Total Clicks'] + date_cols].reset_index()
+    df_impressions_matrix = impressions_pivot[['Popular Days', 'Total Impressions'] + date_cols].reset_index()
+
+    # 5. Output Paths
     output_dir = get_output_dir(site_url)
     os.makedirs(output_dir, exist_ok=True)
     slug = get_filename_slug(site_url)
     
-    file_prefix = f"discover-daily-analysis-{slug}-{start_date}-to-{end_date}"
-    csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
+    search_suffix = f"-{search_type}" if search_type != "discover" else ""
+    file_prefix = f"discover-daily-analysis-{slug}{search_suffix}-{start_date}-to-{end_date}"
+    
+    clicks_csv_path = os.path.join(output_dir, f"{file_prefix}-clicks.csv")
+    impressions_csv_path = os.path.join(output_dir, f"{file_prefix}-impressions.csv")
     html_path = os.path.join(output_dir, f"{file_prefix}.html")
 
-    # Save CSV (top stories per day)
-    csv_cols = ['date', 'rank', 'page', 'clicks', 'impressions', 'ctr']
-    df_top_stories_csv = df_top_stories[csv_cols].copy()
-    df_top_stories_csv.to_csv(csv_path, index=False, encoding='utf-8')
-    
-    # Save HTML
+    # 6. Save CSV Outputs
+    df_clicks_matrix.to_csv(clicks_csv_path, index=False, encoding='utf-8')
+    df_impressions_matrix.to_csv(impressions_csv_path, index=False, encoding='utf-8')
+
+    # 7. Save HTML Output
     html_content = create_html_report(
         site_url=site_url,
         start_date=start_date,
         end_date=end_date,
         df_daily_complete=df_daily_complete,
-        df_top_stories=df_top_stories,
-        top_stories_limit=top_stories
+        df_clicks_matrix=df_clicks_matrix,
+        df_impressions_matrix=df_impressions_matrix,
+        search_type=search_type
     )
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
-        
-    print(f"CSV saved to: {csv_path}")
+
+    print(f"Clicks CSV saved to: {clicks_csv_path}")
+    print(f"Impressions CSV saved to: {impressions_csv_path}")
     print(f"HTML saved to: {html_path}")
     return html_path
 
@@ -1030,8 +940,9 @@ if __name__ == '__main__':
     import argparse
     from core.client import get_gsc_service
     
-    parser = argparse.ArgumentParser(description='Discover daily analysis report.')
+    parser = argparse.ArgumentParser(description='Daily GSC performance matrix report.')
     parser.add_argument('site_url', help='The URL of the site to analyse.')
+    parser.add_argument('--search-type', default='discover', choices=['web', 'news', 'discover'], help='GSC search type (default: discover).')
     parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
     parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
     parser.add_argument('--last-7-days', action='store_true', help='Run for the last 7 available days.')
@@ -1043,7 +954,7 @@ if __name__ == '__main__':
     
     service = get_gsc_service()
     if service:
-        # Custom date parsing to default to last 28 days if no arguments are provided
+        # Resolve dates
         if args.start_date and args.end_date:
             start_date, end_date = args.start_date, args.end_date
         else:
@@ -1058,4 +969,4 @@ if __name__ == '__main__':
                 start_date = start_dt.strftime('%Y-%m-%d')
                 end_date = latest_date.strftime('%Y-%m-%d')
                 
-        run_report(service, args.site_url, start_date, end_date, args.top_stories)
+        run_report(service, args.site_url, start_date, end_date, args.search_type, args.top_stories)

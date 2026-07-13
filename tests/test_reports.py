@@ -149,9 +149,11 @@ def test_discover_daily_analysis_report(mock_service, mocker):
     run_report(mock_service, site, '2024-01-01', '2024-01-31', top_stories=2)
     output_dir = get_output_dir(site)
     slug = get_filename_slug(site)
-    csv_path = os.path.join(output_dir, f"discover-daily-analysis-{slug}-2024-01-01-to-2024-01-31.csv")
+    clicks_csv = os.path.join(output_dir, f"discover-daily-analysis-{slug}-2024-01-01-to-2024-01-31-clicks.csv")
+    impressions_csv = os.path.join(output_dir, f"discover-daily-analysis-{slug}-2024-01-01-to-2024-01-31-impressions.csv")
     html_path = os.path.join(output_dir, f"discover-daily-analysis-{slug}-2024-01-01-to-2024-01-31.html")
     
-    assert os.path.exists(csv_path)
+    assert os.path.exists(clicks_csv)
+    assert os.path.exists(impressions_csv)
     assert os.path.exists(html_path)
 
