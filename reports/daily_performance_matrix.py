@@ -498,6 +498,46 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_cli
             white-space: nowrap;
         }}
 
+        /* About Card */
+        .about-card {{
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }}
+        .about-title {{
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            font-family: var(--font-outfit);
+        }}
+        .about-feature {{
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            height: 100%;
+        }}
+        .about-feature-title {{
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.4rem;
+            font-family: var(--font-outfit);
+        }}
+        .about-feature-desc {{
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }}
+        .chevron-icon {{
+            color: var(--text-muted);
+            transition: transform 0.2s ease;
+        }}
+        .info-icon {{
+            color: var(--accent-blue);
+        }}
+
         /* Footer */
         footer {{
             margin-top: auto;
@@ -553,6 +593,50 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_cli
 
     <!-- Main Content -->
     <main class="container py-5">
+        
+        <!-- About This Report Section -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="about-card">
+                    <div class="about-header d-flex justify-content-between align-items-center" onclick="toggleAbout()" style="cursor: pointer;">
+                        <div class="d-flex align-items-center gap-2">
+                            <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="8.01"></line></svg>
+                            <h2 class="about-title mb-0">About this Report</h2>
+                        </div>
+                        <svg class="chevron-icon" id="aboutChevron" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </div>
+                    <div class="about-content mt-3" id="aboutContent" style="display: none;">
+                        <p class="mb-3">This dashboard provides a daily performance analysis of your Google Search Console traffic, specifically tailored for Discover but compatible with Web and News search types. It highlights trends, longevity, and detailed day-by-day trajectories for popular stories.</p>
+                        <div class="row g-3">
+                            <div class="col-md-6 col-lg-3">
+                                <div class="about-feature">
+                                    <h3 class="about-feature-title">Daily Trend Chart</h3>
+                                    <p class="about-feature-desc text-muted mb-0">Tracks aggregate daily clicks and impressions chronologically to reveal general traffic spikes and trend lines.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <div class="about-feature">
+                                    <h3 class="about-feature-title">Popular Days</h3>
+                                    <p class="about-feature-desc text-muted mb-0">Counts how many days a page was in the daily top stories (default top 10). High counts show content longevity (sustained interest) versus one-day spikes.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <div class="about-feature">
+                                    <h3 class="about-feature-title">Daily Traffic Matrix</h3>
+                                    <p class="about-feature-desc text-muted mb-0">Pivots pages as rows and dates as columns. Values show exact daily clicks/impressions. Blanks indicate the page did not hit the top stories on that day.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <div class="about-feature">
+                                    <h3 class="about-feature-title">Collated Pages</h3>
+                                    <p class="about-feature-desc text-muted mb-0">Collects any page that was popular on at least one day during the period, sorting them automatically by Popular Days and total performance.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <!-- KPIs Row -->
         <div class="row g-4 mb-5">
@@ -661,6 +745,19 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_cli
 
     <!-- Interactive Scripts -->
     <script>
+        // Toggle About Card
+        function toggleAbout() {{
+            const content = document.getElementById('aboutContent');
+            const chevron = document.getElementById('aboutChevron');
+            if (content.style.display === 'none') {{
+                content.style.display = 'block';
+                chevron.style.transform = 'rotate(180deg)';
+            }} else {{
+                content.style.display = 'none';
+                chevron.style.transform = 'rotate(0deg)';
+            }}
+        }}
+
         // Tab switching
         function switchTab(panelId, btn) {{
             document.querySelectorAll('.tab-content-panel').forEach(p => p.classList.remove('show'));
