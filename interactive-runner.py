@@ -152,7 +152,7 @@ def select_report():
         "library_quick_links_performance_report.py": "Granular Pages & Queries Audits",
         
         "consolidated_traffic_report.py": "Specialized Traffic & Search Type Dashboards",
-        "discover_daily_analysis.py": "Specialized Traffic & Search Type Dashboards",
+        "daily_performance_matrix.py": "Specialized Traffic & Search Type Dashboards",
         "discover_key_performance_metrics.py": "Specialized Traffic & Search Type Dashboards",
         "image_performance_report.py": "Specialized Traffic & Search Type Dashboards",
         "search_type_performance.py": "Specialized Traffic & Search Type Dashboards",

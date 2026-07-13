@@ -32,7 +32,7 @@ def main():
         ["reports/page_level_report.py", site_url, "--last-month"],
         ["reports/gsc_pages_queries.py", site_url, "--last-month"],
         ["reports/key_performance_metrics.py", site_url, "--last-month"],
-        ["reports/discover_daily_analysis.py", site_url, "--last-month"],
+        ["reports/daily_performance_matrix.py", site_url, "--last-month"],
         ["reports/discover_key_performance_metrics.py", site_url, "--last-month"],
         ["reports/queries_pages_analysis.py", site_url, "--last-month"],
         ["reports/query_position_analysis.py", site_url, "--last-month"],

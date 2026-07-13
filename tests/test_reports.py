@@ -141,17 +141,17 @@ def test_url_inspection_report_smart_detection(mock_service, mocker):
     assert 'www.example.com' in output_dir
     assert os.path.exists(os.path.join(output_dir, f"url-inspection-{slug}-{datetime.now().strftime('%Y-%m-%d')}.html"))
 
-def test_discover_daily_analysis_report(mock_service, mocker):
-    mocker.patch('reports.discover_daily_analysis.fetch_with_cache', return_value=pd.DataFrame(mock_df_data))
-    from reports.discover_daily_analysis import run_report
+def test_daily_performance_matrix_report(mock_service, mocker):
+    mocker.patch('reports.daily_performance_matrix.fetch_with_cache', return_value=pd.DataFrame(mock_df_data))
+    from reports.daily_performance_matrix import run_report
     
     site = 'https://www.example.com/'
     run_report(mock_service, site, '2024-01-01', '2024-01-31', top_stories=2)
     output_dir = get_output_dir(site)
     slug = get_filename_slug(site)
-    clicks_csv = os.path.join(output_dir, f"discover-daily-analysis-{slug}-2024-01-01-to-2024-01-31-clicks.csv")
-    impressions_csv = os.path.join(output_dir, f"discover-daily-analysis-{slug}-2024-01-01-to-2024-01-31-impressions.csv")
-    html_path = os.path.join(output_dir, f"discover-daily-analysis-{slug}-2024-01-01-to-2024-01-31.html")
+    clicks_csv = os.path.join(output_dir, f"daily-performance-matrix-{slug}-discover-2024-01-01-to-2024-01-31-clicks.csv")
+    impressions_csv = os.path.join(output_dir, f"daily-performance-matrix-{slug}-discover-2024-01-01-to-2024-01-31-impressions.csv")
+    html_path = os.path.join(output_dir, f"daily-performance-matrix-{slug}-discover-2024-01-01-to-2024-01-31.html")
     
     assert os.path.exists(clicks_csv)
     assert os.path.exists(impressions_csv)

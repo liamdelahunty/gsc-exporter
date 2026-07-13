@@ -112,7 +112,7 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_cli
     report_title = f"{search_type.capitalize()} Daily Performance Matrix" if search_type != 'discover' else "Google Discover Daily Analysis"
 
     # Reconstruct the command line used to generate this report
-    script_name = os.path.basename(sys.argv[0]) if (hasattr(sys, 'argv') and sys.argv) else "discover_daily_analysis.py"
+    script_name = os.path.basename(sys.argv[0]) if (hasattr(sys, 'argv') and sys.argv) else "daily_performance_matrix.py"
     cmd_args = sys.argv[1:] if (hasattr(sys, 'argv') and len(sys.argv) > 1) else []
     command_line = f"python reports/{script_name} {' '.join(cmd_args)}"
 
@@ -955,8 +955,7 @@ def run_report(service, site_url, start_date, end_date, search_type='discover', 
     os.makedirs(output_dir, exist_ok=True)
     slug = get_filename_slug(site_url)
     
-    search_suffix = f"-{search_type}" if search_type != "discover" else ""
-    file_prefix = f"discover-daily-analysis-{slug}{search_suffix}-{start_date}-to-{end_date}"
+    file_prefix = f"daily-performance-matrix-{slug}-{search_type}-{start_date}-to-{end_date}"
     
     clicks_csv_path = os.path.join(output_dir, f"{file_prefix}-clicks.csv")
     impressions_csv_path = os.path.join(output_dir, f"{file_prefix}-impressions.csv")
