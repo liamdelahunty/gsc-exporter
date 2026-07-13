@@ -53,6 +53,11 @@ def main():
         ["reports/url_inspection_report.py", site_url, "--last-month"],
         ["reports/search_appearance_report.py", site_url, "--last-month"],
         ["reports/consolidated_performance_overview_report.py", site_url, "--last-month"],
+        # Library Migration Reports
+        ["reports/library_marketing_migration_prioritisation_report.py", "https://library.croneri.co.uk/", "--last-month"],
+        ["reports/library_marketing_migration_analysis.py", "https://library.croneri.co.uk/", "--last-month"],
+        ["reports/library_quick_links_performance_report.py", "https://library.croneri.co.uk/", "--last-month"],
+        ["reports/generate_library_migration_index.py", "https://library.croneri.co.uk/", "--last-month"],
     ]
 
     for report in reports:
