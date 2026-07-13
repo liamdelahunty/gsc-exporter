@@ -168,14 +168,24 @@ def select_report():
         "weekly_editorial_summary_report.py": "Technical SEO & Editorial Utilities"
     }
 
-    # Dynamically read all report files
-    all_files = [f for f in os.listdir(reports_dir) if f.endswith('.py') and f != '__init__.py' and f not in exclude_files]
+    # Dynamically read all report files recursively
+    all_files = []
+    for root, dirs, files in os.walk(reports_dir):
+        if '__pycache__' in root or 'monitoring' in root:
+            continue
+        for file in files:
+            if file.endswith('.py') and file != '__init__.py':
+                rel_path = os.path.relpath(os.path.join(root, file), reports_dir)
+                filename = os.path.basename(rel_path)
+                if filename not in exclude_files:
+                    all_files.append(rel_path)
     
     # Group files into categories
     grouped_reports = {cat: [] for cat in categories}
-    for filename in all_files:
+    for rel_path in all_files:
+        filename = os.path.basename(rel_path)
         cat = category_mapping.get(filename, "Other Reports")
-        grouped_reports[cat].append(filename)
+        grouped_reports[cat].append(rel_path)
         
     # Sort files alphabetically inside each category
     for cat in categories:

@@ -245,7 +245,7 @@ def run_report(service, site_url, start_date, end_date):
     
     if not os.path.exists(csv_path):
         print(f"Base migration analysis CSV not found at {csv_path}. Running drupal_dato_migration_analysis first...")
-        from reports.drupal_dato_migration_analysis import run_report as run_analysis
+        from reports.migrations.drupal_dato_migration_analysis import run_report as run_analysis
         run_analysis(service, site_url, start_date, end_date)
         
     if not os.path.exists(csv_path):
