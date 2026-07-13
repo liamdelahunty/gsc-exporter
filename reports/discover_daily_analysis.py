@@ -111,6 +111,11 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_cli
     # Dynamic titles based on search type
     report_title = f"{search_type.capitalize()} Daily Performance Matrix" if search_type != 'discover' else "Google Discover Daily Analysis"
 
+    # Reconstruct the command line used to generate this report
+    script_name = os.path.basename(sys.argv[0]) if (hasattr(sys, 'argv') and sys.argv) else "discover_daily_analysis.py"
+    cmd_args = sys.argv[1:] if (hasattr(sys, 'argv') and len(sys.argv) > 1) else []
+    command_line = f"python reports/{script_name} {' '.join(cmd_args)}"
+
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -462,6 +467,37 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_cli
             line-height: 1.2;
         }}
 
+        /* Command Line Display */
+        .command-card {{
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }}
+        .command-label {{
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+            font-family: var(--font-outfit);
+        }}
+        .command-box {{
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            overflow-x: auto;
+        }}
+        .command-text {{
+            color: var(--accent-blue);
+            font-family: monospace;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }}
+
         /* Footer */
         footer {{
             margin-top: auto;
@@ -598,6 +634,18 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_cli
                             {impressions_rows}
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Command Line Info -->
+        <div class="row mt-5 mb-4">
+            <div class="col-12">
+                <div class="command-card">
+                    <div class="command-label">Command used to generate this report:</div>
+                    <div class="command-box">
+                        <code class="command-text">{command_line}</code>
+                    </div>
                 </div>
             </div>
         </div>
