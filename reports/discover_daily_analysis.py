@@ -876,7 +876,7 @@ def create_html_report(site_url, start_date, end_date, df_daily_complete, df_cli
 """
     return html_content
 
-def run_report(service, site_url, start_date, end_date, search_type='discover', top_stories=10):
+def run_report(service, site_url, start_date, end_date, search_type='discover', top_stories=10, max_rows=10000):
     """
     Executes the Daily Performance Matrix Report.
     Queries GSC performance data, computes rankings, collates popular pages,
@@ -885,7 +885,7 @@ def run_report(service, site_url, start_date, end_date, search_type='discover', 
     print(f"Running Daily Performance Matrix ({search_type}) for {site_url} ({start_date} to {end_date})...")
     
     # 1. Fetch daily performance data for page dimension
-    df = fetch_with_cache(service, site_url, start_date, end_date, ['date', 'page'], search_type)
+    df = fetch_with_cache(service, site_url, start_date, end_date, ['date', 'page'], search_type, max_rows=max_rows)
     
     if df.empty:
         print(f"No {search_type} data found for {site_url} during the period {start_date} to {end_date}.")
@@ -997,6 +997,7 @@ if __name__ == '__main__':
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
     parser.add_argument('--last-28-days', action='store_true', help='Run for the last 28 available days.')
     parser.add_argument('--top-stories', type=int, default=10, help='Number of top stories to retrieve for each day.')
+    parser.add_argument('--max-rows', type=int, default=10000, help='Maximum number of rows to fetch from GSC API (default: 10000).')
     
     args = parser.parse_args()
     
@@ -1017,4 +1018,4 @@ if __name__ == '__main__':
                 start_date = start_dt.strftime('%Y-%m-%d')
                 end_date = latest_date.strftime('%Y-%m-%d')
                 
-        run_report(service, args.site_url, start_date, end_date, args.search_type, args.top_stories)
+        run_report(service, args.site_url, start_date, end_date, args.search_type, args.top_stories, args.max_rows)
