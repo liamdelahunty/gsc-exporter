@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report_title }} - URL Inspection Dashboard</title>
+    <meta name="description" content="Interactive dashboard displaying Google Search Console URL inspection results.">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-input: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            
+            --success: #10b981;
+            --success-bg: #ecfdf5;
+            --success-text: #065f46;
+            --warning: #f59e0b;
+            --warning-bg: #fef3c7;
+            --warning-text: #92400e;
+            --danger: #ef4444;
+            --danger-bg: #fef2f2;
+            --danger-text: #991b1b;
+            --info: #3b82f6;
+            --info-bg: #eff6ff;
+            --info-text: #1e40af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 2rem;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header Style */
+        header {
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+            border: 1px solid var(--border);
+            padding: 2.5rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .header-content h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .header-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .meta-item svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        /* KPI Cards Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+            border-color: #cbd5e1;
+        }
+
+        .stat-card.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-card .label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-card.total .value { color: var(--text-main); }
+        .stat-card.pass .value { color: #059669; }
+        .stat-card.neutral .value { color: #d97706; }
+        .stat-card.fail .value { color: #dc2626; }
+        .stat-card.warning .value { color: #b45309; }
+
+        .stat-card .percentage-bar {
+            height: 4px;
+            background: #f1f5f9;
+            border-radius: 2px;
+            margin-top: 0.75rem;
+            overflow: hidden;
+        }
+
+        .stat-card .percentage-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.5s ease-out;
+        }
+
+        .stat-card.pass .percentage-fill { background-color: #059669; }
+        .stat-card.neutral .percentage-fill { background-color: #d97706; }
+        .stat-card.fail .percentage-fill { background-color: #dc2626; }
+        .stat-card.warning .percentage-fill { background-color: #f59e0b; }
+
+        /* Filter Controls */
+        .controls-bar {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.75rem;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            transition: border-color 0.15s ease-in-out;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.875rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+            width: 18px;
+            height: 18px;
+        }
+
+        .filter-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .filter-pill {
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-pill:hover {
+            border-color: #cbd5e1;
+            color: var(--text-main);
+        }
+
+        .filter-pill.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .filter-count {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 9999px;
+            padding: 1px 6px;
+            font-size: 0.75rem;
+            color: inherit;
+        }
+
+        .filter-pill.active .filter-count {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Table Design */
+        .table-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            max-height: 800px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tr.table-row {
+            transition: background-color 0.15s ease;
+        }
+
+        tr.table-row:hover {
+            background-color: #f8fafc;
+            cursor: pointer;
+        }
+
+        tr.table-row.open {
+            background-color: #f5f3ff;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .badge.pass {
+            background-color: var(--success-bg);
+            color: var(--success-text);
+        }
+
+        .badge.neutral {
+            background-color: var(--warning-bg);
+            color: var(--warning-text);
+        }
+
+        .badge.fail {
+            background-color: var(--danger-bg);
+            color: var(--danger-text);
+        }
+
+        .badge.outline {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        /* URL Text Formatting */
+        .url-cell-wrapper {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .url-text-container {
+            max-width: 500px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .url-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
+
+        .url-link:hover {
+            color: var(--primary-hover);
+            text-decoration: underline;
+        }
+
+        .coverage-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Expansion Row */
+        .details-row {
+            display: none;
+            background-color: #f8fafc;
+        }
+
+        .details-row.open {
+            display: table-row;
+        }
+
+        .details-content {
+            padding: 1.5rem 2.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .details-card {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.02);
+        }
+
+        .details-card h4 {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .details-card h4 svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+        }
+
+        .details-list {
+            list-style: none;
+        }
+
+        .details-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 0.5rem 0;
+            font-size: 0.875rem;
+            border-bottom: 1px dashed var(--border);
+        }
+
+        .details-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .details-item:first-child {
+            padding-top: 0;
+        }
+
+        .details-label {
+            color: var(--text-muted);
+            font-weight: 500;
+            padding-right: 1rem;
+        }
+
+        .details-val {
+            font-weight: 600;
+            color: var(--text-main);
+            text-align: right;
+            word-break: break-all;
+        }
+
+        .details-val.mono {
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+
+        /* Action Buttons */
+        .expand-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .expand-btn:hover {
+            color: var(--text-main);
+            background-color: rgba(0, 0, 0, 0.03);
+        }
+
+        .chevron-icon {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s ease;
+            fill: currentColor;
+        }
+
+        tr.table-row.open .chevron-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: none;
+            padding: 4rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 1rem;
+            fill: currentColor;
+        }
+
+        footer {
+            margin-top: 4rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            padding: 2rem 0;
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-main);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header>
+            <div class="header-content">
+                <h1>Google Search Console URL Inspection Dashboard</h1>
+                <p id="property-title">{{ report_title }}</p>
+                <div class="header-meta">
+                    <div class="meta-item">
+                        <svg viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11H9v-2h2v2zm0-4H9V5h2v4z"/></svg>
+                        <span id="timestamp-meta">Requested: {{ request_timestamp }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <svg viewBox="0 0 20 20"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.978 7.978 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/></svg>
+                        <span id="site-urls-meta">Total URLs: 0</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Overview -->
+        <section class="stats-grid">
+            <div class="stat-card total active" id="card-total">
+                <div class="label">Total Inspected</div>
+                <div class="value" id="stat-total">0</div>
+                <div class="percentage-bar"><div class="percentage-fill" style="width: 100%"></div></div>
+            </div>
+            <div class="stat-card pass" id="card-pass">
+                <div class="label">URLs Indexed (Pass)</div>
+                <div class="value" id="stat-pass">0</div>
+                <div class="percentage-bar"><div class="percentage-fill" id="bar-pass" style="width: 0%"></div></div>
+            </div>
+            <div class="stat-card neutral" id="card-neutral">
+                <div class="label">Excluded/Neutral</div>
+                <div class="value" id="stat-neutral">0</div>
+                <div class="percentage-bar"><div class="percentage-fill" id="bar-neutral" style="width: 0%"></div></div>
+            </div>
+            <div class="stat-card fail" id="card-fail">
+                <div class="label">Errors / Index Blocks</div>
+                <div class="value" id="stat-fail">0</div>
+                <div class="percentage-bar"><div class="percentage-fill" id="bar-fail" style="width: 0%"></div></div>
+            </div>
+            <div class="stat-card warning" id="card-canonical-mismatch" style="display: none;">
+                <div class="label">Canonical Issues</div>
+                <div class="value" id="stat-canonical-mismatch">0</div>
+                <div class="percentage-bar"><div class="percentage-fill" id="bar-canonical-mismatch" style="width: 0%"></div></div>
+            </div>
+        </section>
+
+        <!-- Controls Bar -->
+        <section class="controls-bar">
+            <div class="search-wrapper">
+                <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input type="text" id="search-input" class="search-input" placeholder="Search by URL or status description...">
+            </div>
+            <div class="filter-pills">
+                <button class="filter-pill active" data-filter="all" id="pill-all">All <span class="filter-count" id="count-all">0</span></button>
+                <button class="filter-pill" data-filter="indexed" id="pill-indexed">Indexed <span class="filter-count" id="count-indexed">0</span></button>
+                <button class="filter-pill" data-filter="excluded" id="pill-excluded">Excluded <span class="filter-count" id="count-excluded">0</span></button>
+                <button class="filter-pill" data-filter="errors" id="pill-errors">Blocks/Errors <span class="filter-count" id="count-errors">0</span></button>
+                <button class="filter-pill" data-filter="mobile" id="pill-mobile">Mobile Friendly <span class="filter-count" id="count-mobile">0</span></button>
+                <button class="filter-pill" data-filter="mismatches" id="pill-mismatches" style="display: none;">Canonical Issues <span class="filter-count" id="count-mismatches">0</span></button>
+            </div>
+        </section>
+
+        <!-- Mismatch Action Banner -->
+        <div class="mismatch-actions" id="mismatch-actions" style="display: none; align-items: center; gap: 1rem; margin-bottom: 1.5rem; background: #fffbeb; border: 1px dashed #f59e0b; border-radius: 12px; padding: 0.75rem 1.25rem;">
+            <span style="font-size: 0.9rem; font-weight: 600; color: #b45309; display: flex; align-items: center; gap: 0.5rem; white-space: nowrap;">
+                <svg style="width:18px; height:18px; fill:currentColor;" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                Canonical Issues Detected
+            </span>
+            
+            <select id="mismatch-type-filter" style="padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--border); background: white; font-family: inherit; font-size: 0.85rem; color: var(--text-main); cursor: pointer; outline: none;">
+                <option value="all">All Canonical Issues</option>
+                <option value="google">Google Mismatch (Google Canonical ≠ Declared)</option>
+                <option value="url">URL Mismatch (Declared Canonical ≠ Page URL)</option>
+            </select>
+
+            <button class="action-btn" id="btn-copy-mismatches" style="padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--border); background: white; color: var(--text-main); font-size: 0.85rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: all 0.15s ease; white-space: nowrap;">
+                <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 20 20"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/></svg>
+                Copy URLs
+            </button>
+            <button class="action-btn primary" id="btn-export-mismatches" style="padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--primary); background: var(--primary); color: white; font-size: 0.85rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: all 0.15s ease; white-space: nowrap;">
+                <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                Export CSV
+            </button>
+            <span id="action-toast" style="font-size: 0.85rem; color: #10b981; font-weight: 600; margin-left: 0.5rem; display: none; white-space: nowrap;">Copied!</span>
+        </div>
+
+        <!-- Table Container -->
+        <section class="table-container">
+            <div class="table-responsive">
+                <table id="inspection-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"></th>
+                            <th>Inspection URL</th>
+                            <th>Overall Verdict</th>
+                            <th>Indexing State</th>
+                            <th>Page Fetch</th>
+                            <th>Mobile Usability</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- Rows injected via JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="empty-state" id="empty-state">
+                <svg viewBox="0 0 24 24"><path d="M13 14h-2V9h2v5zm0 4h-2v-2h2v2zm-12 4h22L12 2 1 22z"/></svg>
+                <h3>No matching records found</h3>
+                <p>Try adjusting your search terms or filter selections.</p>
+            </div>
+        </section>
+
+        <footer>
+            <p>Report generated on <span id="generation-timestamp">N/A</span>. Powered by <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p>
+        </footer>
+    </div>
+
+    <!-- Embedded Data Injected by Script -->
+    <script>
+        const inspectionData = {{ data_json | safe }};
+        const reportTitle = "{{ report_title }}";
+        const requestTimestamp = "{{ request_timestamp }}";
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Setup meta text
+            document.title = `${reportTitle} - URL Inspection Dashboard`;
+            document.getElementById('property-title').textContent = reportTitle;
+            document.getElementById('timestamp-meta').textContent = `Requested: ${requestTimestamp}`;
+            document.getElementById('site-urls-meta').textContent = `Total URLs: ${inspectionData.length}`;
+            document.getElementById('generation-timestamp').textContent = new Date().toLocaleString('en-GB');
+
+            // Calculate overall initial stats
+            const stats = {
+                total: inspectionData.length,
+                pass: 0,
+                neutral: 0,
+                fail: 0,
+                indexed: 0,
+                excluded: 0,
+                errors: 0,
+                mobile: 0,
+                mismatches: 0,
+                google_mismatches: 0,
+                url_mismatches: 0
+            };
+
+            inspectionData.forEach(row => {
+                const verdict = (row.verdict || '').toUpperCase();
+                const idxState = (row.indexing_state || '').toUpperCase();
+                const covState = (row.coverage_state || '').toLowerCase();
+                const mobVerdict = (row.mobile_verdict || '').toUpperCase();
+
+                // Verdict mapping
+                if (verdict === 'PASS') {
+                    stats.pass++;
+                } else if (verdict === 'NEUTRAL') {
+                    stats.neutral++;
+                } else {
+                    stats.fail++;
+                }
+
+                // Mobile
+                if (mobVerdict === 'PASS') {
+                    stats.mobile++;
+                }
+
+                // Canonical discrepancy detection
+                const userCan = (row.user_canonical || '').trim();
+                const googCan = (row.google_canonical || '').trim();
+                const pageUrl = (row.url || '').trim();
+                
+                const hasUser = userCan && userCan !== 'N/A' && userCan.startsWith('http');
+                const hasGoog = googCan && googCan !== 'N/A' && googCan.startsWith('http');
+                
+                row.google_mismatch = false;
+                row.url_mismatch = false;
+                
+                // 1. Google selected differs from declared
+                if (hasUser && hasGoog && userCan !== googCan) {
+                    row.google_mismatch = true;
+                    stats.google_mismatches++;
+                }
+                
+                // 2. Declared differs from actual page URL
+                if (hasUser && userCan !== pageUrl) {
+                    row.url_mismatch = true;
+                    stats.url_mismatches++;
+                }
+                
+                row.canonical_issue = row.google_mismatch || row.url_mismatch;
+                if (row.canonical_issue) {
+                    stats.mismatches++;
+                }
+            });
+
+            // Update KPI cards
+            document.getElementById('stat-total').textContent = stats.total;
+            document.getElementById('stat-pass').textContent = stats.pass;
+            document.getElementById('stat-neutral').textContent = stats.neutral;
+            document.getElementById('stat-fail').textContent = stats.fail;
+
+            // Fill bars
+            if (stats.total > 0) {
+                document.getElementById('bar-pass').style.width = `${(stats.pass / stats.total) * 100}%`;
+                document.getElementById('bar-neutral').style.width = `${(stats.neutral / stats.total) * 100}%`;
+                document.getElementById('bar-fail').style.width = `${(stats.fail / stats.total) * 100}%`;
+            }
+
+            // Mismatches widgets display
+            const mismatchCard = document.getElementById('card-canonical-mismatch');
+            const mismatchPill = document.getElementById('pill-mismatches');
+            if (stats.mismatches > 0) {
+                mismatchCard.style.display = 'block';
+                mismatchPill.style.display = 'flex';
+                document.getElementById('stat-canonical-mismatch').textContent = stats.mismatches;
+                document.getElementById('count-mismatches').textContent = stats.mismatches;
+                document.getElementById('bar-canonical-mismatch').style.width = `${(stats.mismatches / stats.total) * 100}%`;
+            }
+
+            // Fill Pill Counts (Aligned exactly to Verdict stats to ensure card match)
+            document.getElementById('count-all').textContent = stats.total;
+            document.getElementById('count-indexed').textContent = stats.pass;
+            document.getElementById('count-excluded').textContent = stats.neutral;
+            document.getElementById('count-errors').textContent = stats.fail;
+            document.getElementById('count-mobile').textContent = stats.mobile;
+
+            // Render Table Rows
+            const tableBody = document.getElementById('table-body');
+            
+            function buildTable() {
+                tableBody.innerHTML = '';
+                
+                if (inspectionData.length === 0) {
+                    document.getElementById('empty-state').style.display = 'block';
+                    return;
+                }
+                document.getElementById('empty-state').style.display = 'none';
+
+                inspectionData.forEach((row, index) => {
+                    const trId = `row-${index}`;
+                    const detailsId = `details-${index}`;
+                    
+                    const tr = document.createElement('tr');
+                    tr.className = 'table-row';
+                    tr.id = trId;
+                    tr.dataset.index = index;
+                    tr.dataset.detailsId = detailsId;
+                    
+                    // Render cell content helpers
+                    const verdictClass = (row.verdict || 'FAIL').toLowerCase();
+                    const verdictLabel = row.verdict || (row.error ? 'ERROR' : 'UNKNOWN');
+                    
+                    const cleanUrl = row.url || '';
+                    const mobileClass = (row.mobile_verdict || 'N/A').toLowerCase();
+                    const fetchLabel = (row.fetch_state || 'N/A').replace('PAGE_FETCH_STATE_', '').replace('SUCCESSFUL', 'SUCCESS');
+                    const indexLabel = (row.indexing_state || 'N/A').replace('INDEXING_STATE_', '').replace('INDEXING_', '');
+
+                    // Warn badge next to URL if mismatch
+                    let mismatchBadges = '';
+                    if (row.google_mismatch) {
+                        mismatchBadges += '<span class="badge neutral" style="font-size:0.65rem; padding: 0.1rem 0.45rem; margin-left: 0.5rem; background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;">Google Mismatch</span>';
+                    }
+                    if (row.url_mismatch) {
+                        mismatchBadges += '<span class="badge neutral" style="font-size:0.65rem; padding: 0.1rem 0.45rem; margin-left: 0.5rem; background:#fef3c7; color:#92400e; border:1px solid #fcd34d;">URL Mismatch</span>';
+                    }
+
+                    tr.innerHTML = `
+                        <td>
+                            <button class="expand-btn" aria-label="Toggle Details">
+                                <svg class="chevron-icon" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                            </button>
+                        </td>
+                        <td>
+                            <div class="url-cell-wrapper">
+                                <div class="url-text-container">
+                                    <a href="${cleanUrl}" target="_blank" class="url-link" title="${cleanUrl}">${cleanUrl}</a>
+                                </div>
+                                ${mismatchBadges}
+                            </div>
+                            <div class="coverage-text">${row.coverage_state || 'No coverage details'}</div>
+                        </td>
+                        <td><span class="badge ${verdictClass}">${verdictLabel}</span></td>
+                        <td><span class="badge outline" title="${row.indexing_state}">${indexLabel}</span></td>
+                        <td><span class="badge outline" title="${row.fetch_state}">${fetchLabel}</span></td>
+                        <td><span class="badge ${mobileClass}">${row.mobile_verdict || 'N/A'}</span></td>
+                    `;
+                    
+                    // Detail expanded row
+                    const detailTr = document.createElement('tr');
+                    detailTr.className = 'details-row';
+                    detailTr.id = detailsId;
+                    
+                    // Rich results formatting
+                    let richResultsMarkup = '<span class="details-val">None detected</span>';
+                    if (row.rich_results && row.rich_results !== 'N/A' && row.rich_results.trim() !== '') {
+                        richResultsMarkup = `<div class="details-val mono" style="text-align:left; white-space:pre-wrap; max-width:100%;">${row.rich_results}</div>`;
+                    }
+
+                    // Referring URLs formatting
+                    let referringMarkup = '<span class="details-val">None reported</span>';
+                    if (row.referring_urls && row.referring_urls !== 'N/A' && row.referring_urls.trim() !== '') {
+                        const urls = row.referring_urls.split(',').map(u => u.trim());
+                        referringMarkup = `<div class="details-val mono" style="text-align:left; max-width:100%;">
+                            ${urls.map(u => `<div style="margin-bottom:4px;"><a href="${u}" target="_blank" class="url-link" style="font-size:0.75rem;">${u}</a></div>`).join('')}
+                        </div>`;
+                    }
+
+                    // Canonical warnings
+                    let canonicalWarnings = '';
+                    if (row.google_mismatch) {
+                        canonicalWarnings += `
+                            <div style="margin-top: 10px; padding: 0.5rem 0.75rem; background: #fee2e2; border: 1px solid #fca5a5; border-radius: 6px; font-size: 0.75rem; color: #991b1b; display: flex; align-items: center; gap: 0.4rem; font-weight: 500; margin-bottom: 6px;">
+                                <svg style="width:14px; height:14px; flex-shrink:0; fill:currentColor;" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                <span>Google selected a different canonical than what was declared in page code!</span>
+                            </div>
+                        `;
+                    }
+                    if (row.url_mismatch) {
+                        canonicalWarnings += `
+                            <div style="margin-top: 10px; padding: 0.5rem 0.75rem; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; font-size: 0.75rem; color: #92400e; display: flex; align-items: center; gap: 0.4rem; font-weight: 500;">
+                                <svg style="width:14px; height:14px; flex-shrink:0; fill:currentColor;" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                <span>Declared canonical URL differs from the page's actual URL!</span>
+                            </div>
+                        `;
+                    }
+                    
+                    detailTr.innerHTML = `
+                        <td colspan="6">
+                            <div class="details-content">
+                                <div class="details-grid">
+                                    <!-- Crawl Information -->
+                                    <div class="details-card">
+                                        <h4>
+                                            <svg viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 11-2 0 1 1 0 012 0zm-1 3a1 1 0 00-1 1v4a1 1 0 102 0v-4a1 1 0 00-1-1z"/></svg>
+                                            Crawl Diagnostics
+                                        </h4>
+                                        <ul class="details-list">
+                                            <li class="details-item"><span class="details-label">Last Crawl Time</span><span class="details-val">${row.crawl_time || 'N/A'}</span></li>
+                                            <li class="details-item"><span class="details-label">Crawled As</span><span class="details-val">${row.crawled_as || 'N/A'}</span></li>
+                                            <li class="details-item"><span class="details-label">Fetch Status</span><span class="details-val">${row.fetch_state || 'N/A'}</span></li>
+                                            <li class="details-item"><span class="details-label">Robots.txt Status</span><span class="details-val">${row.robots_state || 'N/A'}</span></li>
+                                            <li class="details-item"><span class="details-label">In Sitemap</span><span class="details-val">${row.sitemap || 'N/A'}</span></li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <!-- Canonicals & Coverage -->
+                                    <div class="details-card">
+                                        <h4>
+                                            <svg viewBox="0 0 20 20"><path d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z"/></svg>
+                                            Canonical Selection
+                                        </h4>
+                                        <ul class="details-list">
+                                            <li class="details-item" style="flex-direction:column; align-items:stretch;">
+                                                <span class="details-label" style="margin-bottom: 4px;">User-Declared Canonical</span>
+                                                <span class="details-val mono" style="text-align:left; word-break:break-all;">
+                                                    ${row.user_canonical && row.user_canonical !== 'N/A' ? `<a href="${row.user_canonical}" target="_blank" class="url-link">${row.user_canonical}</a>` : 'N/A'}
+                                                </span>
+                                            </li>
+                                            <li class="details-item" style="flex-direction:column; align-items:stretch; margin-top: 8px;">
+                                                <span class="details-label" style="margin-bottom: 4px;">Google-Selected Canonical</span>
+                                                <span class="details-val mono" style="text-align:left; word-break:break-all;">
+                                                    ${row.google_canonical && row.google_canonical !== 'N/A' ? `<a href="${row.google_canonical}" target="_blank" class="url-link">${row.google_canonical}</a>` : 'N/A'}
+                                                </span>
+                                            </li>
+                                        </ul>
+                                        ${canonicalWarnings}
+                                    </div>
+
+                                    <!-- Referring Sources -->
+                                    <div class="details-card">
+                                        <h4>
+                                            <svg viewBox="0 0 20 20"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"/></svg>
+                                            Referring Pages
+                                        </h4>
+                                        ${referringMarkup}
+                                    </div>
+                                    
+                                    <!-- Mobile & Rich Results -->
+                                    <div class="details-card">
+                                        <h4>
+                                            <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7 2a2 2 0 00-2 2v12a2 2 0 002 2h6a2 2 0 002-2V4a2 2 0 00-2-2H7zm3 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+                                            Mobile & Enhancements
+                                        </h4>
+                                        <ul class="details-list" style="margin-bottom: 1rem;">
+                                            <li class="details-item"><span class="details-label">Mobile Verdict</span><span class="badge ${mobileClass}">${row.mobile_verdict || 'N/A'}</span></li>
+                                            <li class="details-item" style="flex-direction:column; align-items:stretch;">
+                                                <span class="details-label" style="margin-bottom: 4px;">Usability Issues</span>
+                                                <span class="details-val" style="text-align:left; color:${row.mobile_issues ? 'var(--danger)' : 'var(--text-main)'}">${row.mobile_issues || 'None detected'}</span>
+                                            </li>
+                                        </ul>
+                                        <h4 style="margin-top: 1.25rem;">Rich Results Status</h4>
+                                        ${richResultsMarkup}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    `;
+                    
+                    tableBody.appendChild(tr);
+                    tableBody.appendChild(detailTr);
+                });
+            }
+
+            buildTable();
+
+            // Search & Filter state variables
+            let currentSearch = '';
+            let currentFilter = 'all';
+
+            function filterTable() {
+                const trs = tableBody.querySelectorAll('tr.table-row');
+                const subFilterType = document.getElementById('mismatch-type-filter').value;
+                const verdictStats = { pass: 0, neutral: 0, fail: 0 };
+                let visibleCount = 0;
+
+                trs.forEach(row => {
+                    const index = parseInt(row.dataset.index);
+                    const item = inspectionData[index];
+                    
+                    const cleanUrl = (item.url || '').toLowerCase();
+                    const coverage = (item.coverage_state || '').toLowerCase();
+                    const idxState = (item.indexing_state || '').toLowerCase();
+                    const verdict = (item.verdict || '').toLowerCase();
+                    const mobVerdict = (item.mobile_verdict || '').toLowerCase();
+
+                    // Search matching
+                    const matchesSearch = cleanUrl.includes(currentSearch) || coverage.includes(currentSearch) || idxState.includes(currentSearch);
+                    
+                    // Filter matching (Aligned directly with verdict stats)
+                    let matchesFilter = true;
+                    if (currentFilter === 'indexed') {
+                        matchesFilter = (verdict === 'pass');
+                    } else if (currentFilter === 'excluded') {
+                        matchesFilter = (verdict === 'neutral');
+                    } else if (currentFilter === 'errors') {
+                        matchesFilter = (verdict === 'fail' || verdict === 'unknown' || item.error || idxState === 'indexing_state_unspecified');
+                    } else if (currentFilter === 'mobile') {
+                        matchesFilter = (mobVerdict === 'pass');
+                    } else if (currentFilter === 'mismatches') {
+                        if (subFilterType === 'all') {
+                            matchesFilter = item.canonical_issue;
+                        } else if (subFilterType === 'google') {
+                            matchesFilter = item.google_mismatch;
+                        } else if (subFilterType === 'url') {
+                            matchesFilter = item.url_mismatch;
+                        }
+                    }
+
+                    const detailsRow = document.getElementById(`details-${index}`);
+                    if (matchesSearch && matchesFilter) {
+                        row.style.display = 'table-row';
+                        visibleCount++;
+                        if (row.classList.contains('open')) {
+                            detailsRow.style.display = 'table-row';
+                        } else {
+                            detailsRow.style.display = 'none';
+                        }
+                    } else {
+                        row.style.display = 'none';
+                        detailsRow.style.display = 'none';
+                    }
+                });
+
+                // Display empty state if no rows visible
+                if (visibleCount === 0) {
+                    document.getElementById('empty-state').style.display = 'block';
+                } else {
+                    document.getElementById('empty-state').style.display = 'none';
+                }
+
+                // Show or hide mismatch actions panel
+                const actionsPanel = document.getElementById('mismatch-actions');
+                if (currentFilter === 'mismatches') {
+                    actionsPanel.style.display = 'flex';
+                } else {
+                    actionsPanel.style.display = 'none';
+                }
+            }
+
+            // External trigger to coordinate pills & cards
+            function triggerFilter(filterName) {
+                currentFilter = filterName;
+                
+                // Update pills
+                const pills = document.querySelectorAll('.filter-pill');
+                pills.forEach(p => {
+                    if (p.dataset.filter === filterName) {
+                        p.classList.add('active');
+                    } else {
+                        p.classList.remove('active');
+                    }
+                });
+
+                // Update cards
+                const cards = document.querySelectorAll('.stat-card');
+                cards.forEach(c => c.classList.remove('active'));
+                
+                if (filterName === 'all') document.getElementById('card-total').classList.add('active');
+                if (filterName === 'indexed') document.getElementById('card-pass').classList.add('active');
+                if (filterName === 'excluded') document.getElementById('card-neutral').classList.add('active');
+                if (filterName === 'errors') document.getElementById('card-fail').classList.add('active');
+                if (filterName === 'mismatches') document.getElementById('card-canonical-mismatch').classList.add('active');
+
+                filterTable();
+            }
+
+            // Bind search
+            const searchInput = document.getElementById('search-input');
+            searchInput.addEventListener('input', function(e) {
+                currentSearch = e.target.value.toLowerCase().trim();
+                filterTable();
+            });
+
+            // Bind filter pills
+            const filterPills = document.querySelectorAll('.filter-pill');
+            filterPills.forEach(pill => {
+                pill.addEventListener('click', function() {
+                    triggerFilter(pill.dataset.filter);
+                });
+            });
+
+            // Bind KPI cards click
+            document.getElementById('card-total').addEventListener('click', () => triggerFilter('all'));
+            document.getElementById('card-pass').addEventListener('click', () => triggerFilter('indexed'));
+            document.getElementById('card-neutral').addEventListener('click', () => triggerFilter('excluded'));
+            document.getElementById('card-fail').addEventListener('click', () => triggerFilter('errors'));
+            document.getElementById('card-canonical-mismatch').addEventListener('click', () => triggerFilter('mismatches'));
+
+            // Bind drop-down filter selection changes
+            document.getElementById('mismatch-type-filter').addEventListener('change', function() {
+                filterTable();
+            });
+
+            // Bind click expansion on table rows
+            tableBody.addEventListener('click', function(e) {
+                const tr = e.target.closest('tr.table-row');
+                if (!tr) return;
+
+                // Stop expansion if user clicked a link
+                if (e.target.tagName === 'A') return;
+
+                const index = tr.dataset.index;
+                const detailsRow = document.getElementById(`details-${index}`);
+                
+                if (detailsRow) {
+                    const isOpen = tr.classList.contains('open');
+                    if (isOpen) {
+                        tr.classList.remove('open');
+                        detailsRow.classList.remove('open');
+                        detailsRow.style.display = 'none';
+                    } else {
+                        tr.classList.add('open');
+                        detailsRow.classList.add('open');
+                        detailsRow.style.display = 'table-row';
+                    }
+                }
+            });
+
+            // Copy Mismatched URLs Actions
+            const btnCopy = document.getElementById('btn-copy-mismatches');
+            btnCopy.addEventListener('click', function() {
+                const subFilterType = document.getElementById('mismatch-type-filter').value;
+                let filtered = [];
+                
+                if (subFilterType === 'all') {
+                    filtered = inspectionData.filter(r => r.canonical_issue);
+                } else if (subFilterType === 'google') {
+                    filtered = inspectionData.filter(r => r.google_mismatch);
+                } else if (subFilterType === 'url') {
+                    filtered = inspectionData.filter(r => r.url_mismatch);
+                }
+                
+                const urlsText = filtered.map(r => r.url).join('\n');
+                
+                navigator.clipboard.writeText(urlsText).then(() => {
+                    const toast = document.getElementById('action-toast');
+                    toast.style.display = 'inline';
+                    setTimeout(() => { toast.style.display = 'none'; }, 2000);
+                });
+            });
+
+            // Export Mismatches CSV Actions
+            const btnExport = document.getElementById('btn-export-mismatches');
+            btnExport.addEventListener('click', function() {
+                const subFilterType = document.getElementById('mismatch-type-filter').value;
+                let filtered = [];
+                
+                if (subFilterType === 'all') {
+                    filtered = inspectionData.filter(r => r.canonical_issue);
+                } else if (subFilterType === 'google') {
+                    filtered = inspectionData.filter(r => r.google_mismatch);
+                } else if (subFilterType === 'url') {
+                    filtered = inspectionData.filter(r => r.url_mismatch);
+                }
+                
+                let csvContent = 'URL,User-Declared Canonical,Google-Selected Canonical\n';
+                filtered.forEach(r => {
+                    const urlEsc = `"${(r.url || '').replace(/"/g, '""')}"`;
+                    const userCanEsc = `"${(r.user_canonical || '').replace(/"/g, '""')}"`;
+                    const googCanEsc = `"${(r.google_canonical || '').replace(/"/g, '""')}"`;
+                    csvContent += `${urlEsc},${userCanEsc},${googCanEsc}\n`;
+                });
+                
+                const cleanSiteName = reportTitle.replace('URL Inspection Report: ', '').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                const csvData = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(csvData);
+                
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', `canonical-mismatches-${cleanSiteName}-${subFilterType}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            });
+        });
+    </script>
+</body>
+</html>

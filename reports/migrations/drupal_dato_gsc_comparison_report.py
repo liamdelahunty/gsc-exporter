@@ -11,7 +11,7 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 # Add parent directory to sys.path to allow importing core
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache

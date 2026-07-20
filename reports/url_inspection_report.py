@@ -117,38 +117,46 @@ def _format_inspection_data_for_csv(inspect_url, inspection_data, request_timest
     return row
 
 def create_html_report(df, report_title, timestamp):
-    """Generates an HTML report from the DataFrame."""
-    table_html = df.to_html(classes="table table-striped table-hover", index=False, border=0)
+    """Generates an HTML report from the DataFrame using the new interactive template."""
+    from jinja2 import Environment, FileSystemLoader
+    import json
 
-    return f"""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{report_title}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {{ padding: 2rem; background-color: #f8f9fa; }}
-        h1 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; }}
-        .table-responsive {{ margin-top: 2rem; }}
-        footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
-    </style>
-</head>
-<body>
-    <div class="container-fluid">
-        <h1>{report_title}</h1>
-        <p class="text-muted">Inspection performed on: {timestamp}</p>
-        <div class="table-responsive">
-            {table_html}
-        </div>
-    </div>
-    <footer>
-        <p>Report generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}. <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p>
-    </footer>
-</body>
-</html>
-"""
+    # Clean up df missing values
+    df_clean = df.fillna('N/A')
+
+    # Convert dataframe to list of records
+    records = []
+    for _, row in df_clean.iterrows():
+        records.append({
+            'timestamp': str(row.get('Request Timestamp', 'N/A')),
+            'url': str(row.get('URL', 'N/A')),
+            'verdict': str(row.get('Verdict', 'N/A')),
+            'indexing_state': str(row.get('Indexing State', 'N/A')),
+            'fetch_state': str(row.get('Page Fetch State', 'N/A')),
+            'crawl_time': str(row.get('Last Crawl Time', 'N/A')),
+            'google_canonical': str(row.get('Google Canonical', 'N/A')),
+            'user_canonical': str(row.get('User Canonical', 'N/A')),
+            'robots_state': str(row.get('Robots.txt State', 'N/A')),
+            'sitemap': str(row.get('In Sitemap', 'N/A')),
+            'crawled_as': str(row.get('Crawled As', 'N/A')),
+            'coverage_state': str(row.get('Coverage State', 'N/A')),
+            'referring_urls': str(row.get('Referring URLs', 'N/A')),
+            'mobile_verdict': str(row.get('Mobile Usability Verdict', 'N/A')),
+            'mobile_issues': str(row.get('Mobile Usability Issues', 'N/A')),
+            'rich_results': str(row.get('Rich Results Status', 'N/A'))
+        })
+
+    # Load templates from the templates directory (relative to workspace root/cwd)
+    template_loader = FileSystemLoader('templates')
+    env = Environment(loader=template_loader)
+    template = env.get_template('url-inspection-template.html')
+
+    return template.render(
+        report_title=report_title,
+        request_timestamp=timestamp,
+        data_json=json.dumps(records)
+    )
+
 
 def run_report(service, site_url, urls, site_list_name="report"):
     """Executes the URL inspection report for a list of URLs."""
