@@ -50,7 +50,8 @@
         }
 
         .dashboard-container {
-            max-width: 1400px;
+            width: 100%;
+            max-width: 100%;
             margin: 0 auto;
         }
 
@@ -362,15 +363,19 @@
         .url-cell-wrapper {
             display: flex;
             align-items: center;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 0.5rem;
+            width: 100%;
         }
 
         .url-text-container {
-            max-width: 500px;
+            flex: 1;
+            min-width: 0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            direction: rtl;
+            text-align: left;
         }
 
         .url-link {
@@ -379,6 +384,8 @@
             font-weight: 500;
             font-family: monospace;
             font-size: 0.875rem;
+            direction: ltr;
+            unicode-bidi: isolate;
         }
 
         .url-link:hover {
@@ -634,6 +641,7 @@
             
             <select id="mismatch-type-filter" style="padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--border); background: white; font-family: inherit; font-size: 0.85rem; color: var(--text-main); cursor: pointer; outline: none;">
                 <option value="all">All Canonical Issues</option>
+                <option value="destination">Destination Mismatch (Canonical ≠ Final Destination URL)</option>
                 <option value="google">Google Mismatch (Google Canonical ≠ Declared)</option>
                 <option value="url">URL Mismatch (Declared Canonical ≠ Page URL)</option>
             </select>
@@ -656,11 +664,11 @@
                     <thead>
                         <tr>
                             <th style="width: 40px;"></th>
-                            <th>Inspection URL</th>
-                            <th>Overall Verdict</th>
-                            <th>Indexing State</th>
-                            <th>Page Fetch</th>
-                            <th>Mobile Usability</th>
+                            <th style="width: auto; min-width: 350px;">Inspection URL</th>
+                            <th style="width: 140px;">Overall Verdict</th>
+                            <th style="width: 150px;">Indexing State</th>
+                            <th style="width: 130px;">Page Fetch</th>
+                            <th style="width: 150px;">Mobile Usability</th>
                         </tr>
                     </thead>
                     <tbody id="table-body">
@@ -732,30 +740,48 @@
                     stats.mobile++;
                 }
 
-                // Canonical discrepancy detection
+                // Canonical & Redirect discrepancy detection
                 const userCan = (row.user_canonical || '').trim();
                 const googCan = (row.google_canonical || '').trim();
+                const finalUserCan = (row.final_user_canonical || userCan || '').trim();
+                const finalGoogCan = (row.final_google_canonical || googCan || '').trim();
                 const pageUrl = (row.url || '').trim();
+                const destUrl = (row.final_destination_url || pageUrl || '').trim();
+
+                function cleanEq(a, b) {
+                    if (!a || !b || a === 'N/A' || b === 'N/A') return true;
+                    return a.replace(/\/$/, '') === b.replace(/\/$/, '');
+                }
+
+                row.is_redirect = row.is_redirect === 'Yes' || (destUrl && !cleanEq(pageUrl, destUrl));
+                row.google_mismatch = false;
+                row.url_mismatch = false;
+                row.destination_mismatch = false;
                 
                 const hasUser = userCan && userCan !== 'N/A' && userCan.startsWith('http');
                 const hasGoog = googCan && googCan !== 'N/A' && googCan.startsWith('http');
-                
-                row.google_mismatch = false;
-                row.url_mismatch = false;
+                const hasFinalUser = finalUserCan && finalUserCan !== 'N/A' && finalUserCan.startsWith('http');
+                const hasFinalGoog = finalGoogCan && finalGoogCan !== 'N/A' && finalGoogCan.startsWith('http');
                 
                 // 1. Google selected differs from declared
-                if (hasUser && hasGoog && userCan !== googCan) {
+                if (hasUser && hasGoog && !cleanEq(userCan, googCan)) {
                     row.google_mismatch = true;
                     stats.google_mismatches++;
                 }
                 
                 // 2. Declared differs from actual page URL
-                if (hasUser && userCan !== pageUrl) {
+                if (hasUser && !cleanEq(userCan, pageUrl)) {
                     row.url_mismatch = true;
                     stats.url_mismatches++;
                 }
+
+                // 3. Canonical differs from Final Destination URL
+                if ((hasUser && !cleanEq(userCan, destUrl)) || (hasGoog && !cleanEq(googCan, destUrl)) || (hasFinalUser && !cleanEq(finalUserCan, destUrl))) {
+                    row.destination_mismatch = true;
+                    stats.destination_mismatches = (stats.destination_mismatches || 0) + 1;
+                }
                 
-                row.canonical_issue = row.google_mismatch || row.url_mismatch;
+                row.canonical_issue = row.google_mismatch || row.url_mismatch || row.destination_mismatch;
                 if (row.canonical_issue) {
                     stats.mismatches++;
                 }
@@ -823,13 +849,19 @@
                     const fetchLabel = (row.fetch_state || 'N/A').replace('PAGE_FETCH_STATE_', '').replace('SUCCESSFUL', 'SUCCESS');
                     const indexLabel = (row.indexing_state || 'N/A').replace('INDEXING_STATE_', '').replace('INDEXING_', '');
 
-                    // Warn badge next to URL if mismatch
+                    // Badges next to URL
                     let mismatchBadges = '';
+                    if (row.is_redirect) {
+                        mismatchBadges += `<span class="badge s3xx" style="font-size:0.65rem; padding: 0.1rem 0.45rem; margin-left: 0.5rem; background:#eff6ff; color:#1e40af; border:1px solid #93c5fd;">Redirects &rarr; ${destUrl}</span>`;
+                    }
+                    if (row.destination_mismatch) {
+                        mismatchBadges += '<span class="badge neutral" style="font-size:0.65rem; padding: 0.1rem 0.45rem; margin-left: 0.5rem; background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;">Destination Mismatch</span>';
+                    }
                     if (row.google_mismatch) {
-                        mismatchBadges += '<span class="badge neutral" style="font-size:0.65rem; padding: 0.1rem 0.45rem; margin-left: 0.5rem; background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;">Google Mismatch</span>';
+                        mismatchBadges += '<span class="badge neutral" style="font-size:0.65rem; padding: 0.1rem 0.45rem; margin-left: 0.5rem; background:#fef3c7; color:#92400e; border:1px solid #fcd34d;">Google Mismatch</span>';
                     }
                     if (row.url_mismatch) {
-                        mismatchBadges += '<span class="badge neutral" style="font-size:0.65rem; padding: 0.1rem 0.45rem; margin-left: 0.5rem; background:#fef3c7; color:#92400e; border:1px solid #fcd34d;">URL Mismatch</span>';
+                        mismatchBadges += '<span class="badge neutral" style="font-size:0.65rem; padding: 0.1rem 0.45rem; margin-left: 0.5rem; background:#f3e8ff; color:#6b21a8; border:1px solid #d8b4fe;">URL Mismatch</span>';
                     }
 
                     tr.innerHTML = `
@@ -875,9 +907,17 @@
 
                     // Canonical warnings
                     let canonicalWarnings = '';
-                    if (row.google_mismatch) {
+                    if (row.destination_mismatch) {
                         canonicalWarnings += `
                             <div style="margin-top: 10px; padding: 0.5rem 0.75rem; background: #fee2e2; border: 1px solid #fca5a5; border-radius: 6px; font-size: 0.75rem; color: #991b1b; display: flex; align-items: center; gap: 0.4rem; font-weight: 500; margin-bottom: 6px;">
+                                <svg style="width:14px; height:14px; flex-shrink:0; fill:currentColor;" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                <span>Canonical URL differs from the Final Destination URL (${destUrl})!</span>
+                            </div>
+                        `;
+                    }
+                    if (row.google_mismatch) {
+                        canonicalWarnings += `
+                            <div style="margin-top: 10px; padding: 0.5rem 0.75rem; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; font-size: 0.75rem; color: #92400e; display: flex; align-items: center; gap: 0.4rem; font-weight: 500; margin-bottom: 6px;">
                                 <svg style="width:14px; height:14px; flex-shrink:0; fill:currentColor;" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                                 <span>Google selected a different canonical than what was declared in page code!</span>
                             </div>
@@ -885,13 +925,37 @@
                     }
                     if (row.url_mismatch) {
                         canonicalWarnings += `
-                            <div style="margin-top: 10px; padding: 0.5rem 0.75rem; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; font-size: 0.75rem; color: #92400e; display: flex; align-items: center; gap: 0.4rem; font-weight: 500;">
+                            <div style="margin-top: 10px; padding: 0.5rem 0.75rem; background: #f3e8ff; border: 1px solid #d8b4fe; border-radius: 6px; font-size: 0.75rem; color: #6b21a8; display: flex; align-items: center; gap: 0.4rem; font-weight: 500;">
                                 <svg style="width:14px; height:14px; flex-shrink:0; fill:currentColor;" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                                 <span>Declared canonical URL differs from the page's actual URL!</span>
                             </div>
                         `;
                     }
                     
+                    let redirectDetailsMarkup = '';
+                    if (row.is_redirect) {
+                        redirectDetailsMarkup = `
+                            <li class="details-item" style="flex-direction:column; align-items:stretch; margin-top: 8px;">
+                                <span class="details-label" style="margin-bottom: 4px;">Final Destination URL</span>
+                                <span class="details-val mono" style="text-align:left; word-break:break-all;">
+                                    <a href="${destUrl}" target="_blank" class="url-link">${destUrl}</a>
+                                </span>
+                            </li>
+                            <li class="details-item" style="flex-direction:column; align-items:stretch; margin-top: 8px;">
+                                <span class="details-label" style="margin-bottom: 4px;">Final Destination User Canonical</span>
+                                <span class="details-val mono" style="text-align:left; word-break:break-all;">
+                                    ${row.final_user_canonical && row.final_user_canonical !== 'N/A' ? `<a href="${row.final_user_canonical}" target="_blank" class="url-link">${row.final_user_canonical}</a>` : 'N/A'}
+                                </span>
+                            </li>
+                            <li class="details-item" style="flex-direction:column; align-items:stretch; margin-top: 8px;">
+                                <span class="details-label" style="margin-bottom: 4px;">Final Destination Google Canonical</span>
+                                <span class="details-val mono" style="text-align:left; word-break:break-all;">
+                                    ${row.final_google_canonical && row.final_google_canonical !== 'N/A' ? `<a href="${row.final_google_canonical}" target="_blank" class="url-link">${row.final_google_canonical}</a>` : 'N/A'}
+                                </span>
+                            </li>
+                        `;
+                    }
+
                     detailTr.innerHTML = `
                         <td colspan="6">
                             <div class="details-content">
@@ -930,6 +994,7 @@
                                                     ${row.google_canonical && row.google_canonical !== 'N/A' ? `<a href="${row.google_canonical}" target="_blank" class="url-link">${row.google_canonical}</a>` : 'N/A'}
                                                 </span>
                                             </li>
+                                            ${redirectDetailsMarkup}
                                         </ul>
                                         ${canonicalWarnings}
                                     </div>
@@ -1007,6 +1072,8 @@
                     } else if (currentFilter === 'mismatches') {
                         if (subFilterType === 'all') {
                             matchesFilter = item.canonical_issue;
+                        } else if (subFilterType === 'destination') {
+                            matchesFilter = item.destination_mismatch;
                         } else if (subFilterType === 'google') {
                             matchesFilter = item.google_mismatch;
                         } else if (subFilterType === 'url') {
@@ -1132,6 +1199,8 @@
                 
                 if (subFilterType === 'all') {
                     filtered = inspectionData.filter(r => r.canonical_issue);
+                } else if (subFilterType === 'destination') {
+                    filtered = inspectionData.filter(r => r.destination_mismatch);
                 } else if (subFilterType === 'google') {
                     filtered = inspectionData.filter(r => r.google_mismatch);
                 } else if (subFilterType === 'url') {
@@ -1155,18 +1224,24 @@
                 
                 if (subFilterType === 'all') {
                     filtered = inspectionData.filter(r => r.canonical_issue);
+                } else if (subFilterType === 'destination') {
+                    filtered = inspectionData.filter(r => r.destination_mismatch);
                 } else if (subFilterType === 'google') {
                     filtered = inspectionData.filter(r => r.google_mismatch);
                 } else if (subFilterType === 'url') {
                     filtered = inspectionData.filter(r => r.url_mismatch);
                 }
                 
-                let csvContent = 'URL,User-Declared Canonical,Google-Selected Canonical\n';
+                let csvContent = 'URL,Is Redirect,Final Destination URL,User Canonical,Google Canonical,Final User Canonical,Final Google Canonical\n';
                 filtered.forEach(r => {
                     const urlEsc = `"${(r.url || '').replace(/"/g, '""')}"`;
+                    const isRedirEsc = `"${(r.is_redirect || 'No').replace(/"/g, '""')}"`;
+                    const destUrlEsc = `"${(r.final_destination_url || r.url || '').replace(/"/g, '""')}"`;
                     const userCanEsc = `"${(r.user_canonical || '').replace(/"/g, '""')}"`;
                     const googCanEsc = `"${(r.google_canonical || '').replace(/"/g, '""')}"`;
-                    csvContent += `${urlEsc},${userCanEsc},${googCanEsc}\n`;
+                    const finUserCanEsc = `"${(r.final_user_canonical || r.user_canonical || '').replace(/"/g, '""')}"`;
+                    const finGoogCanEsc = `"${(r.final_google_canonical || r.google_canonical || '').replace(/"/g, '""')}"`;
+                    csvContent += `${urlEsc},${isRedirEsc},${destUrlEsc},${userCanEsc},${googCanEsc},${finUserCanEsc},${finGoogCanEsc}\n`;
                 });
                 
                 const cleanSiteName = reportTitle.replace('URL Inspection Report: ', '').replace(/[^a-z0-9]/gi, '_').toLowerCase();

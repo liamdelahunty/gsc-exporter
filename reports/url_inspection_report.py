@@ -71,7 +71,7 @@ def normalize_property(site_url, available_properties):
     return site_url
 
 def get_url_inspection_data(service, site_url, inspect_url):
-    """Fetches URL inspection data for a given URL."""
+    """Fetches URL inspection data for a given URL via GSC API."""
     try:
         request = {
             'inspectionUrl': inspect_url,
@@ -84,7 +84,7 @@ def get_url_inspection_data(service, site_url, inspect_url):
         return {"error": str(e)}
 
 def _format_inspection_data_for_csv(inspect_url, inspection_data, request_timestamp):
-    """Flattens raw inspection data into a dictionary for CSV."""
+    """Flattens raw GSC inspection data into a dictionary for CSV."""
     row = {'Request Timestamp': request_timestamp, 'URL': inspect_url}
 
     if inspection_data and inspection_data.get("error"):
@@ -117,14 +117,12 @@ def _format_inspection_data_for_csv(inspect_url, inspection_data, request_timest
     return row
 
 def create_html_report(df, report_title, timestamp):
-    """Generates an HTML report from the DataFrame using the new interactive template."""
+    """Generates an HTML report from the DataFrame using the interactive template."""
     from jinja2 import Environment, FileSystemLoader
     import json
 
-    # Clean up df missing values
     df_clean = df.fillna('N/A')
 
-    # Convert dataframe to list of records
     records = []
     for _, row in df_clean.iterrows():
         records.append({
@@ -146,7 +144,6 @@ def create_html_report(df, report_title, timestamp):
             'rich_results': str(row.get('Rich Results Status', 'N/A'))
         })
 
-    # Load templates from the templates directory (relative to workspace root/cwd)
     template_loader = FileSystemLoader('templates')
     env = Environment(loader=template_loader)
     template = env.get_template('url-inspection-template.html')
@@ -157,9 +154,8 @@ def create_html_report(df, report_title, timestamp):
         data_json=json.dumps(records)
     )
 
-
 def run_report(service, site_url, urls, site_list_name="report"):
-    """Executes the URL inspection report for a list of URLs."""
+    """Executes the URL inspection report for a list of URLs using the GSC API."""
     print(f"Running URL Inspection Report for {len(urls)} URLs using property: {site_url}")
     
     request_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -172,7 +168,6 @@ def run_report(service, site_url, urls, site_list_name="report"):
         inspection_data = get_url_inspection_data(service, site_url, url)
         all_inspection_results[url] = inspection_data
     
-    # Paths
     slug = get_filename_slug(site_url)
     output_dir = get_output_dir(site_url)
     os.makedirs(output_dir, exist_ok=True)
@@ -181,12 +176,10 @@ def run_report(service, site_url, urls, site_list_name="report"):
     csv_path = os.path.join(output_dir, f"{base_filename}.csv")
     html_path = os.path.join(output_dir, f"{base_filename}.html")
     
-    # Save CSV
     formatted_data_list = [_format_inspection_data_for_csv(url, data, request_timestamp) for url, data in all_inspection_results.items()]
     df = pd.DataFrame(formatted_data_list)
     df.to_csv(csv_path, index=False, encoding='utf-8')
     
-    # Save HTML
     html_content = create_html_report(
         df,
         f"URL Inspection Report: {site_url}",
@@ -219,7 +212,6 @@ if __name__ == '__main__':
         
     available_properties = get_available_properties(service)
     
-    # CASE 1: Batch processing from file
     if args.sites_file:
         if not os.path.exists(args.sites_file):
             print(f"Error: File not found: {args.sites_file}")
@@ -229,11 +221,9 @@ if __name__ == '__main__':
             raw_urls = [line.strip() for line in f if line.strip()]
             
         if args.site_url_or_prop:
-            # Force all URLs in file to use the provided property
             site_url = normalize_property(args.site_url_or_prop, available_properties)
             run_report(service, site_url, raw_urls)
         else:
-            # INTELLIGENT BATCH: Group URLs by their best property
             groups = defaultdict(list)
             for url in raw_urls:
                 prop = find_best_property(url, available_properties)
@@ -249,23 +239,18 @@ if __name__ == '__main__':
             for prop, urls in groups.items():
                 run_report(service, prop, urls)
 
-    # CASE 2: Single URL or Property provided via positional arg or --url
     elif args.site_url_or_prop:
-        # User provided --url explicitly
         if args.url:
             site_url = normalize_property(args.site_url_or_prop, available_properties)
             run_report(service, site_url, [args.url])
         else:
-            # INTELLIGENT SINGLE: First arg is either a property or a specific URL
             prop = normalize_property(args.site_url_or_prop, available_properties)
             if prop in available_properties:
-                # It's a property. Inspect its root (if it's a URL-prefix property).
                 if prop.startswith('http'):
                     run_report(service, prop, [prop])
                 else:
                     print(f"Property '{prop}' is a domain property. Please provide a specific --url to inspect.")
             else:
-                # It's not a property. Assume it's an inspection URL.
                 best_prop = find_best_property(args.site_url_or_prop, available_properties)
                 if best_prop:
                     print(f"Intelligently detected property '{best_prop}' for URL '{args.site_url_or_prop}'")
