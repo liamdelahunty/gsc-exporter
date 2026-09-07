@@ -13,3 +13,10 @@ sc-domain:accountancydaily.co
 sc-domain:cronertaxwise.com
 sc-domain:employeradvice.org
 sc-domain:myviptaxteam.com
+
+
+# Add your site URLs here, one per line.
+# Example:
+# https://www.example.com
+# sc-domain:example.org
+

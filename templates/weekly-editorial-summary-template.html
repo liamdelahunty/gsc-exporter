@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Google Fonts for premium editorial feel -->
+    <!-- Google Fonts: Inter & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-color: #0f172a;
@@ -18,7 +18,7 @@
             --neutral-color: #64748b;
             --bg-light: #f8fafc;
             --card-border: #e2e8f0;
-            --font-editorial: 'Playfair Display', Georgia, serif;
+            --font-heading: 'Outfit', sans-serif;
             --font-sans: 'Inter', system-ui, sans-serif;
         }
 
@@ -37,7 +37,7 @@
         }
 
         .dashboard-title {
-            font-family: var(--font-editorial);
+            font-family: var(--font-heading);
             color: var(--primary-color);
             font-weight: 700;
             font-size: 2.5rem;
@@ -94,7 +94,7 @@
         }
 
         .search-type-title {
-            font-family: var(--font-editorial);
+            font-family: var(--font-heading);
             font-size: 1.5rem;
             font-weight: 700;
             margin: 0;
@@ -201,7 +201,7 @@
         }
 
         .copypaste-title {
-            font-family: var(--font-editorial);
+            font-family: var(--font-heading);
             font-size: 1.25rem;
             font-weight: 700;
             margin: 0;
@@ -231,7 +231,7 @@
         }
 
         .section-title {
-            font-family: var(--font-editorial);
+            font-family: var(--font-heading);
             font-size: 1.5rem;
             font-weight: 700;
             margin-bottom: 1.25rem;
@@ -363,13 +363,22 @@
                     </div>
                     {% if web_metrics.best_performing_page %}
                         <div class="best-performing-box">
-                            <div class="best-performing-label">Best Performing Article</div>
+                            <div class="best-performing-label">{% if web_metrics.is_homepage_best %}Best Performing (Home Page){% else %}Best Performing Article{% endif %}</div>
                             <a href="{{ web_metrics.best_performing_page }}" target="_blank" class="best-performing-link" title="{{ web_metrics.best_performing_page }}">
                                 {{ web_metrics.best_performing_page }}
                             </a>
                             <div class="best-performing-clicks">
-                                <strong>{{ web_metrics.best_performing_clicks | comma_format }}</strong> clicks
+                                <strong>{{ web_metrics.best_performing_clicks | comma_format(is_int=True) }}</strong> clicks, <strong>{{ web_metrics.best_performing_impressions | comma_format(is_int=True) }}</strong> impressions
                             </div>
+                            {% if web_metrics.is_homepage_best and web_metrics.next_best_page %}
+                                <div class="best-performing-label mt-2">Next Best Performing Article</div>
+                                <a href="{{ web_metrics.next_best_page }}" target="_blank" class="best-performing-link" title="{{ web_metrics.next_best_page }}">
+                                    {{ web_metrics.next_best_page }}
+                                </a>
+                                <div class="best-performing-clicks">
+                                    <strong>{{ web_metrics.next_best_clicks | comma_format(is_int=True) }}</strong> clicks, <strong>{{ web_metrics.next_best_impressions | comma_format(is_int=True) }}</strong> impressions
+                                </div>
+                            {% endif %}
                         </div>
                     {% endif %}
                 {% endif %}
@@ -414,13 +423,22 @@
                     </div>
                     {% if discover_metrics.best_performing_page %}
                         <div class="best-performing-box">
-                            <div class="best-performing-label">Best Performing Article</div>
+                            <div class="best-performing-label">{% if discover_metrics.is_homepage_best %}Best Performing (Home Page){% else %}Best Performing Article{% endif %}</div>
                             <a href="{{ discover_metrics.best_performing_page }}" target="_blank" class="best-performing-link" title="{{ discover_metrics.best_performing_page }}">
                                 {{ discover_metrics.best_performing_page }}
                             </a>
                             <div class="best-performing-clicks">
-                                <strong>{{ discover_metrics.best_performing_clicks | comma_format }}</strong> clicks
+                                <strong>{{ discover_metrics.best_performing_clicks | comma_format(is_int=True) }}</strong> clicks, <strong>{{ discover_metrics.best_performing_impressions | comma_format(is_int=True) }}</strong> impressions
                             </div>
+                            {% if discover_metrics.is_homepage_best and discover_metrics.next_best_page %}
+                                <div class="best-performing-label mt-2">Next Best Performing Article</div>
+                                <a href="{{ discover_metrics.next_best_page }}" target="_blank" class="best-performing-link" title="{{ discover_metrics.next_best_page }}">
+                                    {{ discover_metrics.next_best_page }}
+                                </a>
+                                <div class="best-performing-clicks">
+                                    <strong>{{ discover_metrics.next_best_clicks | comma_format(is_int=True) }}</strong> clicks, <strong>{{ discover_metrics.next_best_impressions | comma_format(is_int=True) }}</strong> impressions
+                                </div>
+                            {% endif %}
                         </div>
                     {% endif %}
                 {% endif %}
@@ -479,13 +497,22 @@
                     </div>
                     {% if news_metrics.best_performing_page %}
                         <div class="best-performing-box">
-                            <div class="best-performing-label">Best Performing Article</div>
+                            <div class="best-performing-label">{% if news_metrics.is_homepage_best %}Best Performing (Home Page){% else %}Best Performing Article{% endif %}</div>
                             <a href="{{ news_metrics.best_performing_page }}" target="_blank" class="best-performing-link" title="{{ news_metrics.best_performing_page }}">
                                 {{ news_metrics.best_performing_page }}
                             </a>
                             <div class="best-performing-clicks">
-                                <strong>{{ news_metrics.best_performing_clicks | comma_format }}</strong> clicks
+                                <strong>{{ news_metrics.best_performing_clicks | comma_format(is_int=True) }}</strong> clicks, <strong>{{ news_metrics.best_performing_impressions | comma_format(is_int=True) }}</strong> impressions
                             </div>
+                            {% if news_metrics.is_homepage_best and news_metrics.next_best_page %}
+                                <div class="best-performing-label mt-2">Next Best Performing Article</div>
+                                <a href="{{ news_metrics.next_best_page }}" target="_blank" class="best-performing-link" title="{{ news_metrics.next_best_page }}">
+                                    {{ news_metrics.next_best_page }}
+                                </a>
+                                <div class="best-performing-clicks">
+                                    <strong>{{ news_metrics.next_best_clicks | comma_format(is_int=True) }}</strong> clicks, <strong>{{ news_metrics.next_best_impressions | comma_format(is_int=True) }}</strong> impressions
+                                </div>
+                            {% endif %}
                         </div>
                     {% endif %}
                 {% endif %}

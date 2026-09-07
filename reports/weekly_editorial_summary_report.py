@@ -8,6 +8,7 @@ import os
 import sys
 import argparse
 import pandas as pd
+from urllib.parse import urlparse
 from datetime import datetime, timedelta
 from jinja2 import Environment, FileSystemLoader
 
@@ -18,6 +19,20 @@ from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
 from core.client import get_gsc_service
 from core.date_utils import parse_standard_date_args
+
+def is_homepage(url):
+    """Checks if a given URL is the root / home page of a domain."""
+    if not url or url == "N/A":
+        return False
+    clean_url = str(url).strip()
+    if not (clean_url.startswith("http://") or clean_url.startswith("https://")):
+        clean_url = "https://" + clean_url
+    try:
+        parsed = urlparse(clean_url)
+        path = parsed.path.rstrip('/')
+        return path in ("", "/index.html", "/index.htm", "/index.php")
+    except Exception:
+        return False
 
 def comma_format(value, is_int=False):
     if value is None or (isinstance(value, str) and not value.strip()):
@@ -158,10 +173,27 @@ def compile_search_type_data(service, site_url, start_date, end_date, prev_start
     # Best performing page (current)
     best_performing_page = "N/A"
     best_performing_clicks = 0
+    best_performing_impressions = 0
+    next_best_page = None
+    next_best_clicks = 0
+    next_best_impressions = 0
+    is_homepage_best = False
+    
     if not df_pages.empty:
         df_pages_sorted = df_pages.sort_values(by='clicks', ascending=False)
-        best_performing_page = df_pages_sorted.iloc[0]['page']
-        best_performing_clicks = float(df_pages_sorted.iloc[0]['clicks'])
+        best_row = df_pages_sorted.iloc[0]
+        best_performing_page = best_row['page']
+        best_performing_clicks = float(best_row['clicks'])
+        best_performing_impressions = float(best_row['impressions'])
+        is_homepage_best = is_homepage(best_performing_page)
+        
+        if is_homepage_best:
+            for _, row in df_pages_sorted.iloc[1:].iterrows():
+                if not is_homepage(row['page']):
+                    next_best_page = row['page']
+                    next_best_clicks = float(row['clicks'])
+                    next_best_impressions = float(row['impressions'])
+                    break
         
     # Deltas
     clicks_delta = clicks - clicks_prev
@@ -214,19 +246,45 @@ def compile_search_type_data(service, site_url, start_date, end_date, prev_start
         'queries_delta': {'raw': queries_delta, 'pct': queries_delta_pct},
         'best_performing_page': best_performing_page,
         'best_performing_clicks': best_performing_clicks,
+        'best_performing_impressions': best_performing_impressions,
+        'is_homepage_best': is_homepage_best,
+        'next_best_page': next_best_page,
+        'next_best_clicks': next_best_clicks,
+        'next_best_impressions': next_best_impressions,
         'top_pages': top_pages_list
     }
+
+def format_best_performing_lines(data):
+    """Compiles lines for the best performing page(s) with clicks and impressions."""
+    if data.get('empty', True) or not data.get('best_performing_page') or data.get('best_performing_page') == 'N/A':
+        return []
+
+    lines = []
+    bp_page = data['best_performing_page']
+    bp_clicks = int(data.get('best_performing_clicks', 0))
+    bp_imps = int(data.get('best_performing_impressions', 0))
+
+    lines.append(f"Best performing: {bp_page} ({bp_clicks:,} clicks, {bp_imps:,} impressions)")
+
+    if data.get('is_homepage_best') and data.get('next_best_page'):
+        nb_page = data['next_best_page']
+        nb_clicks = int(data.get('next_best_clicks', 0))
+        nb_imps = int(data.get('next_best_impressions', 0))
+        lines.append(f"Next best performing: {nb_page} ({nb_clicks:,} clicks, {nb_imps:,} impressions)")
+
+    return lines
 
 def generate_email_text(site_url, web_data, discover_data, news_data, start_date, end_date):
     """Compiles the plain text copy-paste email summary."""
     lines = []
     lines.append(f"Google Search Console Weekly Report for {site_url}")
+    lines.append("")
     lines.append(f"Period: {start_date} to {end_date}\n")
     
     # 1. News
     lines.append("News:")
     if not news_data.get('empty', True):
-        lines.append(f"Best performing: {news_data['best_performing_page']}")
+        lines.extend(format_best_performing_lines(news_data))
         lines.append("Overall:")
         lines.append(f"Number of Pages     {int(news_data['pages']):,}")
         lines.append(f"Total Clicks        {int(news_data['clicks']):,}")
@@ -241,7 +299,7 @@ def generate_email_text(site_url, web_data, discover_data, news_data, start_date
     # 2. Discover
     lines.append("Discover:")
     if not discover_data.get('empty', True):
-        lines.append(f"Best performing: {discover_data['best_performing_page']}")
+        lines.extend(format_best_performing_lines(discover_data))
         lines.append(f"Number of Pages     {int(discover_data['pages']):,}")
         lines.append(f"Total Clicks        {int(discover_data['clicks']):,}")
         lines.append(f"Total Impressions   {int(discover_data['impressions']):,}")
@@ -253,8 +311,7 @@ def generate_email_text(site_url, web_data, discover_data, news_data, start_date
     # 3. Web
     lines.append("Web:")
     if not web_data.get('empty', True):
-        bp_clicks = int(web_data['best_performing_clicks'])
-        lines.append(f"Best performing: {web_data['best_performing_page']} ({bp_clicks:,} clicks!)")
+        lines.extend(format_best_performing_lines(web_data))
         lines.append(f"Number of Pages     {int(web_data['pages']):,}")
         lines.append(f"Total Clicks        {int(web_data['clicks']):,}")
         lines.append(f"Total Impressions   {int(web_data['impressions']):,}")
@@ -290,7 +347,14 @@ def print_terminal_comparison(search_type_name, data):
     print(f"Pages:       {data['pages']:,} vs {data['pages_prev']:,} (change: {data['pages_delta']['raw']:+})")
     if 'queries' in data and data['queries'] > 0:
         print(f"Queries:     {data['queries']:,} vs {data['queries_prev']:,} (change: {data['queries_delta']['raw']:+})")
-    print(f"Best Page:   {data['best_performing_page']} ({int(data['best_performing_clicks']):,} clicks)")
+    
+    bp_clicks = int(data.get('best_performing_clicks', 0))
+    bp_imps = int(data.get('best_performing_impressions', 0))
+    print(f"Best Page:   {data['best_performing_page']} ({bp_clicks:,} clicks, {bp_imps:,} impressions)")
+    if data.get('is_homepage_best') and data.get('next_best_page'):
+        nb_clicks = int(data.get('next_best_clicks', 0))
+        nb_imps = int(data.get('next_best_impressions', 0))
+        print(f"Next Best:   {data['next_best_page']} ({nb_clicks:,} clicks, {nb_imps:,} impressions)")
 
 def run_report(service, site_url, start_date, end_date, limit=10):
     """Executes the weekly editorial summary report."""
@@ -403,7 +467,11 @@ def run_report(service, site_url, start_date, end_date, limit=10):
                 'Queries (Previous)': data.get('queries_prev', 0),
                 'Queries Delta': data.get('queries_delta', {}).get('raw', 0),
                 'Best Performing Page': data['best_performing_page'],
-                'Best Performing Page Clicks': data['best_performing_clicks']
+                'Best Performing Page Clicks': data['best_performing_clicks'],
+                'Best Performing Page Impressions': data.get('best_performing_impressions', 0),
+                'Next Best Performing Page': data.get('next_best_page', ''),
+                'Next Best Performing Page Clicks': data.get('next_best_clicks', 0),
+                'Next Best Performing Page Impressions': data.get('next_best_impressions', 0)
             })
             
     df_summary = pd.DataFrame(summary_rows)
