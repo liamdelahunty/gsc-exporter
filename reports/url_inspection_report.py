@@ -71,7 +71,7 @@ def normalize_property(site_url, available_properties):
     return site_url
 
 def get_url_inspection_data(service, site_url, inspect_url):
-    """Fetches URL inspection data for a given URL."""
+    """Fetches URL inspection data for a given URL via GSC API."""
     try:
         request = {
             'inspectionUrl': inspect_url,
@@ -84,7 +84,7 @@ def get_url_inspection_data(service, site_url, inspect_url):
         return {"error": str(e)}
 
 def _format_inspection_data_for_csv(inspect_url, inspection_data, request_timestamp):
-    """Flattens raw inspection data into a dictionary for CSV."""
+    """Flattens raw GSC inspection data into a dictionary for CSV."""
     row = {'Request Timestamp': request_timestamp, 'URL': inspect_url}
 
     if inspection_data and inspection_data.get("error"):
@@ -117,41 +117,45 @@ def _format_inspection_data_for_csv(inspect_url, inspection_data, request_timest
     return row
 
 def create_html_report(df, report_title, timestamp):
-    """Generates an HTML report from the DataFrame."""
-    table_html = df.to_html(classes="table table-striped table-hover", index=False, border=0)
+    """Generates an HTML report from the DataFrame using the interactive template."""
+    from jinja2 import Environment, FileSystemLoader
+    import json
 
-    return f"""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{report_title}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {{ padding: 2rem; background-color: #f8f9fa; }}
-        h1 {{ border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; }}
-        .table-responsive {{ margin-top: 2rem; }}
-        footer {{ margin-top: 3rem; text-align: center; color: #6c757d; }}
-    </style>
-</head>
-<body>
-    <div class="container-fluid">
-        <h1>{report_title}</h1>
-        <p class="text-muted">Inspection performed on: {timestamp}</p>
-        <div class="table-responsive">
-            {table_html}
-        </div>
-    </div>
-    <footer>
-        <p>Report generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}. <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p>
-    </footer>
-</body>
-</html>
-"""
+    df_clean = df.fillna('N/A')
+
+    records = []
+    for _, row in df_clean.iterrows():
+        records.append({
+            'timestamp': str(row.get('Request Timestamp', 'N/A')),
+            'url': str(row.get('URL', 'N/A')),
+            'verdict': str(row.get('Verdict', 'N/A')),
+            'indexing_state': str(row.get('Indexing State', 'N/A')),
+            'fetch_state': str(row.get('Page Fetch State', 'N/A')),
+            'crawl_time': str(row.get('Last Crawl Time', 'N/A')),
+            'google_canonical': str(row.get('Google Canonical', 'N/A')),
+            'user_canonical': str(row.get('User Canonical', 'N/A')),
+            'robots_state': str(row.get('Robots.txt State', 'N/A')),
+            'sitemap': str(row.get('In Sitemap', 'N/A')),
+            'crawled_as': str(row.get('Crawled As', 'N/A')),
+            'coverage_state': str(row.get('Coverage State', 'N/A')),
+            'referring_urls': str(row.get('Referring URLs', 'N/A')),
+            'mobile_verdict': str(row.get('Mobile Usability Verdict', 'N/A')),
+            'mobile_issues': str(row.get('Mobile Usability Issues', 'N/A')),
+            'rich_results': str(row.get('Rich Results Status', 'N/A'))
+        })
+
+    template_loader = FileSystemLoader('templates')
+    env = Environment(loader=template_loader)
+    template = env.get_template('url-inspection-template.html')
+
+    return template.render(
+        report_title=report_title,
+        request_timestamp=timestamp,
+        data_json=json.dumps(records)
+    )
 
 def run_report(service, site_url, urls, site_list_name="report"):
-    """Executes the URL inspection report for a list of URLs."""
+    """Executes the URL inspection report for a list of URLs using the GSC API."""
     print(f"Running URL Inspection Report for {len(urls)} URLs using property: {site_url}")
     
     request_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -164,7 +168,6 @@ def run_report(service, site_url, urls, site_list_name="report"):
         inspection_data = get_url_inspection_data(service, site_url, url)
         all_inspection_results[url] = inspection_data
     
-    # Paths
     slug = get_filename_slug(site_url)
     output_dir = get_output_dir(site_url)
     os.makedirs(output_dir, exist_ok=True)
@@ -173,12 +176,10 @@ def run_report(service, site_url, urls, site_list_name="report"):
     csv_path = os.path.join(output_dir, f"{base_filename}.csv")
     html_path = os.path.join(output_dir, f"{base_filename}.html")
     
-    # Save CSV
     formatted_data_list = [_format_inspection_data_for_csv(url, data, request_timestamp) for url, data in all_inspection_results.items()]
     df = pd.DataFrame(formatted_data_list)
     df.to_csv(csv_path, index=False, encoding='utf-8')
     
-    # Save HTML
     html_content = create_html_report(
         df,
         f"URL Inspection Report: {site_url}",
@@ -211,7 +212,6 @@ if __name__ == '__main__':
         
     available_properties = get_available_properties(service)
     
-    # CASE 1: Batch processing from file
     if args.sites_file:
         if not os.path.exists(args.sites_file):
             print(f"Error: File not found: {args.sites_file}")
@@ -221,11 +221,9 @@ if __name__ == '__main__':
             raw_urls = [line.strip() for line in f if line.strip()]
             
         if args.site_url_or_prop:
-            # Force all URLs in file to use the provided property
             site_url = normalize_property(args.site_url_or_prop, available_properties)
             run_report(service, site_url, raw_urls)
         else:
-            # INTELLIGENT BATCH: Group URLs by their best property
             groups = defaultdict(list)
             for url in raw_urls:
                 prop = find_best_property(url, available_properties)
@@ -241,23 +239,18 @@ if __name__ == '__main__':
             for prop, urls in groups.items():
                 run_report(service, prop, urls)
 
-    # CASE 2: Single URL or Property provided via positional arg or --url
     elif args.site_url_or_prop:
-        # User provided --url explicitly
         if args.url:
             site_url = normalize_property(args.site_url_or_prop, available_properties)
             run_report(service, site_url, [args.url])
         else:
-            # INTELLIGENT SINGLE: First arg is either a property or a specific URL
             prop = normalize_property(args.site_url_or_prop, available_properties)
             if prop in available_properties:
-                # It's a property. Inspect its root (if it's a URL-prefix property).
                 if prop.startswith('http'):
                     run_report(service, prop, [prop])
                 else:
                     print(f"Property '{prop}' is a domain property. Please provide a specific --url to inspect.")
             else:
-                # It's not a property. Assume it's an inspection URL.
                 best_prop = find_best_property(args.site_url_or_prop, available_properties)
                 if best_prop:
                     print(f"Intelligently detected property '{best_prop}' for URL '{args.site_url_or_prop}'")

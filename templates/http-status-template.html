@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report_title }} - HTTP Status Code Dashboard</title>
+    <meta name="description" content="Interactive dashboard displaying HTTP status codes, response times, and redirect chains.">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-input: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            
+            --success: #10b981;
+            --success-bg: #ecfdf5;
+            --success-text: #065f46;
+            --redirect: #3b82f6;
+            --redirect-bg: #eff6ff;
+            --redirect-text: #1e40af;
+            --warning: #f59e0b;
+            --warning-bg: #fef3c7;
+            --warning-text: #92400e;
+            --danger: #ef4444;
+            --danger-bg: #fef2f2;
+            --danger-text: #991b1b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 1.5rem 2rem;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Header Style */
+        header {
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+            border: 1px solid var(--border);
+            padding: 2rem 2.5rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .header-content h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .header-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 0.75rem;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .meta-item svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        /* KPI Cards Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            border-color: #cbd5e1;
+        }
+
+        .stat-card.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-card .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.4rem;
+        }
+
+        .stat-card .value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-card.total .value { color: var(--text-main); }
+        .stat-card.s2xx .value { color: #059669; }
+        .stat-card.s3xx .value { color: #2563eb; }
+        .stat-card.s4xx .value { color: #d97706; }
+        .stat-card.s5xx .value { color: #dc2626; }
+        .stat-card.errors .value { color: #991b1b; }
+
+        .stat-card .percentage-bar {
+            height: 4px;
+            background: #f1f5f9;
+            border-radius: 2px;
+            margin-top: 0.75rem;
+            overflow: hidden;
+        }
+
+        .stat-card .percentage-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.5s ease-out;
+        }
+
+        .stat-card.s2xx .percentage-fill { background-color: #059669; }
+        .stat-card.s3xx .percentage-fill { background-color: #2563eb; }
+        .stat-card.s4xx .percentage-fill { background-color: #d97706; }
+        .stat-card.s5xx .percentage-fill { background-color: #dc2626; }
+        .stat-card.errors .percentage-fill { background-color: #991b1b; }
+
+        /* Filter Controls */
+        .controls-bar {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.75rem;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            transition: border-color 0.15s ease-in-out;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.875rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+            width: 18px;
+            height: 18px;
+        }
+
+        .filter-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .filter-pill {
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-pill:hover {
+            border-color: #cbd5e1;
+            color: var(--text-main);
+        }
+
+        .filter-pill.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .filter-count {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 9999px;
+            padding: 1px 6px;
+            font-size: 0.75rem;
+            color: inherit;
+        }
+
+        .filter-pill.active .filter-count {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Table Design */
+        .table-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            max-height: 800px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tr.table-row {
+            transition: background-color 0.15s ease;
+        }
+
+        tr.table-row:hover {
+            background-color: #f8fafc;
+            cursor: pointer;
+        }
+
+        tr.table-row.open {
+            background-color: #f5f3ff;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .badge.s2xx {
+            background-color: var(--success-bg);
+            color: var(--success-text);
+        }
+
+        .badge.s3xx {
+            background-color: var(--redirect-bg);
+            color: var(--redirect-text);
+        }
+
+        .badge.s4xx {
+            background-color: var(--warning-bg);
+            color: var(--warning-text);
+        }
+
+        .badge.s5xx, .badge.s0 {
+            background-color: var(--danger-bg);
+            color: var(--danger-text);
+        }
+
+        .badge.outline {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        /* URL Text Formatting */
+        .url-cell-wrapper {
+            display: flex;
+            align-items: center;
+            flex-wrap: nowrap;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        .url-text-container {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            direction: rtl;
+            text-align: left;
+        }
+
+        .url-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            font-family: monospace;
+            font-size: 0.875rem;
+            direction: ltr;
+            unicode-bidi: isolate;
+        }
+
+        .url-link:hover {
+            color: var(--primary-hover);
+            text-decoration: underline;
+        }
+
+        /* Expansion Row */
+        .details-row {
+            display: none;
+            background-color: #f8fafc;
+        }
+
+        .details-row.open {
+            display: table-row;
+        }
+
+        .details-content {
+            padding: 1.5rem 2.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .details-card {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.02);
+        }
+
+        .details-card h4 {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .details-list {
+            list-style: none;
+        }
+
+        .details-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 0.5rem 0;
+            font-size: 0.875rem;
+            border-bottom: 1px dashed var(--border);
+        }
+
+        .details-item:last-child {
+            border-bottom: none;
+        }
+
+        .details-label {
+            color: var(--text-muted);
+            font-weight: 500;
+            padding-right: 1rem;
+        }
+
+        .details-val {
+            font-weight: 600;
+            color: var(--text-main);
+            text-align: right;
+            word-break: break-all;
+        }
+
+        .details-val.mono {
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+
+        .expand-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .expand-btn:hover {
+            color: var(--text-main);
+            background-color: rgba(0, 0, 0, 0.03);
+        }
+
+        .chevron-icon {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s ease;
+            fill: currentColor;
+        }
+
+        tr.table-row.open .chevron-icon {
+            transform: rotate(180deg);
+        }
+
+        .empty-state {
+            display: none;
+            padding: 4rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        footer {
+            margin-top: 4rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            padding: 2rem 0;
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header>
+            <div class="header-content">
+                <h1>HTTP Status Code Audit Dashboard</h1>
+                <p id="property-title">{{ report_title }}</p>
+                <div class="header-meta">
+                    <div class="meta-item">
+                        <svg viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11H9v-2h2v2zm0-4H9V5h2v4z"/></svg>
+                        <span id="timestamp-meta">Requested: {{ request_timestamp }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <svg viewBox="0 0 20 20"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.978 7.978 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/></svg>
+                        <span id="site-urls-meta">Total URLs: 0</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Overview -->
+        <section class="stats-grid">
+            <div class="stat-card total active" id="card-total">
+                <div class="label">Total Checked</div>
+                <div class="value" id="stat-total">0</div>
+                <div class="percentage-bar"><div class="percentage-fill" style="width: 100%"></div></div>
+            </div>
+            <div class="stat-card s2xx" id="card-s2xx">
+                <div class="label">2xx Success (200 OK)</div>
+                <div class="value" id="stat-s2xx">0</div>
+                <div class="percentage-bar"><div class="percentage-fill" id="bar-s2xx" style="width: 0%"></div></div>
+            </div>
+            <div class="stat-card s3xx" id="card-s3xx">
+                <div class="label">3xx Redirects</div>
+                <div class="value" id="stat-s3xx">0</div>
+                <div class="percentage-bar"><div class="percentage-fill" id="bar-s3xx" style="width: 0%"></div></div>
+            </div>
+            <div class="stat-card s4xx" id="card-s4xx">
+                <div class="label">4xx Not Found / Client</div>
+                <div class="value" id="stat-s4xx">0</div>
+                <div class="percentage-bar"><div class="percentage-fill" id="bar-s4xx" style="width: 0%"></div></div>
+            </div>
+            <div class="stat-card s5xx" id="card-s5xx">
+                <div class="label">5xx Server Errors</div>
+                <div class="value" id="stat-s5xx">0</div>
+                <div class="percentage-bar"><div class="percentage-fill" id="bar-s5xx" style="width: 0%"></div></div>
+            </div>
+            <div class="stat-card errors" id="card-errors">
+                <div class="label">Connection Errors</div>
+                <div class="value" id="stat-errors">0</div>
+                <div class="percentage-bar"><div class="percentage-fill" id="bar-errors" style="width: 0%"></div></div>
+            </div>
+            <div class="stat-card s4xx" id="card-canonical" style="display: none;">
+                <div class="label">Canonical Mismatches</div>
+                <div class="value" id="stat-canonical">0</div>
+                <div class="percentage-bar"><div class="percentage-fill" id="bar-canonical" style="width: 0%"></div></div>
+            </div>
+        </section>
+
+        <!-- Controls Bar -->
+        <section class="controls-bar">
+            <div class="search-wrapper">
+                <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input type="text" id="search-input" class="search-input" placeholder="Search by URL, status code, canonical tag or error details...">
+            </div>
+            <div class="filter-pills">
+                <button class="filter-pill active" data-filter="all" id="pill-all">All <span class="filter-count" id="count-all">0</span></button>
+                <button class="filter-pill" data-filter="2xx" id="pill-2xx">2xx OK <span class="filter-count" id="count-2xx">0</span></button>
+                <button class="filter-pill" data-filter="3xx" id="pill-3xx">3xx Redirects <span class="filter-count" id="count-3xx">0</span></button>
+                <button class="filter-pill" data-filter="4xx" id="pill-4xx">4xx Errors <span class="filter-count" id="count-4xx">0</span></button>
+                <button class="filter-pill" data-filter="5xx" id="pill-5xx">5xx Errors <span class="filter-count" id="count-5xx">0</span></button>
+                <button class="filter-pill" data-filter="errors" id="pill-errors">Failed <span class="filter-count" id="count-errors">0</span></button>
+                <button class="filter-pill" data-filter="canonical" id="pill-canonical" style="display: none;">Canonical Issues <span class="filter-count" id="count-canonical">0</span></button>
+                <button class="filter-pill" data-filter="slow" id="pill-slow">Slow (>1s) <span class="filter-count" id="count-slow">0</span></button>
+            </div>
+        </section>
+
+        <!-- Table Container -->
+        <section class="table-container">
+            <div class="table-responsive">
+                <table id="status-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"></th>
+                            <th style="width: auto; min-width: 350px;">URL</th>
+                            <th style="width: 140px;">Status Code</th>
+                            <th style="width: 180px;">Status Reason</th>
+                            <th style="width: 130px;">Latency</th>
+                            <th style="width: 130px;">Redirects</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- Rows injected via JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="empty-state" id="empty-state">
+                <h3>No matching records found</h3>
+                <p>Try adjusting your search terms or filter selections.</p>
+            </div>
+        </section>
+
+        <footer>
+            <p>Report generated on <span id="generation-timestamp">N/A</span>. Powered by <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p>
+        </footer>
+    </div>
+
+    <!-- Embedded Data Injected by Script -->
+    <script>
+        const statusData = {{ data_json | safe }};
+        const reportTitle = "{{ report_title }}";
+        const requestTimestamp = "{{ request_timestamp }}";
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.title = `${reportTitle} - HTTP Status Dashboard`;
+            document.getElementById('property-title').textContent = reportTitle;
+            document.getElementById('timestamp-meta').textContent = `Requested: ${requestTimestamp}`;
+            document.getElementById('site-urls-meta').textContent = `Total URLs: ${statusData.length}`;
+            document.getElementById('generation-timestamp').textContent = new Date().toLocaleString('en-GB');
+
+            const stats = {
+                total: statusData.length,
+                s2xx: 0,
+                s3xx: 0,
+                s4xx: 0,
+                s5xx: 0,
+                errors: 0,
+                slow: 0,
+                canonical: 0
+            };
+
+            statusData.forEach(row => {
+                const code = parseInt(row.status_code) || 0;
+                const ms = parseInt(row.response_time_ms) || 0;
+
+                if (code >= 200 && code < 300) stats.s2xx++;
+                else if (code >= 300 && code < 400) stats.s3xx++;
+                else if (code >= 400 && code < 500) stats.s4xx++;
+                else if (code >= 500 && code < 600) stats.s5xx++;
+                else stats.errors++;
+
+                if (ms > 1000) stats.slow++;
+
+                if (row.canonical_differs === 'Yes') {
+                    stats.canonical++;
+                }
+            });
+
+            document.getElementById('stat-total').textContent = stats.total;
+            document.getElementById('stat-s2xx').textContent = stats.s2xx;
+            document.getElementById('stat-s3xx').textContent = stats.s3xx;
+            document.getElementById('stat-s4xx').textContent = stats.s4xx;
+            document.getElementById('stat-s5xx').textContent = stats.s5xx;
+            document.getElementById('stat-errors').textContent = stats.errors;
+
+            if (stats.canonical > 0) {
+                document.getElementById('card-canonical').style.display = 'block';
+                document.getElementById('pill-canonical').style.display = 'inline-flex';
+                document.getElementById('stat-canonical').textContent = stats.canonical;
+                document.getElementById('count-canonical').textContent = stats.canonical;
+                document.getElementById('bar-canonical').style.width = `${(stats.canonical / stats.total) * 100}%`;
+            }
+
+            if (stats.total > 0) {
+                document.getElementById('bar-s2xx').style.width = `${(stats.s2xx / stats.total) * 100}%`;
+                document.getElementById('bar-s3xx').style.width = `${(stats.s3xx / stats.total) * 100}%`;
+                document.getElementById('bar-s4xx').style.width = `${(stats.s4xx / stats.total) * 100}%`;
+                document.getElementById('bar-s5xx').style.width = `${(stats.s5xx / stats.total) * 100}%`;
+                document.getElementById('bar-errors').style.width = `${(stats.errors / stats.total) * 100}%`;
+            }
+
+            document.getElementById('count-all').textContent = stats.total;
+            document.getElementById('count-2xx').textContent = stats.s2xx;
+            document.getElementById('count-3xx').textContent = stats.s3xx;
+            document.getElementById('count-4xx').textContent = stats.s4xx;
+            document.getElementById('count-5xx').textContent = stats.s5xx;
+            document.getElementById('count-errors').textContent = stats.errors;
+            document.getElementById('count-slow').textContent = stats.slow;
+
+            const tableBody = document.getElementById('table-body');
+
+            function getBadgeClass(code) {
+                const c = parseInt(code) || 0;
+                if (c >= 200 && c < 300) return 's2xx';
+                if (c >= 300 && c < 400) return 's3xx';
+                if (c >= 400 && c < 500) return 's4xx';
+                if (c >= 500 && c < 600) return 's5xx';
+                return 's0';
+            }
+
+            function buildTable() {
+                tableBody.innerHTML = '';
+                if (statusData.length === 0) {
+                    document.getElementById('empty-state').style.display = 'block';
+                    return;
+                }
+
+                statusData.forEach((row, index) => {
+                    const trId = `row-${index}`;
+                    const detailsId = `details-${index}`;
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'table-row';
+                    tr.id = trId;
+                    tr.dataset.index = index;
+
+                    const cleanUrl = row.url || '';
+                    const finalUrl = row.final_url || cleanUrl;
+                    const code = row.status_code || '0';
+                    const badgeClass = getBadgeClass(code);
+
+                    let rowBadges = '';
+                    if (row.is_redirect === 'Yes' && finalUrl !== cleanUrl) {
+                        rowBadges += `<span class="badge s3xx" style="font-size:0.65rem; padding:0.1rem 0.45rem; margin-left:0.5rem; background:#eff6ff; color:#1e40af; border:1px solid #93c5fd;">Redirects &rarr; ${finalUrl}</span>`;
+                    }
+                    if (row.canonical_differs === 'Yes') {
+                        rowBadges += `<span class="badge neutral" style="font-size:0.65rem; padding:0.1rem 0.45rem; margin-left:0.5rem; background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;">Canonical Mismatch</span>`;
+                    }
+
+                    tr.innerHTML = `
+                        <td>
+                            <button class="expand-btn" aria-label="Toggle Details">
+                                <svg class="chevron-icon" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                            </button>
+                        </td>
+                        <td>
+                            <div class="url-cell-wrapper">
+                                <div class="url-text-container">
+                                    <a href="${cleanUrl}" target="_blank" class="url-link" title="${cleanUrl}">${cleanUrl}</a>
+                                </div>
+                                ${rowBadges}
+                            </div>
+                        </td>
+                        <td><span class="badge ${badgeClass}">${code}</span></td>
+                        <td><span class="badge outline">${row.status_reason || 'N/A'}</span></td>
+                        <td><span class="badge outline">${row.response_time_ms ? row.response_time_ms + ' ms' : 'N/A'}</span></td>
+                        <td><span class="badge outline">${row.redirect_count || '0'}</span></td>
+                    `;
+
+                    const detailTr = document.createElement('tr');
+                    detailTr.className = 'details-row';
+                    detailTr.id = detailsId;
+
+                    let redirectMarkup = '<span class="details-val">No redirects followed</span>';
+                    if (row.redirect_chain && row.redirect_chain.trim() !== '') {
+                        redirectMarkup = `<div class="details-val mono" style="text-align:left; white-space:pre-wrap;">${row.redirect_chain}</div>`;
+                    }
+
+                    let canonicalWarning = '';
+                    if (row.canonical_differs === 'Yes') {
+                        canonicalWarning = `
+                            <div style="margin-top: 10px; padding: 0.5rem 0.75rem; background: #fee2e2; border: 1px solid #fca5a5; border-radius: 6px; font-size: 0.75rem; color: #991b1b; display: flex; align-items: center; gap: 0.4rem; font-weight: 500;">
+                                <svg style="width:14px; height:14px; flex-shrink:0; fill:currentColor;" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                <span>Extracted HTML canonical tag differs from Final Destination URL!</span>
+                            </div>
+                        `;
+                    }
+
+                    detailTr.innerHTML = `
+                        <td colspan="6">
+                            <div class="details-content">
+                                <div class="details-grid">
+                                    <div class="details-card">
+                                        <h4>Response & Destination Diagnostics</h4>
+                                        <ul class="details-list">
+                                            <li class="details-item"><span class="details-label">Final Destination URL</span><span class="details-val mono"><a href="${finalUrl}" target="_blank" class="url-link">${finalUrl}</a></span></li>
+                                            <li class="details-item"><span class="details-label">Extracted Canonical Tag</span><span class="details-val mono">${row.extracted_canonical && row.extracted_canonical !== 'None detected' ? `<a href="${row.extracted_canonical}" target="_blank" class="url-link">${row.extracted_canonical}</a>` : 'None detected'}</span></li>
+                                            <li class="details-item"><span class="details-label">Content Type</span><span class="details-val">${row.content_type || 'N/A'}</span></li>
+                                            <li class="details-item"><span class="details-label">Response Time</span><span class="details-val">${row.response_time_ms} ms</span></li>
+                                            <li class="details-item"><span class="details-label">Error Details</span><span class="details-val" style="color:var(--danger)">${row.error || 'None'}</span></li>
+                                        </ul>
+                                        ${canonicalWarning}
+                                    </div>
+                                    <div class="details-card">
+                                        <h4>Redirect Chain</h4>
+                                        ${redirectMarkup}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    `;
+
+                    tableBody.appendChild(tr);
+                    tableBody.appendChild(detailTr);
+                });
+            }
+
+            buildTable();
+
+            let currentSearch = '';
+            let currentFilter = 'all';
+
+            function filterTable() {
+                const trs = tableBody.querySelectorAll('tr.table-row');
+                let visibleCount = 0;
+
+                trs.forEach(row => {
+                    const index = parseInt(row.dataset.index);
+                    const item = statusData[index];
+                    const code = parseInt(item.status_code) || 0;
+                    const url = (item.url || '').toLowerCase();
+                    const reason = (item.status_reason || '').toLowerCase();
+                    const err = (item.error || '').toLowerCase();
+                    const canonical = (item.extracted_canonical || '').toLowerCase();
+                    const ms = parseInt(item.response_time_ms) || 0;
+
+                    const matchesSearch = url.includes(currentSearch) || reason.includes(currentSearch) || err.includes(currentSearch) || canonical.includes(currentSearch) || String(code).includes(currentSearch);
+
+                    let matchesFilter = true;
+                    if (currentFilter === '2xx') matchesFilter = (code >= 200 && code < 300);
+                    else if (currentFilter === '3xx') matchesFilter = (code >= 300 && code < 400);
+                    else if (currentFilter === '4xx') matchesFilter = (code >= 400 && code < 500);
+                    else if (currentFilter === '5xx') matchesFilter = (code >= 500 && code < 600);
+                    else if (currentFilter === 'errors') matchesFilter = (code === 0 || !!item.error);
+                    else if (currentFilter === 'canonical') matchesFilter = (item.canonical_differs === 'Yes');
+                    else if (currentFilter === 'slow') matchesFilter = (ms > 1000);
+
+                    const detailsRow = document.getElementById(`details-${index}`);
+                    if (matchesSearch && matchesFilter) {
+                        row.style.display = 'table-row';
+                        visibleCount++;
+                        if (row.classList.contains('open')) detailsRow.style.display = 'table-row';
+                        else detailsRow.style.display = 'none';
+                    } else {
+                        row.style.display = 'none';
+                        detailsRow.style.display = 'none';
+                    }
+                });
+
+                document.getElementById('empty-state').style.display = (visibleCount === 0) ? 'block' : 'none';
+            }
+
+            function triggerFilter(filterName) {
+                currentFilter = filterName;
+                document.querySelectorAll('.filter-pill').forEach(p => p.classList.toggle('active', p.dataset.filter === filterName));
+                document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+
+                if (filterName === 'all') document.getElementById('card-total').classList.add('active');
+                if (filterName === '2xx') document.getElementById('card-s2xx').classList.add('active');
+                if (filterName === '3xx') document.getElementById('card-s3xx').classList.add('active');
+                if (filterName === '4xx') document.getElementById('card-s4xx').classList.add('active');
+                if (filterName === '5xx') document.getElementById('card-s5xx').classList.add('active');
+                if (filterName === 'errors') document.getElementById('card-errors').classList.add('active');
+                if (filterName === 'canonical') document.getElementById('card-canonical').classList.add('active');
+
+                filterTable();
+            }
+
+            document.getElementById('search-input').addEventListener('input', e => {
+                currentSearch = e.target.value.toLowerCase().trim();
+                filterTable();
+            });
+
+            document.querySelectorAll('.filter-pill').forEach(pill => {
+                pill.addEventListener('click', () => triggerFilter(pill.dataset.filter));
+            });
+
+            document.getElementById('card-total').addEventListener('click', () => triggerFilter('all'));
+            document.getElementById('card-s2xx').addEventListener('click', () => triggerFilter('2xx'));
+            document.getElementById('card-s3xx').addEventListener('click', () => triggerFilter('3xx'));
+            document.getElementById('card-s4xx').addEventListener('click', () => triggerFilter('4xx'));
+            document.getElementById('card-s5xx').addEventListener('click', () => triggerFilter('5xx'));
+            document.getElementById('card-errors').addEventListener('click', () => triggerFilter('errors'));
+            document.getElementById('card-canonical').addEventListener('click', () => triggerFilter('canonical'));
+
+            tableBody.addEventListener('click', e => {
+                const tr = e.target.closest('tr.table-row');
+                if (!tr || e.target.tagName === 'A') return;
+
+                const index = tr.dataset.index;
+                const detailsRow = document.getElementById(`details-${index}`);
+                if (detailsRow) {
+                    const isOpen = tr.classList.contains('open');
+                    tr.classList.toggle('open', !isOpen);
+                    detailsRow.classList.toggle('open', !isOpen);
+                    detailsRow.style.display = isOpen ? 'none' : 'table-row';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
