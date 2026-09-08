@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Croner-i Library Migration Reports Guide - Library to Marketing</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { padding: 2rem 0; color: #212529; background-color: #f8f9fa; }
+        .main-card { background: #fff; border-radius: 12px; border: 1px solid #dee2e6; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 2.5rem; margin-bottom: 2rem; }
+        h1, h2, h3, h4 { color: #1e293b; font-weight: 700; }
+        h1 { border-bottom: 2px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 1.5rem; }
+        h2 { border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; margin-top: 2.5rem; margin-bottom: 1.25rem; font-size: 1.6rem; }
+        h3 { margin-top: 1.75rem; margin-bottom: 0.75rem; font-size: 1.25rem; }
+        pre { background: #0f172a; color: #f1f5f9; padding: 1rem; border-radius: 8px; font-size: 0.9rem; overflow-x: auto; }
+        code:not(pre code) { background-color: #e2e8f0; color: #0f172a; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.88em; }
+        .badge-step { background-color: #0d6efd; color: white; padding: 0.35rem 0.65rem; border-radius: 50%; font-size: 0.85rem; vertical-align: middle; margin-right: 0.5rem; }
+        .report-box { border-left: 4px solid #0d6efd; background-color: #ffffff; border-radius: 0 8px 8px 0; border-top: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 1.5rem; margin-bottom: 1.75rem; }
+        .table-custom th { background-color: #f1f5f9; color: #334155; font-weight: 600; }
+        footer { text-align: center; color: #64748b; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-white border-bottom mb-4 py-3">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="index.html">GSC Exporter Resources</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="index.html">Resources Hub</a></li>
+                    <li class="nav-item"><a class="nav-link" href="common-scenarios.html">Common Scenarios</a></li>
+                    <li class="nav-item"><a class="nav-link" href="script-flags.html">Script Flags</a></li>
+                    <li class="nav-item"><a class="nav-link" href="hr-inform-migration-reports-guide.html">HR-Inform Migration Guide</a></li>
+                    <li class="nav-item"><a class="nav-link" href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">GitHub</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="main-card">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="index.html">Resources</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Croner-i Library Migration Guide</li>
+                </ol>
+            </nav>
+
+            <h1>Croner-i Library Migration Reports Guide</h1>
+            <p class="lead text-secondary">
+                An operational guide for executing, auditing, and interpreting Google Search Console migration reports during the migration of content from <code>library.croneri.co.uk</code> to the primary marketing site at <code>www.croneri.co.uk</code>.
+            </p>
+
+            <div class="alert alert-info d-flex align-items-center" role="alert">
+                <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+                <div>
+                    <strong>Migration Objective:</strong> Identify high-traffic technical commentary and guidance on the Croner-i Library platform, audit them for search intent, map them to clean marketing URLs, and assess the organic performance of priority Quick Links.
+                </div>
+            </div>
+
+            <h2>1. Migration Architecture & Overview</h2>
+            <p>
+                The Croner-i Library contains deep technical legislation, commentary, and compliance guidance. The migration suite analyses how searchers discover this content and translates deep technical paths (such as CCH UK legislation nodes) into search-optimised marketing URLs on <code>www.croneri.co.uk</code>.
+            </p>
+            <p>
+                A core design principle of this suite is providing both <strong>Keywords Mode</strong> (with query breakdowns) and <strong>Page-Only Mode</strong> (unfiltered page traffic without Google privacy exclusion).
+            </p>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th>Script Name</th>
+                            <th>Outputs Generated</th>
+                            <th>Key Deliverable</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>library_marketing_migration_prioritisation_report.py</code></td>
+                            <td>2 HTML reports &amp; 2 CSV datasets</td>
+                            <td>Prioritised top 100 library pages with SEO disconnect audits (Keyword &amp; Page-only versions)</td>
+                        </tr>
+                        <tr>
+                            <td><code>library_marketing_migration_analysis.py</code></td>
+                            <td>2 HTML reports &amp; 2 CSV datasets</td>
+                            <td>Interactive mapping table connecting library URLs to proposed marketing paths</td>
+                        </tr>
+                        <tr>
+                            <td><code>library_quick_links_performance_report.py</code></td>
+                            <td>4 HTML reports</td>
+                            <td>Targeted analysis of 19 highlighted Quick Links and all quick links extracted from site navigation</td>
+                        </tr>
+                        <tr>
+                            <td><code>generate_library_migration_index.py</code></td>
+                            <td>1 HTML master index</td>
+                            <td>Unified navigation portal linking all 8 migration reports and associated CSV files</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2>2. How to Run the Reports</h2>
+
+            <h3>Prerequisites</h3>
+            <ul>
+                <li>Google Search Console API access for <code>https://library.croneri.co.uk/</code> (or domain property <code>sc-domain:croneri.co.uk</code>).</li>
+                <li>The quick links configuration files located in <code>config/library-quick-links.html</code> and <code>config/library-quick-links.txt</code>.</li>
+            </ul>
+
+            <h3>Execution Workflow</h3>
+
+            <div class="report-box">
+                <h4><span class="badge-step">1</span> Library Prioritisation Reports</h4>
+                <p>
+                    Produces both the standard prioritisation report (featuring driving query keywords and semantic disconnect warnings) and the unfiltered page-only prioritisation report.
+                </p>
+                <pre><code>python reports/migrations/library_marketing_migration_prioritisation_report.py https://library.croneri.co.uk/ --last-month</code></pre>
+                <p class="text-muted mb-0"><i class="bi bi-info-circle"></i> Outputs: <code>library-marketing-migration-prioritisation-report-*.html</code> and <code>library-marketing-migration-prioritisation-page-only-*.html</code>.</p>
+            </div>
+
+            <div class="report-box">
+                <h4><span class="badge-step">2</span> Library Migration Analysis & Mapping</h4>
+                <p>
+                    Generates the interactive mapping table matching deep technical articles to clean marketing slugs on the main site.
+                </p>
+                <pre><code>python reports/migrations/library_marketing_migration_analysis.py https://library.croneri.co.uk/ --last-month</code></pre>
+                <p class="text-muted mb-0"><i class="bi bi-info-circle"></i> Outputs: <code>library-marketing-migration-analysis-*.html</code> and <code>library-marketing-migration-analysis-page-only-*.html</code>.</p>
+            </div>
+
+            <div class="report-box">
+                <h4><span class="badge-step">3</span> Quick Links Performance Suite</h4>
+                <p>
+                    Processes the product owner Quick Links list across four separate report views (Highlighted Keywords, Highlighted Page-Only, All Keywords, All Page-Only).
+                </p>
+                <pre><code>python reports/migrations/library_quick_links_performance_report.py https://library.croneri.co.uk/ --last-month</code></pre>
+            </div>
+
+            <div class="report-box">
+                <h4><span class="badge-step">4</span> Compile Library Migration Index</h4>
+                <p>
+                    Builds the master index page linking all eight reports and CSV files with an integrated navigation bar.
+                </p>
+                <pre><code>python reports/migrations/generate_library_migration_index.py https://library.croneri.co.uk/ --last-month</code></pre>
+            </div>
+
+            <h3>Command-Line Arguments Reference</h3>
+            <ul>
+                <li><code>site_url</code>: Defaults to <code>https://library.croneri.co.uk/</code>.</li>
+                <li><code>--last-month</code>: Sets date range to the previous calendar month.</li>
+                <li><code>--last-7-days</code>: Sets date range to the previous 7 days.</li>
+                <li><code>--start-date YYYY-MM-DD</code> &amp; <code>--end-date YYYY-MM-DD</code>: Custom historical date window.</li>
+                <li><code>--limit &lt;int&gt;</code>: Maximum number of pages to display in HTML tables (default: 100).</li>
+                <li><code>--max-rows &lt;int&gt;</code>: Maximum GSC API rows fetched before aggregation (default: 10,000 for analysis, 20,000 for quick links). Prevents API timeout on high-volume properties.</li>
+            </ul>
+
+            <h2>3. How to Read and Interpret the Results</h2>
+
+            <div class="card mb-4">
+                <div class="card-header bg-light fw-bold">
+                    A. Keywords Mode vs Page-Only Mode
+                </div>
+                <div class="card-body">
+                    <p>Both the Prioritisation and Analysis reports produce two separate views. It is vital to know when to use each:</p>
+                    <ul>
+                        <li><strong>Keywords Mode (with queries):</strong>
+                            <ul>
+                                <li>Subject to Google Search Console privacy thresholds. Google anonymises low-volume queries, meaning total clicks shown may be lower than total actual site traffic.</li>
+                                <li><strong>When to use:</strong> Use this view to understand <em>why</em> users visit the page, what intent they have, and whether the page title matches their search query.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Page-Only Mode (unfiltered):</strong>
+                            <ul>
+                                <li>Requests GSC data using only the page dimension. Google does not strip privacy-filtered queries from page totals in this view.</li>
+                                <li><strong>When to use:</strong> Use this view for commercial prioritisation and technical redirection lists, as it reflects the true volume of organic visits landing on each URL.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-light fw-bold">
+                    B. Prioritisation Report &amp; Semantic Disconnects
+                </div>
+                <div class="card-body">
+                    <p><strong>Focus Area:</strong> Top 100 library pages ranked by organic clicks.</p>
+                    <ul>
+                        <li><strong>Semantic Disconnect Detection:</strong> The report tokenises the original URL slug and compares it with the top queries driving search traffic.
+                            <ul>
+                                <li>If a technical library page is titled with an internal CCH reference code (e.g. <code>/cch_uk/btc/100-200</code>) but ranks for "capital allowances plant and machinery", a disconnect flag is raised.</li>
+                                <li>This indicates that the marketing version on <code>www.croneri.co.uk</code> should use a clear, descriptive URL slug rather than legacy technical numbering.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Suggested Marketing Target:</strong> The script applies stop-word stripping, brand removal, and hyphen formatting to suggest a clean target URL (e.g. <code>https://www.croneri.co.uk/capital-allowances-plant-machinery</code>).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-light fw-bold">
+                    C. Library Migration Analysis Table
+                </div>
+                <div class="card-body">
+                    <p><strong>Focus Area:</strong> Interactive mapping and URL verification.</p>
+                    <ul>
+                        <li><strong>Interactive Drawers:</strong> Clicking on a table row reveals the top driving search keywords, impressions, CTR, and average position for that specific library asset.</li>
+                        <li><strong>Target URL Manual Overrides:</strong> If the programmatic slug generator creates an unsuitable target path, developers can add a manual mapping into the <code>URL_OVERRIDES</code> dictionary in <code>library_marketing_migration_analysis.py</code>.</li>
+                        <li><strong>Status Tracking:</strong> Allows teams to export the table to CSV to track content migration statuses (e.g. "Not Started", "In Review", "Published", "Redirected").</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-light fw-bold">
+                    D. Quick Links Performance Reports
+                </div>
+                <div class="card-body">
+                    <p><strong>Focus Area:</strong> High-priority business topic hubs.</p>
+                    <ul>
+                        <li><strong>19 Highlighted Quick Links:</strong> Focuses strictly on the core commercial hubs selected by product leadership (such as <em>Company Purchase of Own Shares</em>, <em>Making Tax Digital</em>, <em>Business Asset Disposal Relief</em>, <em>FRS 102</em>, and <em>Annual Investment Allowance</em>).</li>
+                        <li><strong>Performance Verification:</strong> These topic hubs often serve as flagship lead-generation pages. Verify whether these pages rank in top 3 positions for their head terms or if they suffer from ranking dilution.</li>
+                        <li><strong>All Quick Links View:</strong> Parses the complete library navigation tree to ensure no secondary topic guides are overlooked during migration scoping.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h2>4. Recommended Migration Steps</h2>
+            <ol>
+                <li><strong>Establish the Monthly Benchmark:</strong> Run the complete suite with <code>--last-month</code> to obtain consistent baseline figures.</li>
+                <li><strong>Review the 19 Highlighted Quick Links First:</strong> Ensure all 19 priority hubs have dedicated new marketing landing pages scheduled on <code>www.croneri.co.uk</code>.</li>
+                <li><strong>Audit the Prioritisation Report Top 100:</strong> Address the top 100 pages to secure the vast majority of organic search impressions.</li>
+                <li><strong>Configure 301 Redirects from Page-Only CSVs:</strong> Provide developers with the Page-Only CSV datasets to map every technical library URL to its new marketing destination.</li>
+                <li><strong>Monitor Crawl &amp; Ranking Recovery:</strong> Following redirect deployment, monitor whether Google transfers ranking positions and click volume from <code>library.croneri.co.uk</code> to <code>www.croneri.co.uk</code>.</li>
+            </ol>
+        </div>
+    </main>
+
+    <footer class="bg-white border-top py-4">
+        <div class="container text-center text-secondary">
+            <p class="mb-1"><a href="index.html">Resources</a> | <a href="hr-inform-migration-reports-guide.html">HR-Inform Migration Guide</a> | <a href="script-flags.html">Script Flags</a></p>
+            <small>GSC Exporter Suite - Migration Reporting Documentation</small>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
