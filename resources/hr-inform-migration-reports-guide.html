@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR-Inform Migration Reports Guide - Drupal to DatoCMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { padding: 2rem 0; color: #212529; background-color: #f8f9fa; }
+        .main-card { background: #fff; border-radius: 12px; border: 1px solid #dee2e6; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 2.5rem; margin-bottom: 2rem; }
+        h1, h2, h3, h4 { color: #1e293b; font-weight: 700; }
+        h1 { border-bottom: 2px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 1.5rem; }
+        h2 { border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; margin-top: 2.5rem; margin-bottom: 1.25rem; font-size: 1.6rem; }
+        h3 { margin-top: 1.75rem; margin-bottom: 0.75rem; font-size: 1.25rem; }
+        pre { background: #0f172a; color: #f1f5f9; padding: 1rem; border-radius: 8px; font-size: 0.9rem; overflow-x: auto; }
+        code:not(pre code) { background-color: #e2e8f0; color: #0f172a; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.88em; }
+        .badge-step { background-color: #0d6efd; color: white; padding: 0.35rem 0.65rem; border-radius: 50%; font-size: 0.85rem; vertical-align: middle; margin-right: 0.5rem; }
+        .report-box { border-left: 4px solid #0d6efd; background-color: #ffffff; border-radius: 0 8px 8px 0; border-top: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 1.5rem; margin-bottom: 1.75rem; }
+        .table-custom th { background-color: #f1f5f9; color: #334155; font-weight: 600; }
+        footer { text-align: center; color: #64748b; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-white border-bottom mb-4 py-3">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="index.html">GSC Exporter Resources</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="index.html">Resources Hub</a></li>
+                    <li class="nav-item"><a class="nav-link" href="common-scenarios.html">Common Scenarios</a></li>
+                    <li class="nav-item"><a class="nav-link" href="script-flags.html">Script Flags</a></li>
+                    <li class="nav-item"><a class="nav-link" href="library-migration-reports-guide.html">Library Migration Guide</a></li>
+                    <li class="nav-item"><a class="nav-link" href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">GitHub</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="main-card">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="index.html">Resources</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">HR-Inform Migration Guide</li>
+                </ol>
+            </nav>
+
+            <h1>HR-Inform Migration Reports Guide</h1>
+            <p class="lead text-secondary">
+                A complete operational guide for executing, analysing, and interpreting the Google Search Console (GSC) migration reports during the transition from legacy Drupal to DatoCMS on <code>www.hr-inform.co.uk</code>.
+            </p>
+
+            <div class="alert alert-info d-flex align-items-center" role="alert">
+                <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+                <div>
+                    <strong>Migration Objective:</strong> Protect organic traffic, discover ranking opportunities, audit semantic search disconnects, and compile comprehensive 301 redirection maps as content transitions from legacy Drupal URLs into DatoCMS.
+                </div>
+            </div>
+
+            <h2>1. Migration Architecture & Overview</h2>
+            <p>
+                The migration suite for HR-Inform consists of six dedicated analytical scripts and a unified dashboard index generator, located in <code>reports/migrations/</code>. Each script serves a distinct role across the migration lifecycle:
+            </p>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th>Script Name</th>
+                            <th>Primary Purpose</th>
+                            <th>Key Deliverable</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>drupal_dato_migration_analysis.py</code></td>
+                            <td>Platform breakdown dashboard and query classification</td>
+                            <td>Platform traffic split (% Dato vs Drupal) & query-level mapping</td>
+                        </tr>
+                        <tr>
+                            <td><code>drupal_dato_migration_prioritisation_report.py</code></td>
+                            <td>Identifies top 50 Drupal pages by traffic with SEO disconnect audits</td>
+                            <td>Prioritised content backlog capturing >68% of legacy traffic</td>
+                        </tr>
+                        <tr>
+                            <td><code>drupal_dato_migration_page_level_report.py</code></td>
+                            <td>Unfiltered census of all legacy URLs receiving clicks</td>
+                            <td>Complete 301 redirection master list (bypassing privacy filters)</td>
+                        </tr>
+                        <tr>
+                            <td><code>dato_suggested_urls_alphabetical_report.py</code></td>
+                            <td>Alphabetical catalogue of suggested Dato target paths</td>
+                            <td>Standardised kebab-case URLs with click-to-copy helpers</td>
+                        </tr>
+                        <tr>
+                            <td><code>drupal_dato_gsc_comparison_report.py</code></td>
+                            <td>Quantifies GSC privacy loss and audits directory hierarchies</td>
+                            <td>Evaluation of hidden search traffic & directory-level volume</td>
+                        </tr>
+                        <tr>
+                            <td><code>dato_pages_performance_report.py</code></td>
+                            <td>Organic performance tracking for live DatoCMS pages</td>
+                            <td>Post-launch visibility validation and keyword traction</td>
+                        </tr>
+                        <tr>
+                            <td><code>generate_migration_index.py</code></td>
+                            <td>Unified HTML portal linking all reports and CSV datasets</td>
+                            <td>Executive navigation dashboard with live asset availability badges</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2>2. How to Run the Reports</h2>
+
+            <h3>Prerequisites</h3>
+            <ul>
+                <li>Authenticated GSC credentials (configured via <code>config/client_secret.json</code> and cached tokens).</li>
+                <li>Access to the Google Search Console property for <code>https://www.hr-inform.co.uk/</code> or <code>sc-domain:hr-inform.co.uk</code>.</li>
+            </ul>
+
+            <h3>Execution Workflow</h3>
+            <p>For the most efficient execution, run the reports in the following sequential order:</p>
+
+            <div class="report-box">
+                <h4><span class="badge-step">1</span> Base Migration Analysis</h4>
+                <p>
+                    Runs the core classification engine and generates the base CSV dataset. Subsequent prioritisation and alphabetical reports rely on this dataset.
+                </p>
+                <pre><code>python reports/migrations/drupal_dato_migration_analysis.py https://www.hr-inform.co.uk/ --last-month</code></pre>
+                <p class="text-muted mb-0"><i class="bi bi-clock"></i> Typical runtime: 15-30 seconds (cached afterwards).</p>
+            </div>
+
+            <div class="report-box">
+                <h4><span class="badge-step">2</span> Top 50 Prioritisation Report</h4>
+                <p>
+                    Audits the top 50 legacy URLs driving organic traffic, checking for semantic disconnects between page titles and user search intent.
+                </p>
+                <pre><code>python reports/migrations/drupal_dato_migration_prioritisation_report.py https://www.hr-inform.co.uk/ --last-month</code></pre>
+            </div>
+
+            <div class="report-box">
+                <h4><span class="badge-step">3</span> Unfiltered Page-Level Report (Redirection Census)</h4>
+                <p>
+                    Extracts unfiltered page-level traffic data without query privacy stripping.
+                </p>
+                <pre><code>python reports/migrations/drupal_dato_migration_page_level_report.py https://www.hr-inform.co.uk/ --last-month</code></pre>
+            </div>
+
+            <div class="report-box">
+                <h4><span class="badge-step">4</span> Alphabetical Proposed URLs Catalogue</h4>
+                <p>
+                    Generates the alphabetical catalogue of programmatic Dato target paths with one-click copy buttons.
+                </p>
+                <pre><code>python reports/migrations/dato_suggested_urls_alphabetical_report.py https://www.hr-inform.co.uk/ --last-month</code></pre>
+            </div>
+
+            <div class="report-box">
+                <h4><span class="badge-step">5</span> GSC Comparison & Directory Audit</h4>
+                <p>
+                    Compares page-level and query-level datasets to quantify privacy filtering and maps legacy directories.
+                </p>
+                <pre><code>python reports/migrations/drupal_dato_gsc_comparison_report.py https://www.hr-inform.co.uk/ --last-month</code></pre>
+            </div>
+
+            <div class="report-box">
+                <h4><span class="badge-step">6</span> DatoCMS Pages Performance</h4>
+                <p>
+                    Evaluates the organic health and search rankings of pages already migrated to DatoCMS.
+                </p>
+                <pre><code>python reports/migrations/dato_pages_performance_report.py https://www.hr-inform.co.uk/ --last-month</code></pre>
+            </div>
+
+            <div class="report-box">
+                <h4><span class="badge-step">7</span> Generate the Migration Index Dashboard</h4>
+                <p>
+                    Compiles an executive HTML landing page linking all generated reports with status indicators.
+                </p>
+                <pre><code>python reports/migrations/generate_migration_index.py https://www.hr-inform.co.uk/ --last-month</code></pre>
+            </div>
+
+            <h3>Standard Command-Line Arguments</h3>
+            <ul>
+                <li><code>site_url</code>: Optional positional argument. Defaults to <code>https://www.hr-inform.co.uk</code>.</li>
+                <li><code>--last-month</code>: Automatically resolves the start and end date to the most recent completed calendar month.</li>
+                <li><code>--last-7-days</code>: Runs the analysis over the last 7 full days of recorded data.</li>
+                <li><code>--start-date YYYY-MM-DD</code> &amp; <code>--end-date YYYY-MM-DD</code>: Custom analysis window.</li>
+                <li><code>--limit &lt;int&gt;</code>: Controls the maximum number of rows rendered in the HTML table (default is typically 100).</li>
+                <li><code>--queries-limit &lt;int&gt;</code>: Number of top driving queries displayed per page in expandable drawers (default: 5).</li>
+            </ul>
+
+            <h2>3. How to Read and Interpret the Results</h2>
+
+            <div class="card mb-4">
+                <div class="card-header bg-light fw-bold">
+                    A. Platform Breakdown Dashboard (Query-Level)
+                </div>
+                <div class="card-body">
+                    <p><strong>Primary Question Answered:</strong> What proportion of our search traffic has successfully migrated to DatoCMS?</p>
+                    <ul>
+                        <li><strong>Migration Progress Metric:</strong> Displays total clicks and impressions attributed to Dato URLs versus Drupal URLs. A rising Dato share indicates successful indexation and transition.</li>
+                        <li><strong>Query Platform Breakdown:</strong> Demonstrates whether top organic keywords are triggering old Drupal URLs or new Dato URLs. If a primary revenue keyword triggers an old Drupal page, prioritise that page for content migration.</li>
+                        <li><strong>CTR &amp; Average Position Comparisons:</strong> Compare the click-through rates and average positions between legacy pages and newly migrated pages to ensure search visibility is maintained or improved.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-light fw-bold">
+                    B. Top 50 Prioritisation Report
+                </div>
+                <div class="card-body">
+                    <p><strong>Primary Question Answered:</strong> Which legacy pages must be migrated next to protect our core traffic?</p>
+                    <ul>
+                        <li><strong>Pareto Principle (>68% Traffic Rule):</strong> Typically, the top 50 legacy URLs account for over two-thirds of total organic Drupal clicks. Migrating these 50 pages delivers maximum risk reduction with minimum authoring effort.</li>
+                        <li><strong>SEO Semantic Disconnect Audit:</strong>
+                            <ul>
+                                <li>The report analyses the legacy URL slug against the primary user search queries driving clicks.</li>
+                                <li><span class="badge bg-warning text-dark">Warning Badge</span>: Highlights when a legacy URL slug does not align with the actual keyword intent (e.g. legacy slug mentions "policy-update" but users search for "statutory sick pay calculation").</li>
+                                <li>Use these flags to refine page headings and metadata in DatoCMS before publishing.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Proposed Dato URLs:</strong> Suggests clean, standardised target paths following modern URL naming guidelines.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-light fw-bold">
+                    C. Unfiltered Page-Level Report (Redirection Planning)
+                </div>
+                <div class="card-body">
+                    <p><strong>Primary Question Answered:</strong> Which URLs need 301 redirects to eliminate 404 crawl errors?</p>
+                    <ul>
+                        <li><strong>Unfiltered Data Integrity:</strong> Google Search Console applies privacy filtering to query-level data, dropping low-volume or sensitive queries. By requesting only the <code>['page']</code> dimension, this report captures 100% of organic clicks.</li>
+                        <li><strong>Master 301 Mapping Inventory:</strong> Every URL appearing in this report with 1 or more clicks has demonstrated real organic value. Content teams must map each URL to an equivalent Dato destination or appropriate category landing page.</li>
+                        <li><strong>CSV Export:</strong> Use the corresponding <code>.csv</code> export directly in redirection deployment tools (NGINX map files, Cloudflare Bulk Redirects, or DatoCMS URL routing rules).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-light fw-bold">
+                    D. GSC Data Comparison &amp; Directory Audit
+                </div>
+                <div class="card-body">
+                    <p><strong>Primary Question Answered:</strong> How much traffic is hidden by GSC privacy thresholds, and which legacy site sections are largest?</p>
+                    <ul>
+                        <li><strong>The Privacy Gap:</strong> Calculates the variance between unfiltered page clicks and query-attributed clicks. In technical B2B niches, this gap can exceed 30-40% of total clicks.</li>
+                        <li><strong>Directory Breakdown:</strong> Aggregates traffic by URL directory structures (e.g. <code>/resources/</code>, <code>/employment-law/</code>, <code>/news/</code>, <code>/contracts/</code>). This allows content managers to migrate entire thematic silos systematically rather than individual pages in isolation.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-light fw-bold">
+                    E. DatoCMS Pages Performance Report
+                </div>
+                <div class="card-body">
+                    <p><strong>Primary Question Answered:</strong> Are our newly launched DatoCMS pages ranking and capturing organic search demand?</p>
+                    <ul>
+                        <li><strong>Early Indexation Check:</strong> Confirms that newly published Dato URLs are appearing in Google Search.</li>
+                        <li><strong>Top Driving Queries:</strong> Displays the specific search terms users entered to reach the new Dato pages, confirming keyword alignment and snippet performance.</li>
+                        <li><strong>Ranking Trajectory:</strong> Identifies whether new URLs are retaining top 3 or page 1 positions previously held by Drupal counterparts.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h2>4. Best Practice Migration Workflow</h2>
+            <ol>
+                <li><strong>Run Base Reports at the Start of Each Sprint:</strong> Generate the suite for the last complete calendar month to benchmark traffic.</li>
+                <li><strong>Assign the Top 50 Backlog:</strong> Hand the Prioritisation Report to copywriters and content editors. Resolve semantic disconnects during content entry in DatoCMS.</li>
+                <li><strong>Review Proposed Target Slugs:</strong> Always verify programmatic suggested URLs against brand guidelines and site hierarchy before setting them live.</li>
+                <li><strong>Deploy Redirection Maps:</strong> Export the Page-Level Report CSV and implement 301 redirects concurrently with DatoCMS page launches.</li>
+                <li><strong>Track Dato Visibility Weekly:</strong> Run the Dato Pages Performance report weekly using <code>--last-7-days</code> to catch indexing delays or ranking drops early.</li>
+            </ol>
+        </div>
+    </main>
+
+    <footer class="bg-white border-top py-4">
+        <div class="container text-center text-secondary">
+            <p class="mb-1"><a href="index.html">Resources</a> | <a href="library-migration-reports-guide.html">Library Migration Guide</a> | <a href="script-flags.html">Script Flags</a></p>
+            <small>GSC Exporter Suite - Migration Reporting Documentation</small>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
