@@ -1,0 +1,10 @@
+# Core monthly reporting suite for GSC Exporter
+# Essential reports for executive monthly performance, channel attribution, and ranking health.
+# Usage: python run-monthly-reports.py --sites-file site-lists/sites.txt --reports-file report-lists/core-reports.txt
+
+reports/monthly_summary_report.py
+reports/monthly_search_type_performance_report.py
+reports/key_performance_metrics.py
+reports/query_position_analysis.py
+reports/gsc_pages_queries.py
+reports/snapshot_report.py

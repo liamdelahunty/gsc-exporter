@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Monthly Performance Reporting Guide for Google Search Console and Google Analytics 4. Operational instructions, property alignment, report inventory, execution schedules, and command builder.">
+    <title>Monthly Performance Reporting Guide - GSC &amp; GA4</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --primary-navy: #0f172a;
+            --accent-blue: #0284c7;
+            --accent-purple: #7e22ce;
+            --accent-green: #059669;
+            --accent-amber: #d97706;
+            --accent-red: #dc2626;
+            --bg-light: #f8fafc;
+            --card-border: #e2e8f0;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: #334155;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            padding-bottom: 5rem;
+        }
+
+        .header-banner {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #0f172a 100%);
+            color: white;
+            padding: 3rem 0 2.5rem;
+            margin-bottom: 2.5rem;
+            border-bottom: 4px solid var(--accent-purple);
+        }
+
+        .main-card {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            padding: 2.25rem;
+            margin-bottom: 2.25rem;
+        }
+
+        h1, h2, h3, h4, h5 {
+            color: var(--primary-navy);
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 0.6rem;
+            margin-top: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .badge-step {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.2rem;
+            height: 2.2rem;
+            background-color: var(--accent-purple);
+            color: white;
+            border-radius: 50%;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-right: 0.6rem;
+        }
+
+        .badge-step.gsc {
+            background-color: var(--accent-blue);
+        }
+
+        .badge-step.ga4 {
+            background-color: var(--accent-purple);
+        }
+
+        /* Terminal & Code Blocks */
+        .terminal-box {
+            background: #090d16;
+            border-radius: 8px;
+            border: 1px solid #1e293b;
+            margin-bottom: 1.25rem;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .terminal-header {
+            background: #111827;
+            padding: 0.5rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #1f2937;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            font-family: monospace;
+        }
+
+        .terminal-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .terminal-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .dot-red { background: #ef4444; }
+        .dot-yellow { background: #f59e0b; }
+        .dot-green { background: #10b981; }
+
+        pre {
+            margin: 0;
+            padding: 1.1rem 1.25rem;
+            background: transparent;
+            color: #38bdf8;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        code:not(pre code) {
+            background-color: #f1f5f9;
+            color: #0369a1;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.88em;
+            font-family: monospace;
+        }
+
+        .badge-gsc {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+
+        .badge-ga4 {
+            background-color: #f3e8ff;
+            color: #7e22ce;
+            border: 1px solid #e9d5ff;
+        }
+
+        .table-custom th {
+            background-color: #f8fafc;
+            color: #334155;
+            font-weight: 600;
+        }
+
+        .callout-info {
+            border-left: 4px solid var(--accent-blue);
+            background-color: #f0f9ff;
+            padding: 1rem 1.25rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1.25rem 0;
+        }
+
+        .callout-warning {
+            border-left: 4px solid var(--accent-amber);
+            background-color: #fffbeb;
+            padding: 1rem 1.25rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1.25rem 0;
+        }
+
+        .callout-success {
+            border-left: 4px solid var(--accent-green);
+            background-color: #f0fdf4;
+            padding: 1rem 1.25rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1.25rem 0;
+        }
+
+        .copy-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #0f172a;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 1050;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .email-card {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+            overflow: hidden;
+            margin-top: 1.25rem;
+        }
+
+        .email-header {
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 1.25rem;
+        }
+
+        .email-row {
+            display: flex;
+            align-items: flex-start;
+            padding: 0.4rem 0;
+            font-size: 0.9rem;
+        }
+
+        .email-label {
+            width: 90px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            padding-top: 3px;
+        }
+
+        .email-value {
+            flex-grow: 1;
+            color: #0f172a;
+            word-break: break-word;
+        }
+
+        .email-body {
+            padding: 1.25rem;
+            background: #ffffff;
+            font-size: 0.92rem;
+            border-top: 1px dashed #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Section -->
+    <header class="header-banner">
+        <div class="container">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <span class="badge bg-purple text-uppercase px-2.5 py-1.5 mb-2 fw-semibold" style="background-color: #9333ea;">Standard Operating Procedure</span>
+                    <h1 class="text-white mb-1">Monthly Performance Reporting Guide</h1>
+                    <p class="text-slate-300 mb-0 fs-5 text-light">A comprehensive operational guide detailing property alignment, core reports, execution schedules, and complete report inventory across GSC and GA4.</p>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-dark border border-secondary text-light px-3 py-2 fs-6">
+                        <i class="bi bi-windows me-1 text-info"></i> Local Windows Environment
+                    </span>
+                    <div class="mt-2 text-white-50 small">
+                        Schedule: First Business Week of Each Month (After 3rd)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- Navigation Jump Bar -->
+        <div class="card bg-white border-1 mb-4 shadow-sm">
+            <div class="card-body py-2.5 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <span class="fw-bold text-secondary small text-uppercase"><i class="bi bi-compass me-1"></i> Quick Jump:</span>
+                <div class="btn-group btn-group-sm flex-wrap">
+                    <a href="#property-alignment" class="btn btn-outline-secondary">1. Property Alignment</a>
+                    <a href="#how-when-to-run" class="btn btn-outline-primary">2. How &amp; When to Run (GSC)</a>
+                    <a href="#core-reports" class="btn btn-outline-info text-dark">3. Core Reports List</a>
+                    <a href="#gsc-inventory" class="btn btn-outline-warning text-dark">4. GSC Inventory &amp; Exclusions</a>
+                    <a href="#ga4-suite" class="btn btn-outline-purple" style="color: #7e22ce; border-color: #7e22ce;">5. GA4 Suite &amp; Exclusions</a>
+                    <a href="#interactive-builder" class="btn btn-outline-success">6. Interactive Command Builder</a>
+                    <a href="#email-pack" class="btn btn-outline-dark">7. Stakeholder Email Pack</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 1: Property Alignment (GSC sites.txt vs GA4 properties.json) -->
+        <section id="property-alignment" class="main-card">
+            <h2><span class="badge-step"><i class="bi bi-diagram-3-fill"></i></span> 1. Property Alignment: GSC Sites vs GA4 Properties</h2>
+            <p class="lead">
+                Our portfolio contains <strong>15 GSC property identifiers</strong> in <code>site-lists/sites.txt</code> and <strong>11 GA4 properties</strong> in <code>config/properties.json</code>. Here is how they align functionally across the group:
+            </p>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th>Brand / Functional Area</th>
+                            <th>GSC Property (<code>site-lists/sites.txt</code>)</th>
+                            <th>GSC Type</th>
+                            <th>GA4 Property Name (<code>config/properties.json</code>)</th>
+                            <th>GA4 Property ID</th>
+                            <th>Alignment Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Accountancy Daily</strong></td>
+                            <td><code>sc-domain:accountancydaily.co</code></td>
+                            <td><span class="badge bg-primary">Domain</span></td>
+                            <td>Accountancy Daily</td>
+                            <td><code>354746488</code></td>
+                            <td>1:1 Direct mapping (full domain).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Croner Corporate</strong></td>
+                            <td><code>https://croner.co.uk/</code></td>
+                            <td><span class="badge bg-secondary">URL Prefix</span></td>
+                            <td>Croner GA4</td>
+                            <td><code>256798047</code></td>
+                            <td>1:1 Direct mapping (core commercial site).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Croner Taxwise</strong></td>
+                            <td><code>sc-domain:cronertaxwise.com</code></td>
+                            <td><span class="badge bg-primary">Domain</span></td>
+                            <td>cronertaxwise.com</td>
+                            <td><code>521516305</code></td>
+                            <td>1:1 Direct mapping.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Croner-i Corporate</strong></td>
+                            <td><code>https://www.croneri.co.uk/</code></td>
+                            <td><span class="badge bg-secondary">URL Prefix</span></td>
+                            <td>www.croneri.co.uk</td>
+                            <td><code>309716917</code></td>
+                            <td>Public marketing portal for Croner-i.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Croner-i Umbrella</strong></td>
+                            <td><code>sc-domain:croneri.co.uk</code></td>
+                            <td><span class="badge bg-primary">Domain</span></td>
+                            <td><em>Aggregated</em></td>
+                            <td>—</td>
+                            <td>Domain property encompassing all subdomains (app, library, learning, www).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Croner-i App</strong></td>
+                            <td><code>https://app.croneri.co.uk/</code></td>
+                            <td><span class="badge bg-secondary">URL Prefix</span></td>
+                            <td>app.croneri.co.uk</td>
+                            <td><code>308634050</code></td>
+                            <td>Subscriber web platform &amp; tools.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Croner-i Learning</strong></td>
+                            <td><code>https://learning.croneri.co.uk/</code></td>
+                            <td><span class="badge bg-secondary">URL Prefix</span></td>
+                            <td>learning.croneri.co.uk</td>
+                            <td><code>453860440</code></td>
+                            <td>CPD webinars and training courses.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Croner-i Library</strong></td>
+                            <td><code>https://library.croneri.co.uk/</code></td>
+                            <td><span class="badge bg-secondary">URL Prefix</span></td>
+                            <td>Library Croneri</td>
+                            <td><code>386965290</code></td>
+                            <td>Technical legislation database.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Croner-i Intelligence</strong></td>
+                            <td><code>https://intelligence.croneri.co.uk/</code></td>
+                            <td><span class="badge bg-secondary">URL Prefix</span></td>
+                            <td><em>Within Croner-i</em></td>
+                            <td>—</td>
+                            <td>GSC prefix tracked separately; traffic tracked in main Croner-i GA4.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Croner-i Pages (Marketo)</strong></td>
+                            <td><em>Covered in Domain GSC</em></td>
+                            <td>—</td>
+                            <td>pages.croneri.co.uk (Marketo)</td>
+                            <td><code>454945608</code></td>
+                            <td>Dedicated GA4 property for lead-gen landing pages.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Employer Advice</strong></td>
+                            <td><code>sc-domain:employeradvice.org</code></td>
+                            <td><span class="badge bg-primary">Domain</span></td>
+                            <td>employeradvice.org GA4</td>
+                            <td><code>250644053</code></td>
+                            <td>1:1 Direct mapping.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>HR-inform UK</strong></td>
+                            <td><code>sc-domain:hr-inform.co.uk</code> &amp; <code>https://www.hr-inform.co.uk/</code></td>
+                            <td><span class="badge bg-primary">Domain</span> + <span class="badge bg-secondary">Prefix</span></td>
+                            <td>HR-inform UK - GA4</td>
+                            <td><code>397646972</code></td>
+                            <td>Both GSC domain and prefix map to UK GA4.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>HR-inform Ireland</strong></td>
+                            <td><code>sc-domain:hr-inform.ie</code> &amp; <code>https://www.hr-inform.ie/</code></td>
+                            <td><span class="badge bg-primary">Domain</span> + <span class="badge bg-secondary">Prefix</span></td>
+                            <td><em>Separate IE Account</em></td>
+                            <td>—</td>
+                            <td>Irish GSC properties tracked independently.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>My VIP Tax Team</strong></td>
+                            <td><code>sc-domain:myviptaxteam.com</code></td>
+                            <td><span class="badge bg-primary">Domain</span></td>
+                            <td>myviptaxteam.com</td>
+                            <td><code>349622346</code></td>
+                            <td>1:1 Direct mapping.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 2: How & When to Run (GSC Side) -->
+        <section id="how-when-to-run" class="main-card">
+            <h2><span class="badge-step gsc">2</span> How and When to Run the 6 Core Monthly GSC Reports</h2>
+
+            <div class="row g-4 mb-3">
+                <div class="col-md-6">
+                    <div class="p-3 border rounded-3 bg-light h-100">
+                        <h5 class="text-primary mb-2"><i class="bi bi-clock-history me-2"></i>When to Run</h5>
+                        <ul class="small mb-0 ps-3">
+                            <li><strong>Timing:</strong> First business week of each month, specifically on or after the <strong>3rd or 4th of the month</strong>.</li>
+                            <li><strong>Why the 3-day buffer is required:</strong> Google Search Console takes <strong>48 to 72 hours</strong> to finalize and aggregate search queries, clicks, and impressions. Running on the 1st of the month will miss the final 2-3 days of data. Running on the 3rd or 4th guarantees 100% complete calendar month metrics.</li>
+                            <li><strong>Frequency:</strong> Once monthly as part of the digital monthly close.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="p-3 border rounded-3 bg-light h-100">
+                        <h5 class="text-primary mb-2"><i class="bi bi-terminal me-2"></i>How to Run</h5>
+                        <ul class="small mb-0 ps-3">
+                            <li><strong>Recommended Batch Execution:</strong> Use <code>run-monthly-reports.py</code> with <code>--reports-file report-lists/core-reports.txt</code> to execute the 6 core reports across all 15 sites in one automated run.</li>
+                            <li><strong>Execution Volume:</strong> 15 sites &times; 6 core reports = <strong>90 executions</strong> (instead of 420 for all reports).</li>
+                            <li><strong>Dry-Run Verification:</strong> Always use <code>--dry-run</code> first if you wish to verify the command queue without making API requests.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <h5 class="mt-4 mb-2">Command: Run Core Monthly Suite Across All Sites</h5>
+            <div class="terminal-box">
+                <div class="terminal-header">
+                    <div class="terminal-dots"><span class="terminal-dot dot-red"></span><span class="terminal-dot dot-yellow"></span><span class="terminal-dot dot-green"></span></div>
+                    <span>Git Bash (Windows)</span>
+                    <button class="btn btn-sm btn-outline-light py-0 px-2" onclick="copyBlock('cmd-run-core-all')"><i class="bi bi-clipboard"></i> Copy</button>
+                </div>
+                <pre id="cmd-run-core-all">cd "C:\Users\liam.delahunty\OneDrive - Peninsula Group Online\Documents\2. Areas\Code\gsc-page-exporter"
+source .venv/Scripts/activate
+
+# Execute the 6 core reports across all 15 sites for the last calendar month
+python run-monthly-reports.py --sites-file site-lists/sites.txt --reports-file report-lists/core-reports.txt
+
+deactivate</pre>
+            </div>
+
+            <h5 class="mt-4 mb-2">Command: Running 6-Month / Multi-Month Historical Trend Reports</h5>
+            <p class="small text-muted">When evaluating long-term trajectories, Google core update recoveries, or quarterly trends across 6 or 16 months:</p>
+            <div class="terminal-box">
+                <div class="terminal-header">
+                    <span>Git Bash (Windows)</span>
+                    <button class="btn btn-sm btn-outline-light py-0 px-2" onclick="copyBlock('cmd-run-historical')"><i class="bi bi-clipboard"></i> Copy</button>
+                </div>
+                <pre id="cmd-run-historical"># 16-month month-by-month trajectory table
+python reports/key_performance_metrics.py sc-domain:accountancydaily.co
+
+# 6-month historical lookback
+python reports/historical_summary_report.py sc-domain:accountancydaily.co --lookback-months 6</pre>
+            </div>
+        </section>
+
+        <!-- Section 3: Core Reports in core-reports.txt -->
+        <section id="core-reports" class="main-card">
+            <h2><span class="badge-step gsc">3</span> Core Reports in <code>report-lists/core-reports.txt</code></h2>
+            <p class="lead">
+                The file <code>report-lists/core-reports.txt</code> defines the essential monthly reporting package. Each of these 6 scripts addresses a vital analytical angle:
+            </p>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th>Script in <code>core-reports.txt</code></th>
+                            <th>Metric Focus</th>
+                            <th>Generated Deliverable</th>
+                            <th>Strategic Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>reports/monthly_summary_report.py</code></td>
+                            <td>Clicks, Impressions, CTR, Position, # Queries, # Pages</td>
+                            <td>HTML table + CSV</td>
+                            <td>Core executive summary showing overall organic search health.</td>
+                        </tr>
+                        <tr>
+                            <td><code>reports/monthly_search_type_performance_report.py</code></td>
+                            <td>Web Search, Google Discover, Google News, Image, Video</td>
+                            <td>Chart.js Stacked HTML Dashboard</td>
+                            <td>Isolates volatile Discover spikes from evergreen Web search demand.</td>
+                        </tr>
+                        <tr>
+                            <td><code>reports/key_performance_metrics.py</code></td>
+                            <td>16-Month historical monthly progression</td>
+                            <td>Console / CSV</td>
+                            <td>Tracks long-term growth and contextualises seasonal baselines.</td>
+                        </tr>
+                        <tr>
+                            <td><code>reports/query_position_analysis.py</code></td>
+                            <td>Rank brackets (1–3, 4–10, 11–20, 21–50, 50+)</td>
+                            <td>Console / CSV</td>
+                            <td>Verifies if rankings are converting into high-click top 3 positions.</td>
+                        </tr>
+                        <tr>
+                            <td><code>reports/gsc_pages_queries.py</code></td>
+                            <td>Query-to-landing-page keyword attribution</td>
+                            <td>CSV / HTML</td>
+                            <td>Maps search intent to specific URLs for content optimisation.</td>
+                        </tr>
+                        <tr>
+                            <td><code>reports/snapshot_report.py</code></td>
+                            <td>Top 10 winning queries &amp; top 10 landing pages</td>
+                            <td>Console / CSV</td>
+                            <td>Quick executive snapshot of the highest-performing content and queries.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 4: GSC Complete Inventory & Exclusions -->
+        <section id="gsc-inventory" class="main-card">
+            <h2><span class="badge-step"><i class="bi bi-card-checklist"></i></span> 4. GSC Complete Report Inventory: Included, Secondary, &amp; Excluded</h2>
+            <p>
+                The <code>gsc-page-exporter</code> codebase contains 34 report modules in <code>reports/</code>. Here is their classification:
+            </p>
+
+            <h5 class="text-primary mt-3 mb-2"><i class="bi bi-star-fill me-1"></i> Core Suite (6 Scripts in <code>core-reports.txt</code>)</h5>
+            <p class="small text-muted">Executed during the targeted monthly batch: <code>monthly_summary_report.py</code>, <code>monthly_search_type_performance_report.py</code>, <code>key_performance_metrics.py</code>, <code>query_position_analysis.py</code>, <code>gsc_pages_queries.py</code>, <code>snapshot_report.py</code>.</p>
+
+            <h5 class="text-secondary mt-4 mb-2"><i class="bi bi-collection-fill me-1"></i> Secondary &amp; Diagnostic Reports (22 Scripts in <code>all-reports.txt</code>)</h5>
+            <p class="small text-muted">These are discovered in the default run if no <code>--reports-file</code> is passed. They are valuable for deep investigations, but running all 22 across 15 sites is excessive for routine monthly closes:</p>
+
+            <div class="table-responsive mb-4">
+                <table class="table table-sm table-bordered small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Script Name</th>
+                            <th>Why It Is Secondary for Routine Monthly Runs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>consolidated_performance_overview_report.py</code></td><td>Consolidates Search Type and Search Appearance; broad diagnostic.</td></tr>
+                        <tr><td><code>consolidated_traffic_report.py</code></td><td>Combines multi-property traffic; redundant when running per-site summary.</td></tr>
+                        <tr><td><code>daily_performance_matrix.py</code></td><td>Daily breakdown matrix; too granular for monthly macro reviews.</td></tr>
+                        <tr><td><code>discover_key_performance_metrics.py</code></td><td>Dedicated Discover historical report; useful only for news-heavy sites.</td></tr>
+                        <tr><td><code>gsc_pages_exporter.py</code></td><td>Exhaustive export of all indexing URLs; large 90-day census script.</td></tr>
+                        <tr><td><code>historical_summary_report.py</code></td><td>Longitudinal review; complements key performance metrics.</td></tr>
+                        <tr><td><code>http_status_checker.py</code></td><td>Technical HTTP status check; should be run ad-hoc during audits.</td></tr>
+                        <tr><td><code>image_performance_report.py</code></td><td>Google Images specific traffic; niche for B2B compliance sites.</td></tr>
+                        <tr><td><code>keyword_cannibalisation_report.py</code></td><td>Identifies multiple URLs ranking for identical keywords; tactical SEO audit.</td></tr>
+                        <tr><td><code>page_level_report.py</code></td><td>Detailed page-level performance; useful for URL triage.</td></tr>
+                        <tr><td><code>page_performance_over_time.py</code></td><td>Tracks time-series traffic for pages; diagnostic rather than summary.</td></tr>
+                        <tr><td><code>performance_analysis.py</code></td><td>Period-over-period delta report; primarily used for 7-day WoW analysis.</td></tr>
+                        <tr><td><code>period_comparison_report.py</code></td><td>Generic period comparison; used during algorithm updates.</td></tr>
+                        <tr><td><code>queries_pages_analysis.py</code></td><td>Similar to <code>gsc_pages_queries.py</code> with specific query intent grouping.</td></tr>
+                        <tr><td><code>query_segmentation_report.py</code></td><td>Segments brand vs non-brand, questions, query lengths.</td></tr>
+                        <tr><td><code>search_appearance_report.py</code></td><td>Rich results &amp; schema snippets; tactical technical SEO audit.</td></tr>
+                        <tr><td><code>search_type_performance.py</code></td><td>Tabular search types; superseded by monthly visual stacked chart.</td></tr>
+                        <tr><td><code>seasonal_page_spike_report.py</code></td><td>Detects seasonal spikes on pages; run prior to key fiscal deadlines.</td></tr>
+                        <tr><td><code>seasonal_performance_report.py</code></td><td>Evaluates seasonality indices across the calendar year.</td></tr>
+                        <tr><td><code>seasonal_query_spike_report.py</code></td><td>Detects seasonal search query surges; ad-hoc content planning.</td></tr>
+                        <tr><td><code>sitemap_generator.py</code></td><td>Generates XML sitemaps; technical utility, not an analytics report.</td></tr>
+                        <tr><td><code>weekly_editorial_summary_report.py</code></td><td>Designed specifically for the 7-day Monday editorial news routine.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h5 class="text-danger mt-4 mb-2"><i class="bi bi-x-circle-fill me-1"></i> Explicitly Excluded Reports (Why They Are Missing from Automated Runs)</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Script Path</th>
+                            <th>Why It Is Excluded / Missing from Automated Runs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="table-danger">
+                            <td><code>reports/page_performance_single_page.py</code></td>
+                            <td><strong>Requires Manual URL:</strong> Requires an explicit single page URL argument (<code>--page-url</code>). It cannot be run blindly per site in an automated loop.</td>
+                        </tr>
+                        <tr class="table-danger">
+                            <td><code>reports/url_inspection_report.py</code></td>
+                            <td><strong>API Quota Constraint:</strong> Queries Google's URL Inspection API, which has a strict daily limit (2,000 requests/day). Batch running across whole sites would exhaust API quotas.</td>
+                        </tr>
+                        <tr class="table-danger">
+                            <td><code>reports/generate_gsc_wrapped.py</code></td>
+                            <td><strong>Annual Scope:</strong> Designed as an annual/year-in-review "Spotify Wrapped" report, not for routine monthly execution.</td>
+                        </tr>
+                        <tr class="table-danger">
+                            <td><code>reports/migrations/*</code> (6 migration scripts)</td>
+                            <td><strong>Project Specific:</strong> One-off migration scripts built specifically for the Drupal-to-DatoCMS and Croner-i Library migrations. Not applicable to standard monthly monitoring.</td>
+                        </tr>
+                        <tr class="table-danger">
+                            <td><code>reports/monitoring/canary_report.py</code></td>
+                            <td><strong>Different Rhythm:</strong> Lives in <code>reports/monitoring/</code> and uses <code>config/properties.json</code>. Built specifically for weekly Monday 7-day triage rather than monthly batching.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 5: GA4 Suite & Exclusions -->
+        <section id="ga4-suite" class="main-card">
+            <h2><span class="badge-step ga4">5</span> GA4 Monthly Suite &amp; Complete Report Breakdown</h2>
+            <p>
+                In the <code>ga4-api-explorer</code> repository, monthly batch reporting is driven by <code>run_last_month_reports.py</code> across the 11 properties in <code>config/properties.json</code>.
+            </p>
+
+            <h5 class="text-purple mt-3 mb-2" style="color: #7e22ce;"><i class="bi bi-check2-circle me-1"></i> The 5 Default Reports Executed in <code>run_last_month_reports.py</code></h5>
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th>Report Name</th>
+                            <th>Metrics Captured</th>
+                            <th>Why It Is in the Default Monthly Run</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>traffic_acquisition_report</code></td>
+                            <td>Active Users, New Users, Sessions by Default Channel Group</td>
+                            <td>Establishes macro channel mix (Organic, Direct, Referral, Paid, Email).</td>
+                        </tr>
+                        <tr>
+                            <td><code>ai_traffic_acquisition_report</code></td>
+                            <td>Sessions &amp; Users from ChatGPT, Perplexity, Claude, Gemini, Copilot</td>
+                            <td>Tracks emerging generative AI search and referral growth.</td>
+                        </tr>
+                        <tr>
+                            <td><code>top_pages_report</code></td>
+                            <td>Screen page views, active users, engagement rate, average time</td>
+                            <td>Identifies the top 20 highest-traffic pages across each property.</td>
+                        </tr>
+                        <tr>
+                            <td><code>device_type_report</code></td>
+                            <td>Traffic split across Mobile, Desktop, Tablet</td>
+                            <td>Monitors user device shifts and mobile responsiveness health.</td>
+                        </tr>
+                        <tr>
+                            <td><code>channel_overview_report</code></td>
+                            <td>Summary KPIs: Total Users, Engagement Rate, Sessions per User</td>
+                            <td>Provides high-level monthly engagement and session totals.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h5 class="mt-4 mb-2">Breakdown of All Other GA4 Reports (31 Scripts) &amp; Why They Are Excluded</h5>
+            <p class="small text-muted">The remaining reports in <code>ga4-api-explorer/reports/</code> serve specialized purposes and are excluded from the default monthly batch:</p>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Category</th>
+                            <th>Scripts</th>
+                            <th>Why Excluded from Default Monthly Batch Run</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Hourly &amp; Daily Granularity</strong></td>
+                            <td>
+                                <code>channel_traffic_by_hour_report.py</code>, <code>country_traffic_by_hour_report.py</code>, 
+                                <code>country_daily_traffic_report.py</code>, <code>top_campaign_daily_trend_report.py</code>, 
+                                <code>top_numeric_campaigns_daily_report.py</code>, <code>hostname-daily-comparison.py</code>
+                            </td>
+                            <td><strong>Too Granular:</strong> Designed for intraday media scheduling and daily pacing. Too high-frequency and noisy for executive monthly reviews.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Technical &amp; UX Diagnostics</strong></td>
+                            <td>
+                                <code>screen_size_engagement_report.py</code>, <code>user_technology_report.py</code>, 
+                                <code>device_type_historical_report.py</code>, <code>file_downloads_report.py</code>, 
+                                <code>outbound_clicks_report.py</code>, <code>high_engagement_pages_report.py</code>, 
+                                <code>low_engagement_pages_report.py</code>, <code>direct_organic_pages_report.py</code>
+                            </td>
+                            <td><strong>UX &amp; CRO Audits:</strong> Evaluates browser versions, screen resolutions, and micro-conversions (e.g. PDF downloads). Run ad-hoc during web redesigns or CRO sprints.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Domain-Specific Campaigns</strong></td>
+                            <td>
+                                <code>utm_campaign_report.py</code>, <code>utm_full_content_report.py</code>, 
+                                <code>hostname-top-comparison.py</code>, <code>hostname-traffic-trend.py</code>, 
+                                <code>lead_quality_by_channel_report.py</code>
+                            </td>
+                            <td><strong>Targeted Use Cases:</strong> Marketo UTM reports are essential for <code>pages.croneri.co.uk</code> but irrelevant for content-only sites like Library. Hostname reports apply only to Croner-i.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Longitudinal &amp; Retention</strong></td>
+                            <td>
+                                <code>monthly_acquisition_trend_report.py</code>, <code>monthly_traffic_source_report.py</code>, 
+                                <code>cohort_retention_report.py</code>, <code>new_vs_returning_by_channel_report.py</code>, 
+                                <code>new_vs_returning_engagement_report.py</code>, <code>top_channels_trend_report.py</code>, 
+                                <code>top_cities_report.py</code>
+                            </td>
+                            <td><strong>Multi-Month Cohorts:</strong> Longitudinal subscriber cohort analysis over rolling quarters. Run during quarterly business reviews rather than monthly closes.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Weekly Cadence &amp; Cross-Property</strong></td>
+                            <td>
+                                <code>monitoring/weekly_canary_html.py</code>, <code>all_properties_ai_traffic_report.py</code>, 
+                                <code>session_source_medium_report.py</code>
+                            </td>
+                            <td><strong>Different Scope:</strong> Weekly Canary is engineered for Monday 7-day triage. AI cross-property census queries all sites in one script and is run standalone.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- UTM & Campaign Tracking Subsection -->
+            <div class="p-3 border rounded bg-white mt-4 mb-4" style="border-left: 4px solid var(--accent-purple) !important;">
+                <h5 class="text-purple mb-2" style="color: #7e22ce;"><i class="bi bi-tags-fill me-2"></i> Campaign &amp; UTM Tracking Reports in GA4</h5>
+                <p class="mb-2">
+                    <strong>GSC vs GA4 Architecture Note:</strong> Google Search Console <em>does not</em> track UTM parameters. GSC canonicalises all search URLs to their clean root, stripping out all query strings, UTM tags (<code>utm_source</code>, <code>utm_medium</code>, <code>utm_campaign</code>, <code>utm_content</code>), and paid click tokens (<code>gclid</code>, <code>msclkid</code>). <strong>GA4 is the single source of truth for UTM and marketing campaign performance.</strong>
+                </p>
+                <p class="mb-3">
+                    Within <code>ga4-api-explorer</code>, two purpose-built scripts isolate and evaluate UTM parameters:
+                </p>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded bg-light h-100">
+                            <h6 class="fw-bold text-dark mb-1"><i class="bi bi-bar-chart-line text-purple me-1" style="color: #7e22ce;"></i> 1. utm_campaign_report.py</h6>
+                            <span class="badge bg-secondary mb-2">Macro Campaign Attribution</span>
+                            <ul class="small ps-3 mb-0 text-secondary">
+                                <li><strong>Dimensions:</strong> <code>sessionCampaignName</code>, <code>sessionSourceMedium</code></li>
+                                <li><strong>Metrics:</strong> Sessions, Engaged Sessions, Engagement Rate, Conversions</li>
+                                <li><strong>Best For:</strong> High-level commercial campaign pacing, evaluating which marketing initiatives drive the most qualified sessions and conversions.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded bg-light h-100">
+                            <h6 class="fw-bold text-dark mb-1"><i class="bi bi-layers-fill text-purple me-1" style="color: #7e22ce;"></i> 2. utm_full_content_report.py</h6>
+                            <span class="badge bg-secondary mb-2">Granular Ad-Creative &amp; Landing Page</span>
+                            <ul class="small ps-3 mb-0 text-secondary">
+                                <li><strong>Dimensions:</strong> <code>sessionCampaignName</code>, <code>sessionManualAdContent</code> (<code>utm_content</code>), <code>landingPagePlusQueryString</code></li>
+                                <li><strong>Metrics:</strong> Sessions, Engaged Sessions, Engagement Rate, Bounce Rate, Conversions</li>
+                                <li><strong>Noise Stripping:</strong> Automatically scrubs ad click IDs (<code>gclid</code>, <code>msclkid</code>, <code>fbclid</code>), Marketo tokens (<code>mkt_tok</code>), HubSpot tags (<code>_hsenc</code>), and strips <code>utm_*</code> parameters from the landing URL to prevent row fragmentation while preserving dimension integrity.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold text-dark mt-3 mb-2"><i class="bi bi-check-circle-fill text-success me-1"></i> Target UTM Properties &amp; GA4 IDs</h6>
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm table-bordered align-middle small mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Domain / Brand</th>
+                                <th>GA4 Property Name</th>
+                                <th>GA4 Property ID</th>
+                                <th>Typical Campaign Types</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong><code>pages.croneri.co.uk</code></strong></td>
+                                <td>pages.croneri.co.uk (Marketo)</td>
+                                <td><code class="text-purple fw-bold" style="color: #7e22ce;">454945608</code></td>
+                                <td>Marketo lead-gen campaigns, whitepaper downloads, email nurture, webinars</td>
+                            </tr>
+                            <tr>
+                                <td><strong><code>www.croneri.co.uk</code></strong></td>
+                                <td>www.croneri.co.uk</td>
+                                <td><code class="text-purple fw-bold" style="color: #7e22ce;">309716917</code></td>
+                                <td>Paid search (Google/Bing CPC), display banners, commercial referral campaigns</td>
+                            </tr>
+                            <tr>
+                                <td><strong><code>https://croner.co.uk</code></strong></td>
+                                <td>Croner GA4</td>
+                                <td><code class="text-purple fw-bold" style="color: #7e22ce;">256798047</code></td>
+                                <td>Brand &amp; generic paid search, partner acquisition, affiliate UTM campaigns</td>
+                            </tr>
+                            <tr>
+                                <td><strong><code>www.hr-inform.co.uk</code></strong></td>
+                                <td>HR-inform UK - GA4</td>
+                                <td><code class="text-purple fw-bold" style="color: #7e22ce;">397646972</code></td>
+                                <td>Subscription acquisition, trial promotions, newsletter &amp; partnership links</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="terminal-box mb-0">
+                    <div class="terminal-header">
+                        <div class="terminal-dots"><span class="terminal-dot dot-red"></span><span class="terminal-dot dot-yellow"></span><span class="terminal-dot dot-green"></span></div>
+                        <span>Run UTM Reports for Priority Properties (Git Bash / Windows Terminal)</span>
+                        <button class="btn btn-sm btn-outline-light py-0 px-2" onclick="copyBlock('cmd-run-utm-priority')"><i class="bi bi-clipboard"></i> Copy</button>
+                    </div>
+                    <pre id="cmd-run-utm-priority">cd "C:\Users\liam.delahunty\OneDrive - Peninsula Group Online\Documents\2. Areas\Code\ga4-api-explorer"
+source venv/Scripts/activate
+
+# 1. pages.croneri.co.uk (Marketo Lead Gen & Landing Pages)
+python run_last_month_reports.py -p 454945608 --reports utm_campaign_report,utm_full_content_report -o html
+
+# 2. www.croneri.co.uk (Croner-i Corporate)
+python run_last_month_reports.py -p 309716917 --reports utm_campaign_report,utm_full_content_report -o html
+
+# 3. https://croner.co.uk (Croner GA4)
+python run_last_month_reports.py -p 256798047 --reports utm_campaign_report,utm_full_content_report -o html
+
+# 4. www.hr-inform.co.uk (HR-inform UK)
+python run_last_month_reports.py -p 397646972 --reports utm_campaign_report,utm_full_content_report -o html
+
+# --- Single Batch Command: Run Both UTM Reports Across All 4 Properties Sequentially ---
+for prop_id in 454945608 309716917 256798047 397646972; do python run_last_month_reports.py -p $prop_id --reports utm_campaign_report,utm_full_content_report -o html; done
+
+deactivate</pre>
+                </div>
+            </div>
+
+            <h5 class="mt-4 mb-2">Executing GA4 Monthly Reports</h5>
+            <div class="terminal-box">
+                <div class="terminal-header">
+                    <div class="terminal-dots"><span class="terminal-dot dot-red"></span><span class="terminal-dot dot-yellow"></span><span class="terminal-dot dot-green"></span></div>
+                    <span>Git Bash / Windows Terminal</span>
+                    <button class="btn btn-sm btn-outline-light py-0 px-2" onclick="copyBlock('cmd-run-ga4-all')"><i class="bi bi-clipboard"></i> Copy</button>
+                </div>
+                <pre id="cmd-run-ga4-all">cd "C:\Users\liam.delahunty\OneDrive - Peninsula Group Online\Documents\2. Areas\Code\ga4-api-explorer"
+source venv/Scripts/activate
+
+# 1. Run core 5 reports for last calendar month across all 11 properties
+python run_last_month_reports.py -o html
+
+# 2. Run Marketo campaign audit for pages.croneri.co.uk (Property ID: 454945608)
+python run_last_month_reports.py -p 454945608 --reports utm_campaign_report,utm_full_content_report -o html
+
+# 3. Run cross-property AI traffic census
+python reports/all_properties_ai_traffic_report.py
+
+deactivate</pre>
+            </div>
+        </section>
+
+        <!-- Section 6: Interactive Command Builder -->
+        <section id="interactive-builder" class="main-card border-success border-2">
+            <h2><span class="badge-step bg-success"><i class="bi bi-sliders"></i></span> 6. Interactive Monthly Command Builder</h2>
+            <p>Select any property from the dropdown below to immediately generate the exact copy-paste commands for both GSC and GA4:</p>
+
+            <div class="row g-3 align-items-center mb-3">
+                <div class="col-md-6">
+                    <label for="monthlyPropSelector" class="form-label fw-bold text-secondary mb-1">Select Property:</label>
+                    <select id="monthlyPropSelector" class="form-select" onchange="updateMonthlyCommands()">
+                        <option value="accountancy" selected>Accountancy Daily (sc-domain:accountancydaily.co | GA4: 354746488)</option>
+                        <option value="croner">Croner (sc-domain:croner.co.uk | GA4: 256798047)</option>
+                        <option value="taxwise">Croner Taxwise (sc-domain:cronertaxwise.com | GA4: 521516305)</option>
+                        <option value="corporate">Croner-i Corporate (https://www.croneri.co.uk/ | GA4: 309716917)</option>
+                        <option value="app">Croner-i App (https://app.croneri.co.uk/ | GA4: 308634050)</option>
+                        <option value="learning">Croner-i Learning (https://learning.croneri.co.uk | GA4: 453860440)</option>
+                        <option value="library">Croner-i Library (https://library.croneri.co.uk/ | GA4: 386965290)</option>
+                        <option value="pages">Croner-i Pages / Marketo (https://pages.croneri.co.uk/ | GA4: 454945608)</option>
+                        <option value="employer">Employer Advice (sc-domain:employeradvice.org | GA4: 250644053)</option>
+                        <option value="hrinform">HR-inform UK (sc-domain:hr-inform.co.uk | GA4: 397646972)</option>
+                        <option value="myviptax">My VIP Tax Team (sc-domain:myviptaxteam.com | GA4: 349622346)</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <span class="badge bg-light text-secondary border p-2 d-inline-block mt-3 mt-md-0">
+                        <i class="bi bi-info-circle text-primary me-1"></i> Commands automatically default to <code>--last-month</code>.
+                    </span>
+                </div>
+            </div>
+
+            <!-- GSC Command Box -->
+            <div class="p-3 border rounded bg-light mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-primary small"><i class="bi bi-google me-1"></i> GSC Monthly Performance &amp; Search Type Commands:</span>
+                    <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="copyBlock('gen-monthly-gsc')"><i class="bi bi-clipboard"></i> Copy GSC Block</button>
+                </div>
+                <pre class="bg-dark text-info p-2.5 rounded small font-monospace" id="gen-monthly-gsc">python reports/monthly_summary_report.py sc-domain:accountancydaily.co
+python reports/monthly_search_type_performance_report.py sc-domain:accountancydaily.co
+python reports/key_performance_metrics.py sc-domain:accountancydaily.co
+python reports/query_position_analysis.py sc-domain:accountancydaily.co --last-month</pre>
+            </div>
+
+            <!-- GA4 Default Command Box -->
+            <div class="p-3 border rounded bg-light mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-purple small" style="color: #7e22ce;"><i class="bi bi-bar-chart-fill me-1"></i> GA4 Monthly Acquisition &amp; Content Command (Default 5 Reports):</span>
+                    <button class="btn btn-sm btn-outline-purple py-0 px-2" style="color: #7e22ce; border-color: #7e22ce;" onclick="copyBlock('gen-monthly-ga4')"><i class="bi bi-clipboard"></i> Copy GA4 Core</button>
+                </div>
+                <pre class="bg-dark text-info p-2.5 rounded small font-monospace" id="gen-monthly-ga4">python run_last_month_reports.py -p 354746488 -o html</pre>
+            </div>
+
+            <!-- GA4 UTM Command Box -->
+            <div class="p-3 border rounded bg-light">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold small" style="color: #059669;"><i class="bi bi-tags-fill me-1"></i> GA4 UTM &amp; Campaign Performance Command (Campaign + Full Content):</span>
+                    <button class="btn btn-sm btn-outline-success py-0 px-2" onclick="copyBlock('gen-monthly-ga4-utm')"><i class="bi bi-clipboard"></i> Copy UTM Command</button>
+                </div>
+                <pre class="bg-dark text-info p-2.5 rounded small font-monospace" id="gen-monthly-ga4-utm">python run_last_month_reports.py -p 354746488 --reports utm_campaign_report,utm_full_content_report -o html</pre>
+            </div>
+        </section>
+
+        <!-- Section 7: Stakeholder Email Pack -->
+        <section id="email-pack" class="main-card">
+            <h2><span class="badge-step"><i class="bi bi-envelope-paper-fill"></i></span> 7. Monthly Stakeholder Email Pack</h2>
+            <p>At the start of each month, distribute the generated executive pack to directors and commercial stakeholders:</p>
+
+            <div class="email-card">
+                <div class="email-header">
+                    <div class="email-row">
+                        <div class="email-label">Subject:</div>
+                        <div class="email-value d-flex align-items-center justify-content-between">
+                            <code class="text-dark fw-bold">Group Digital Performance Pack - [Month Year] Monthly Review</code>
+                            <button class="btn btn-xs btn-outline-primary ms-2 py-0 px-2" onclick="copyText('Group Digital Performance Pack - [Month Year] Monthly Review', 'Copied Subject!')"><i class="bi bi-clipboard-check me-1"></i> Copy Subject</button>
+                        </div>
+                    </div>
+                    <div class="email-row">
+                        <div class="email-label">Attach:</div>
+                        <div class="email-value small text-primary">
+                            <i class="bi bi-file-earmark-code me-1"></i> <code>output/account/monthly-summary-report-account-wide-[Dates].html</code> (GSC Portfolio Summary)<br>
+                            <i class="bi bi-file-earmark-spreadsheet me-1"></i> <code>output/account/monthly-summary-report-account-wide-[Dates].csv</code> (Raw Metrics Data)<br>
+                            <i class="bi bi-file-earmark-code me-1"></i> <code>output/ga4-last-month-reports-[Month]/*.html</code> (GA4 Acquisition Dashboards)
+                        </div>
+                    </div>
+                </div>
+                <div class="email-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small fw-bold">Executive Email Summary Template:</span>
+                        <button class="btn btn-sm btn-outline-primary py-0" onclick="copyBlock('monthly-email-template')"><i class="bi bi-clipboard"></i> Copy Body</button>
+                    </div>
+                    <div id="monthly-email-template" class="p-3 bg-light rounded border text-secondary small font-monospace" style="white-space: pre-wrap;">Hi everyone,
+
+Please find attached the monthly digital performance pack covering [Month Year] across our primary digital properties.
+
+Executive Overview:
+• Total Organic Search Clicks: [X,XXX,XXX] ([+/-X%] MoM | [+/-X%] YoY)
+• Total Search Impressions: [XX,XXX,XXX] ([+/-X%] MoM)
+• Active Users (GA4 Group Total): [X,XXX,XXX] across portfolio sites.
+
+Key Highlights & Strategic Observations:
+1. Search Type Distribution: Web search accounted for [XX%] of organic volume; Google Discover contributed [XX%] driven primarily by [Key Stories / Topics].
+2. Ranking Trajectory: [X%] of tracked queries rank in Positions 1-3, maintaining our strong visibility across core compliance terms.
+3. Acquisition Shifts: Organic search delivered [XX%] of all new user sessions, followed by Direct ([XX%]) and Marketing Campaigns ([XX%]).
+4. Emerging Channels: Generative AI tools (ChatGPT, Perplexity, Claude, Copilot) drove [X,XXX] referral sessions across the group.
+
+For detailed breakdowns, download the attached interactive HTML dashboards and open them in your preferred browser.
+
+Best regards,
+Liam</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Copy Toast Notification -->
+    <div id="copyToast" class="copy-toast">
+        <i class="bi bi-check2-circle text-success fs-5"></i>
+        <span id="toastMessage">Copied to clipboard!</span>
+    </div>
+
+    <!-- Bootstrap JS & Helper Script -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const PROPERTY_DATA = {
+            accountancy: { gsc: "sc-domain:accountancydaily.co", ga4: "354746488" },
+            croner: { gsc: "sc-domain:croner.co.uk", ga4: "256798047" },
+            taxwise: { gsc: "sc-domain:cronertaxwise.com", ga4: "521516305" },
+            corporate: { gsc: "https://www.croneri.co.uk/", ga4: "309716917" },
+            app: { gsc: "https://app.croneri.co.uk/", ga4: "308634050" },
+            learning: { gsc: "https://learning.croneri.co.uk", ga4: "453860440" },
+            library: { gsc: "https://library.croneri.co.uk/", ga4: "386965290" },
+            pages: { gsc: "https://pages.croneri.co.uk/", ga4: "454945608" },
+            employer: { gsc: "sc-domain:employeradvice.org", ga4: "250644053" },
+            hrinform: { gsc: "sc-domain:hr-inform.co.uk", ga4: "397646972" },
+            myviptax: { gsc: "sc-domain:myviptaxteam.com", ga4: "349622346" }
+        };
+
+        function showToast(message) {
+            const toast = document.getElementById('copyToast');
+            const toastMsg = document.getElementById('toastMessage');
+            toastMsg.innerText = message || 'Copied to clipboard!';
+            toast.style.display = 'flex';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        function copyText(text, successMsg) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(successMsg || 'Copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        function copyBlock(elementId) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                const text = el.innerText || el.textContent;
+                copyText(text.trim(), 'Copied to clipboard!');
+            }
+        }
+
+        function updateMonthlyCommands() {
+            const propKey = document.getElementById('monthlyPropSelector').value;
+            const prop = PROPERTY_DATA[propKey] || PROPERTY_DATA.accountancy;
+
+            const gscPre = document.getElementById('gen-monthly-gsc');
+            if (gscPre) {
+                gscPre.innerText = `python reports/monthly_summary_report.py ${prop.gsc}\npython reports/monthly_search_type_performance_report.py ${prop.gsc}\npython reports/key_performance_metrics.py ${prop.gsc}\npython reports/query_position_analysis.py ${prop.gsc} --last-month`;
+            }
+
+            const ga4Pre = document.getElementById('gen-monthly-ga4');
+            if (ga4Pre) {
+                ga4Pre.innerText = `python run_last_month_reports.py -p ${prop.ga4} -o html`;
+            }
+
+            const ga4UtmPre = document.getElementById('gen-monthly-ga4-utm');
+            if (ga4UtmPre) {
+                ga4UtmPre.innerText = `python run_last_month_reports.py -p ${prop.ga4} --reports utm_campaign_report,utm_full_content_report -o html`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateMonthlyCommands();
+        });
+    </script>
+</body>
+</html>
