@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --head-color: #3b82f6;
+            --mid-color: #10b981;
+            --long-color: #8b5cf6;
+            --zero-color: #94a3b8;
+            --card-border: #e2e8f0;
+            --bg-light: #f8fafc;
+            --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-light);
+            color: #1e293b;
+            padding: 2rem 1.5rem 4rem 1.5rem;
+            line-height: 1.5;
+        }
+
+        .dashboard-header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 1.25rem;
+        }
+
+        .dashboard-title {
+            font-family: var(--font-heading);
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 2.2rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .dashboard-subtitle {
+            font-size: 1rem;
+            color: #64748b;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: white;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 4px;
+            width: 100%;
+        }
+
+        .kpi-card.head::before { background-color: var(--head-color); }
+        .kpi-card.mid::before { background-color: var(--mid-color); }
+        .kpi-card.long::before { background-color: var(--long-color); }
+        .kpi-card.total::before { background-color: #6366f1; }
+
+        .kpi-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #64748b;
+            margin-bottom: 0.35rem;
+        }
+
+        .kpi-value {
+            font-family: var(--font-heading);
+            font-size: 1.85rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+
+        .kpi-subtext {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 0.35rem;
+        }
+
+        .content-card {
+            background: white;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .card-header-custom {
+            padding: 1rem 1.25rem;
+            background-color: #ffffff;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-header-custom h3 {
+            font-family: var(--font-heading);
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--primary);
+        }
+
+        .table thead th {
+            background-color: #334155;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            vertical-align: middle;
+            border: none;
+            padding: 0.75rem 1rem;
+        }
+
+        .table tbody td {
+            vertical-align: middle;
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+            border-color: #f1f5f9;
+        }
+
+        .badge-head {
+            background-color: #dbeafe;
+            color: #1e40af;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+        }
+
+        .badge-mid {
+            background-color: #d1fae5;
+            color: #065f46;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+        }
+
+        .badge-long {
+            background-color: #ede9fe;
+            color: #5b21b6;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+        }
+
+        .badge-brand {
+            background-color: #fef3c7;
+            color: #92400e;
+            font-weight: 600;
+            padding: 0.2rem 0.45rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .badge-nonbrand {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 500;
+            padding: 0.2rem 0.45rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .search-box {
+            max-width: 350px;
+        }
+
+        .filter-btn-group .btn {
+            font-size: 0.85rem;
+            padding: 0.35rem 0.75rem;
+        }
+
+        footer {
+            margin-top: 3rem;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        .progress-bar-custom {
+            height: 6px;
+            border-radius: 3px;
+            background-color: #e2e8f0;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid max-width-container">
+        <!-- Dashboard Header -->
+        <header class="dashboard-header d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+            <div>
+                <h1 class="dashboard-title">Head, Mid & Long Tail Search Traffic Report</h1>
+                <div class="dashboard-subtitle">
+                    Property: <strong>{{ site_url }}</strong> &bull; Period: <strong>{{ period_str }}</strong>
+                </div>
+            </div>
+            <div class="mt-3 mt-md-0 text-md-end text-muted small">
+                Generated: {{ generation_date }}<br>
+                Total Queries Analysed: <strong>{{ total_queries_formatted }}</strong>
+            </div>
+        </header>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card total">
+                <div class="kpi-label">Total Organic Clicks</div>
+                <div class="kpi-value">{{ total_clicks_formatted }}</div>
+                <div class="kpi-subtext">{{ total_impressions_formatted }} impressions &bull; {{ overall_ctr }} CTR</div>
+            </div>
+            <div class="kpi-card head">
+                <div class="kpi-label">Head Traffic (1-2 Words)</div>
+                <div class="kpi-value">{{ head_clicks_formatted }}</div>
+                <div class="kpi-subtext"><strong>{{ head_clicks_pct }}</strong> of total clicks ({{ head_queries_formatted }} queries)</div>
+            </div>
+            <div class="kpi-card mid">
+                <div class="kpi-label">Mid Tail Traffic (3-4 Words)</div>
+                <div class="kpi-value">{{ mid_clicks_formatted }}</div>
+                <div class="kpi-subtext"><strong>{{ mid_clicks_pct }}</strong> of total clicks ({{ mid_queries_formatted }} queries)</div>
+            </div>
+            <div class="kpi-card long">
+                <div class="kpi-label">Long Tail Traffic (5+ Words)</div>
+                <div class="kpi-value">{{ long_clicks_formatted }}</div>
+                <div class="kpi-subtext"><strong>{{ long_clicks_pct }}</strong> of total clicks ({{ long_queries_formatted }} queries)</div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-4 col-md-6">
+                <div class="content-card h-100">
+                    <div class="card-header-custom">
+                        <h3>Clicks by Tail Segment</h3>
+                    </div>
+                    <div class="p-3 d-flex justify-content-center align-items-center" style="min-height: 280px;">
+                        <canvas id="clicksDonutChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="content-card h-100">
+                    <div class="card-header-custom">
+                        <h3>Impressions by Tail Segment</h3>
+                    </div>
+                    <div class="p-3 d-flex justify-content-center align-items-center" style="min-height: 280px;">
+                        <canvas id="impressionsDonutChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-12">
+                <div class="content-card h-100">
+                    <div class="card-header-custom">
+                        <h3>Brand vs Non-Brand by Segment</h3>
+                    </div>
+                    <div class="p-3 d-flex justify-content-center align-items-center" style="min-height: 280px;">
+                        <canvas id="brandStackedChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Word Length Distribution Chart -->
+        <div class="content-card mb-4">
+            <div class="card-header-custom">
+                <h3>Traffic Distribution by Exact Word Count</h3>
+                <span class="text-muted small">Clicks and Impressions across query lengths</span>
+            </div>
+            <div class="p-3" style="height: 320px;">
+                <canvas id="wordLengthBarChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Word-Count Segment Summary Table -->
+        <div class="content-card mb-4">
+            <div class="card-header-custom">
+                <h3>Word Length Segmentation Breakdown</h3>
+                <span class="badge bg-secondary">Lexical View</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Segment</th>
+                            <th>Word Count</th>
+                            <th class="text-end">Queries</th>
+                            <th class="text-end">% Queries</th>
+                            <th class="text-end">Clicks</th>
+                            <th class="text-end">% Clicks</th>
+                            <th class="text-end">Impressions</th>
+                            <th class="text-end">% Impressions</th>
+                            <th class="text-end">CTR</th>
+                            <th class="text-end">Avg Pos</th>
+                            <th class="text-end">Brand Clicks %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in word_segments_summary %}
+                        <tr>
+                            <td>
+                                {% if row.segment == 'Head' %}
+                                    <span class="badge-head">Head</span>
+                                {% elif row.segment == 'Mid Tail' %}
+                                    <span class="badge-mid">Mid Tail</span>
+                                {% else %}
+                                    <span class="badge-long">Long Tail</span>
+                                {% endif %}
+                            </td>
+                            <td><code>{{ row.words_def }}</code></td>
+                            <td class="text-end font-monospace">{{ row.query_count }}</td>
+                            <td class="text-end font-monospace">{{ row.query_pct }}</td>
+                            <td class="text-end font-monospace fw-semibold">{{ row.clicks }}</td>
+                            <td class="text-end font-monospace fw-semibold">{{ row.clicks_pct }}</td>
+                            <td class="text-end font-monospace">{{ row.impressions }}</td>
+                            <td class="text-end font-monospace">{{ row.impressions_pct }}</td>
+                            <td class="text-end font-monospace">{{ row.ctr }}</td>
+                            <td class="text-end font-monospace">{{ row.position }}</td>
+                            <td class="text-end font-monospace">{{ row.brand_clicks_pct }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Demand Curve Volume Tier Breakdown Table -->
+        <div class="content-card mb-4">
+            <div class="card-header-custom">
+                <h3>Search Demand Curve Breakdown (Click Volume Tiers)</h3>
+                <span class="badge bg-secondary">Volume View</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Volume Tier</th>
+                            <th>Threshold</th>
+                            <th class="text-end">Queries</th>
+                            <th class="text-end">% Queries</th>
+                            <th class="text-end">Clicks</th>
+                            <th class="text-end">% Clicks</th>
+                            <th class="text-end">Impressions</th>
+                            <th class="text-end">% Impressions</th>
+                            <th class="text-end">CTR</th>
+                            <th class="text-end">Avg Pos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in volume_tiers_summary %}
+                        <tr>
+                            <td>
+                                {% if 'Head' in row.tier %}
+                                    <span class="badge-head">{{ row.tier }}</span>
+                                {% elif 'Mid' in row.tier %}
+                                    <span class="badge-mid">{{ row.tier }}</span>
+                                {% elif 'Long' in row.tier %}
+                                    <span class="badge-long">{{ row.tier }}</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark">{{ row.tier }}</span>
+                                {% endif %}
+                            </td>
+                            <td><small class="text-muted">{{ row.threshold_def }}</small></td>
+                            <td class="text-end font-monospace">{{ row.query_count }}</td>
+                            <td class="text-end font-monospace">{{ row.query_pct }}</td>
+                            <td class="text-end font-monospace fw-semibold">{{ row.clicks }}</td>
+                            <td class="text-end font-monospace fw-semibold">{{ row.clicks_pct }}</td>
+                            <td class="text-end font-monospace">{{ row.impressions }}</td>
+                            <td class="text-end font-monospace">{{ row.impressions_pct }}</td>
+                            <td class="text-end font-monospace">{{ row.ctr }}</td>
+                            <td class="text-end font-monospace">{{ row.position }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Detailed Exact Word Count Table -->
+        <div class="content-card mb-4">
+            <div class="card-header-custom">
+                <h3>Exact Word Length Distribution</h3>
+                <span class="text-muted small">Granular query length metrics</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Query Length</th>
+                            <th>Segment</th>
+                            <th class="text-end">Queries</th>
+                            <th class="text-end">% Queries</th>
+                            <th class="text-end">Clicks</th>
+                            <th class="text-end">% Clicks</th>
+                            <th class="text-end">Impressions</th>
+                            <th class="text-end">% Impressions</th>
+                            <th class="text-end">CTR</th>
+                            <th class="text-end">Avg Pos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in exact_words_summary %}
+                        <tr>
+                            <td><strong>{{ row.label }}</strong></td>
+                            <td>
+                                {% if row.segment == 'Head' %}
+                                    <span class="badge-head">Head</span>
+                                {% elif row.segment == 'Mid Tail' %}
+                                    <span class="badge-mid">Mid Tail</span>
+                                {% else %}
+                                    <span class="badge-long">Long Tail</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end font-monospace">{{ row.query_count }}</td>
+                            <td class="text-end font-monospace">{{ row.query_pct }}</td>
+                            <td class="text-end font-monospace fw-semibold">{{ row.clicks }}</td>
+                            <td class="text-end font-monospace fw-semibold">{{ row.clicks_pct }}</td>
+                            <td class="text-end font-monospace">{{ row.impressions }}</td>
+                            <td class="text-end font-monospace">{{ row.impressions_pct }}</td>
+                            <td class="text-end font-monospace">{{ row.ctr }}</td>
+                            <td class="text-end font-monospace">{{ row.position }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Interactive Query Explorer Table -->
+        <div class="content-card">
+            <div class="card-header-custom flex-wrap gap-2">
+                <div>
+                    <h3>Top Performing Queries Explorer</h3>
+                    <div class="text-muted small">Showing up to {{ queries_display_limit }} ranked queries with real-time filtering</div>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="btn-group filter-btn-group" role="group" id="segmentFilterGroup">
+                        <button type="button" class="btn btn-outline-secondary active" data-filter="all">All</button>
+                        <button type="button" class="btn btn-outline-primary" data-filter="Head">Head</button>
+                        <button type="button" class="btn btn-outline-success" data-filter="Mid Tail">Mid Tail</button>
+                        <button type="button" class="btn btn-outline-purple" style="border-color:#8b5cf6; color:#8b5cf6;" data-filter="Long Tail">Long Tail</button>
+                    </div>
+                    <input type="text" id="querySearchInput" class="form-control form-control-sm search-box" placeholder="Search queries...">
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="queriesExplorerTable">
+                    <thead>
+                        <tr>
+                            <th>Query</th>
+                            <th>Segment</th>
+                            <th class="text-center">Words</th>
+                            <th class="text-center">Brand</th>
+                            <th class="text-end">Clicks</th>
+                            <th class="text-end">Impressions</th>
+                            <th class="text-end">CTR</th>
+                            <th class="text-end">Avg Pos</th>
+                        </tr>
+                    </thead>
+                    <tbody id="queriesTableBody">
+                        {% for q in top_queries %}
+                        <tr data-segment="{{ q.word_segment }}" data-query="{{ q.query|lower }}">
+                            <td><span class="fw-medium">{{ q.query }}</span></td>
+                            <td>
+                                {% if q.word_segment == 'Head' %}
+                                    <span class="badge-head">Head</span>
+                                {% elif q.word_segment == 'Mid Tail' %}
+                                    <span class="badge-mid">Mid Tail</span>
+                                {% else %}
+                                    <span class="badge-long">Long Tail</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center font-monospace">{{ q.word_count }}</td>
+                            <td class="text-center">
+                                {% if q.is_brand %}
+                                    <span class="badge-brand">Brand</span>
+                                {% else %}
+                                    <span class="badge-nonbrand">Non-Brand</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end font-monospace fw-semibold">{{ q.clicks_formatted }}</td>
+                            <td class="text-end font-monospace">{{ q.impressions_formatted }}</td>
+                            <td class="text-end font-monospace">{{ q.ctr_formatted }}</td>
+                            <td class="text-end font-monospace">{{ q.position_formatted }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-3 border-top text-muted small d-flex justify-content-between align-items-center">
+                <span id="filteredCountText">Showing all {{ top_queries|length }} loaded queries</span>
+                <span>Refer to CSV export for full exhaustive query list</span>
+            </div>
+        </div>
+
+        <footer>
+            <p>Report generated on {{ generation_date }} &bull; <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank" class="text-decoration-none text-muted">gsc-exporter</a></p>
+        </footer>
+    </div>
+
+    <!-- Chart.js and Interactive Scripts -->
+    <script>
+        const chartData = {{ chart_data_json|safe }};
+
+        // Donut Chart: Clicks
+        new Chart(document.getElementById('clicksDonutChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Head (1-2 Words)', 'Mid Tail (3-4 Words)', 'Long Tail (5+ Words)'],
+                datasets: [{
+                    data: [chartData.head_clicks, chartData.mid_clicks, chartData.long_clicks],
+                    backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const val = ctx.raw || 0;
+                                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                                return ` ${ctx.label}: ${val.toLocaleString()} clicks (${pct}%)`;
+                            }
+                        }
+                    }
+                },
+                cutout: '68%'
+            }
+        });
+
+        // Donut Chart: Impressions
+        new Chart(document.getElementById('impressionsDonutChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Head (1-2 Words)', 'Mid Tail (3-4 Words)', 'Long Tail (5+ Words)'],
+                datasets: [{
+                    data: [chartData.head_impressions, chartData.mid_impressions, chartData.long_impressions],
+                    backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const val = ctx.raw || 0;
+                                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                                return ` ${ctx.label}: ${val.toLocaleString()} impressions (${pct}%)`;
+                            }
+                        }
+                    }
+                },
+                cutout: '68%'
+            }
+        });
+
+        // Stacked Bar Chart: Brand vs Non-Brand
+        new Chart(document.getElementById('brandStackedChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Head', 'Mid Tail', 'Long Tail'],
+                datasets: [
+                    {
+                        label: 'Brand Clicks',
+                        data: [chartData.brand_head_clicks, chartData.brand_mid_clicks, chartData.brand_long_clicks],
+                        backgroundColor: '#f59e0b'
+                    },
+                    {
+                        label: 'Non-Brand Clicks',
+                        data: [chartData.nonbrand_head_clicks, chartData.nonbrand_mid_clicks, chartData.nonbrand_long_clicks],
+                        backgroundColor: '#94a3b8'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { stacked: true, grid: { display: false } },
+                    y: { stacked: true, beginAtZero: true, grid: { color: '#f1f5f9' } }
+                },
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                }
+            }
+        });
+
+        // Bar Chart: Word Length Distribution
+        new Chart(document.getElementById('wordLengthBarChart'), {
+            type: 'bar',
+            data: {
+                labels: chartData.word_length_labels,
+                datasets: [
+                    {
+                        label: 'Clicks',
+                        data: chartData.word_length_clicks,
+                        backgroundColor: '#3b82f6',
+                        yAxisID: 'yClicks'
+                    },
+                    {
+                        label: 'Impressions',
+                        data: chartData.word_length_impressions,
+                        backgroundColor: '#cbd5e1',
+                        yAxisID: 'yImpressions'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    x: { grid: { display: false } },
+                    yClicks: {
+                        type: 'linear',
+                        position: 'left',
+                        beginAtZero: true,
+                        title: { display: true, text: 'Clicks' }
+                    },
+                    yImpressions: {
+                        type: 'linear',
+                        position: 'right',
+                        beginAtZero: true,
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'Impressions' }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
+                }
+            }
+        });
+
+        // Interactive Explorer Filter
+        let currentFilter = 'all';
+        const searchInput = document.getElementById('querySearchInput');
+        const filterButtons = document.querySelectorAll('#segmentFilterGroup button');
+        const rows = document.querySelectorAll('#queriesTableBody tr');
+        const countText = document.getElementById('filteredCountText');
+
+        function filterTable() {
+            const term = searchInput.value.toLowerCase().trim();
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const seg = row.getAttribute('data-segment');
+                const q = row.getAttribute('data-query');
+
+                const matchesSeg = (currentFilter === 'all' || seg === currentFilter);
+                const matchesTerm = (!term || q.includes(term));
+
+                if (matchesSeg && matchesTerm) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            countText.textContent = `Showing ${visibleCount} of ${rows.length} loaded queries`;
+        }
+
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                filterButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentFilter = this.getAttribute('data-filter');
+                filterTable();
+            });
+        });
+
+        searchInput.addEventListener('input', filterTable);
+    </script>
+</body>
+</html>

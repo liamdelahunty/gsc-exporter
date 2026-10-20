@@ -37,6 +37,7 @@ def main():
         ["reports/queries_pages_analysis.py", site_url, "--last-month"],
         ["reports/query_position_analysis.py", site_url, "--last-month"],
         ["reports/query_segmentation_report.py", site_url, "--last-month"],
+        ["reports/head_mid_long_tail_report.py", site_url, "--last-month"],
         ["reports/keyword_cannibalisation_report.py", site_url, "--last-month"],
         ["reports/page_performance_over_time.py", site_url, "--last-month"],
         ["reports/page_performance_single_page.py", site_url, "https://navigate-safety.croneri.co.uk/", "--last-month"],

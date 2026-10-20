@@ -157,3 +157,30 @@ def test_daily_performance_matrix_report(mock_service, mocker):
     assert os.path.exists(impressions_csv)
     assert os.path.exists(html_path)
 
+def test_head_mid_long_tail_report(mock_service, mocker):
+    query_mock_data = {
+        'query': [
+            'example brand',                      # 2 words (Head, Brand)
+            'login',                              # 1 word (Head)
+            'how to manage annual leave online',  # 6 words (Long Tail)
+            'statutory redundancy pay calculation', # 4 words (Mid Tail)
+            'what is statutory sick pay in uk'    # 7 words (Long Tail)
+        ],
+        'clicks': [120, 60, 15, 3, 0],
+        'impressions': [1000, 500, 300, 80, 25],
+        'ctr': [0.12, 0.12, 0.05, 0.0375, 0.0],
+        'position': [1.2, 1.8, 3.4, 8.5, 12.0]
+    }
+    mocker.patch('reports.head_mid_long_tail_report.fetch_with_cache', return_value=pd.DataFrame(query_mock_data))
+    from reports.head_mid_long_tail_report import run_report
+    
+    site = 'https://www.example.com/'
+    start_date = '2024-01-01'
+    end_date = '2024-01-31'
+    summary_csv, queries_csv, html_path = run_report(mock_service, site, start_date, end_date)
+    
+    assert summary_csv is not None and os.path.exists(summary_csv)
+    assert queries_csv is not None and os.path.exists(queries_csv)
+    assert html_path is not None and os.path.exists(html_path)
+
+

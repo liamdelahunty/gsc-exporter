@@ -146,6 +146,7 @@ def select_report():
         "keyword_cannibalisation_report.py": "Granular Pages & Queries Audits",
         "query_position_analysis.py": "Granular Pages & Queries Audits",
         "query_segmentation_report.py": "Granular Pages & Queries Audits",
+        "head_mid_long_tail_report.py": "Granular Pages & Queries Audits",
         "gsc_pages_exporter.py": "Granular Pages & Queries Audits",
         "library_marketing_migration_prioritisation_report.py": "Granular Pages & Queries Audits",
         "library_marketing_migration_analysis.py": "Granular Pages & Queries Audits",
