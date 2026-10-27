@@ -163,6 +163,12 @@
             overflow-y: auto;
         }
 
+        .table-responsive-candidate {
+            max-height: none;
+            overflow-x: auto;
+            overflow-y: visible;
+        }
+
         .table-custom {
             width: 100%;
             margin-bottom: 0;
@@ -400,6 +406,15 @@
                         <span class="text-muted small">Ranked with side-by-side Composite Score, Combined Rank Sum, and Tiered Allocation</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-1">
+                            <label for="candidatePageSize" class="small text-muted mb-0">Show:</label>
+                            <select id="candidatePageSize" class="form-select form-select-sm" style="width: auto;">
+                                <option value="50" selected>50</option>
+                                <option value="100">100</option>
+                                <option value="250">250</option>
+                                <option value="all">All</option>
+                            </select>
+                        </div>
                         <div class="search-box">
                             <i class="bi bi-search"></i>
                             <input type="text" id="candidateSearch" class="form-control" placeholder="Search URL or Query...">
@@ -410,7 +425,7 @@
                     </div>
                 </div>
 
-                <div class="table-responsive">
+                <div class="table-responsive table-responsive-candidate">
                     <table class="table table-custom align-middle" id="candidateTable">
                         <thead>
                             <tr>
@@ -467,6 +482,14 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                </div>
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 border-top bg-light">
+                    <span class="small text-muted" id="candidatePaginationInfo">Showing 1 to 50 candidates</span>
+                    <nav aria-label="Candidate table navigation">
+                        <ul class="pagination pagination-sm mb-0" id="candidatePagination">
+                            <!-- Injected by JavaScript -->
+                        </ul>
+                    </nav>
                 </div>
             </div>
         </div>
@@ -717,6 +740,125 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    function setupCandidatePagination() {
+        const table = document.getElementById('candidateTable');
+        const searchInput = document.getElementById('candidateSearch');
+        const pageSizeSelect = document.getElementById('candidatePageSize');
+        const infoEl = document.getElementById('candidatePaginationInfo');
+        const paginationEl = document.getElementById('candidatePagination');
+        if (!table || !infoEl || !paginationEl) return;
+
+        const allRows = Array.from(table.querySelectorAll('tbody tr'));
+        let currentPage = 1;
+        let pageSize = parseInt(pageSizeSelect ? pageSizeSelect.value : 50, 10);
+        if (isNaN(pageSize)) pageSize = 50;
+
+        function getFilteredRows() {
+            const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            if (!query) return allRows;
+            return allRows.filter(row => row.innerText.toLowerCase().includes(query));
+        }
+
+        function render() {
+            const filteredRows = getFilteredRows();
+            const total = filteredRows.length;
+            const actualPageSize = (pageSizeSelect && pageSizeSelect.value === 'all') ? total : pageSize;
+            const totalPages = Math.max(1, Math.ceil(total / (actualPageSize || 1)));
+
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIdx = (currentPage - 1) * actualPageSize;
+            const endIdx = Math.min(startIdx + actualPageSize, total);
+
+            allRows.forEach(row => row.style.display = 'none');
+            for (let i = startIdx; i < endIdx; i++) {
+                filteredRows[i].style.display = '';
+            }
+
+            if (total === 0) {
+                infoEl.textContent = 'Showing 0 to 0 of 0 candidates';
+            } else {
+                infoEl.textContent = `Showing ${(startIdx + 1).toLocaleString()} to ${endIdx.toLocaleString()} of ${total.toLocaleString()} candidates`;
+            }
+
+            // Render pagination buttons
+            let paginationHtml = '';
+            
+            // Previous button
+            paginationHtml += `
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <button class="page-link" type="button" data-page="${currentPage - 1}" aria-label="Previous">&laquo;</button>
+                </li>
+            `;
+
+            // Page numbers with ellipsis
+            const pagesToShow = [];
+            if (totalPages <= 7) {
+                for (let i = 1; i <= totalPages; i++) pagesToShow.push(i);
+            } else {
+                pagesToShow.push(1);
+                if (currentPage > 3) pagesToShow.push('...');
+                const start = Math.max(2, currentPage - 1);
+                const end = Math.min(totalPages - 1, currentPage + 1);
+                for (let i = start; i <= end; i++) pagesToShow.push(i);
+                if (currentPage < totalPages - 2) pagesToShow.push('...');
+                pagesToShow.push(totalPages);
+            }
+
+            pagesToShow.forEach(p => {
+                if (p === '...') {
+                    paginationHtml += `<li class="page-item disabled"><span class="page-link">&hellip;</span></li>`;
+                } else {
+                    paginationHtml += `
+                        <li class="page-item ${p === currentPage ? 'active' : ''}">
+                            <button class="page-link" type="button" data-page="${p}">${p}</button>
+                        </li>
+                    `;
+                }
+            });
+
+            // Next button
+            paginationHtml += `
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <button class="page-link" type="button" data-page="${currentPage + 1}" aria-label="Next">&raquo;</button>
+                </li>
+            `;
+
+            paginationEl.innerHTML = paginationHtml;
+
+            // Bind click events
+            paginationEl.querySelectorAll('button[data-page]').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetPage = parseInt(this.getAttribute('data-page'), 10);
+                    if (targetPage >= 1 && targetPage <= totalPages && targetPage !== currentPage) {
+                        currentPage = targetPage;
+                        render();
+                    }
+                });
+            });
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                currentPage = 1;
+                render();
+            });
+        }
+
+        if (pageSizeSelect) {
+            pageSizeSelect.addEventListener('change', function() {
+                const val = this.value;
+                pageSize = val === 'all' ? allRows.length : parseInt(val, 10);
+                currentPage = 1;
+                render();
+            });
+        }
+
+        render();
+    }
+
     function setupFilter(inputId, tableId) {
         const input = document.getElementById(inputId);
         const table = document.getElementById(tableId);
@@ -732,7 +874,7 @@
         });
     }
 
-    setupFilter('candidateSearch', 'candidateTable');
+    setupCandidatePagination();
     setupFilter('oppSearch', 'oppTable');
     setupFilter('cannibalSearch', 'cannibalTable');
     setupFilter('datoSearch', 'datoTable');
