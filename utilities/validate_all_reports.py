@@ -55,6 +55,8 @@ def main():
         ["reports/url_inspection_report.py", site_url, "--last-month"],
         ["reports/search_appearance_report.py", site_url, "--last-month"],
         ["reports/consolidated_performance_overview_report.py", site_url, "--last-month"],
+        # HR-Inform Migration Reports
+        ["reports/migrations/drupal_dato_top_1000_migration_report.py", "https://www.hr-inform.co.uk", "--last-month"],
         # Library Migration Reports
         ["reports/migrations/library_marketing_migration_prioritisation_report.py", "https://library.croneri.co.uk/", "--last-month"],
         ["reports/migrations/library_marketing_migration_analysis.py", "https://library.croneri.co.uk/", "--last-month"],

@@ -206,3 +206,70 @@ def test_head_mid_long_tail_report(mock_service, mocker):
     assert 'Anonymised Queries' in html_content
 
 
+def test_drupal_dato_top_1000_migration_report(mock_service, mocker):
+    migration_mock_data = {
+        'page': [
+            'https://www.hr-inform.co.uk/features/working-during-heatwave', # Live Dato page
+            'https://www.hr-inform.co.uk/user/login',                      # Utility page to ignore
+            'https://www.hr-inform.co.uk/employment-law/statutory-redundancy', # Winner for query
+            'https://www.hr-inform.co.uk/news/redundancy-guide',           # Cannibalised for query
+            'https://www.hr-inform.co.uk/templates/disciplinary-sample?page=2', # Stripped params & CTR Opp
+            'https://www.hr-inform.co.uk/guides/maternity-rights'          # Standard candidate
+        ],
+        'query': [
+            'working during heatwave',
+            'login hr inform',
+            'statutory redundancy pay',
+            'statutory redundancy pay',
+            'disciplinary sample template',
+            'maternity rights uk'
+        ],
+        'clicks': [50, 5, 200, 20, 3, 40],
+        'impressions': [400, 10, 1500, 150, 900, 500],
+        'ctr': [0.125, 0.5, 0.133, 0.133, 0.0033, 0.08],
+        'position': [2.1, 1.0, 1.5, 6.2, 5.0, 3.2]
+    }
+    mocker.patch('reports.migrations.drupal_dato_top_1000_migration_report.fetch_with_cache',
+                 return_value=pd.DataFrame(migration_mock_data))
+    
+    from reports.migrations.drupal_dato_top_1000_migration_report import run_report
+    site = 'https://www.hr-inform.co.uk'
+    candidates_csv, cannibal_csv, dato_csv, html_path = run_report(
+        mock_service, site, '2024-01-01', '2024-12-31', limit=1000
+    )
+
+    assert candidates_csv is not None and os.path.exists(candidates_csv)
+    assert cannibal_csv is not None and os.path.exists(cannibal_csv)
+    assert dato_csv is not None and os.path.exists(dato_csv)
+    assert html_path is not None and os.path.exists(html_path)
+
+    # Verify Candidates CSV
+    df_cand = pd.read_csv(candidates_csv)
+    assert 'https://www.hr-inform.co.uk/employment-law/statutory-redundancy' in df_cand['Legacy Drupal URL'].values
+    # Utility and live Dato pages must not be in candidates
+    assert 'https://www.hr-inform.co.uk/user/login' not in df_cand['Legacy Drupal URL'].values
+    assert 'https://www.hr-inform.co.uk/features/working-during-heatwave' not in df_cand['Legacy Drupal URL'].values
+    # Cannibalised secondary page must not be in candidates
+    assert 'https://www.hr-inform.co.uk/news/redundancy-guide' not in df_cand['Legacy Drupal URL'].values
+    # Parameter should be stripped
+    assert 'https://www.hr-inform.co.uk/templates/disciplinary-sample' in df_cand['Legacy Drupal URL'].values
+    # CTR opportunity should be flagged
+    opp_row = df_cand[df_cand['Legacy Drupal URL'] == 'https://www.hr-inform.co.uk/templates/disciplinary-sample'].iloc[0]
+    assert opp_row['Is CTR Opportunity'] == True
+
+    # Verify Cannibalised CSV
+    df_cannibal = pd.read_csv(cannibal_csv)
+    assert 'https://www.hr-inform.co.uk/news/redundancy-guide' in df_cannibal['Cannibalised Secondary URL (Source)'].values
+    assert 'https://www.hr-inform.co.uk/employment-law/statutory-redundancy' in df_cannibal['Primary Winning URL (Target)'].values
+
+    # Verify Dato CSV
+    df_dato = pd.read_csv(dato_csv)
+    assert 'https://www.hr-inform.co.uk/features/working-during-heatwave' in df_dato['Live Dato URL'].values
+
+    # Verify HTML
+    with open(html_path, 'r', encoding='utf-8') as f:
+        html = f.read()
+    assert 'Top 1,000 Drupal to Dato Migration Report' in html
+    assert 'Redirect 301 /news/redundancy-guide /employment-law/statutory-redundancy' in html
+
+
