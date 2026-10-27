@@ -335,9 +335,27 @@ def run_report(service, site_url="https://www.hr-inform.co.uk", start_date=None,
         axis=1
     )
 
-    # Sort primary candidates list by Composite Score
-    df_candidates.sort_values(by=['composite_score', 'clicks'], ascending=[False, False], inplace=True)
-    df_top_1000 = df_candidates.head(limit).copy()
+    # 8. Multi-Mechanism Comprehensive Candidate Selection
+    # To enable comparative analysis across all 3 mechanisms (Composite Score,
+    # Combined Rank Sum, and Tiered Allocation) and decide what to migrate and avoid:
+    # Pull top N by clicks, top N by impressions, top N by composite score,
+    # top N by combined rank sum, all Tier 1 & 2 URLs, and all CTR opportunities.
+    pool_size = len(df_candidates)
+    if pool_size <= limit:
+        df_top_1000 = df_candidates.copy()
+    else:
+        top_clicks_idx = set(df_candidates.sort_values(by=['clicks', 'impressions'], ascending=[False, False]).head(limit).index)
+        top_impr_idx = set(df_candidates.sort_values(by=['impressions', 'clicks'], ascending=[False, False]).head(limit).index)
+        top_comp_idx = set(df_candidates.sort_values(by=['composite_score', 'clicks'], ascending=[False, False]).head(limit).index)
+        top_rank_idx = set(df_candidates.sort_values(by=['combined_rank', 'composite_score'], ascending=[True, False]).head(limit).index)
+        tier_idx = set(df_candidates[df_candidates['tier'].isin(['Tier 1 (Top Clicks)', 'Tier 2 (Top Impressions)'])].index)
+        opp_idx = set(df_candidates[df_candidates['is_opp'] | (df_candidates['clicks'] >= 100)].index)
+
+        selected_indices = top_clicks_idx | top_impr_idx | top_comp_idx | top_rank_idx | tier_idx | opp_idx
+        df_top_1000 = df_candidates.loc[sorted(list(selected_indices))].copy()
+
+    # Sort candidates list primarily by Composite Score
+    df_top_1000.sort_values(by=['composite_score', 'clicks'], ascending=[False, False], inplace=True)
 
     # Opportunities subset
     df_opportunities = df_top_1000[df_top_1000['is_opp']].sort_values(by='impressions', ascending=False).copy()
@@ -401,6 +419,7 @@ def run_report(service, site_url="https://www.hr-inform.co.uk", start_date=None,
     # Candidate CSV
     export_candidates_df = df_top_1000[[
         'url', 'top_query', 'clicks', 'impressions', 'ctr', 'position',
+        'rank_clicks', 'rank_impressions',
         'composite_score', 'combined_rank', 'tier', 'is_opp', 'opp_reason'
     ]].copy()
     export_candidates_df.rename(columns={
@@ -410,6 +429,8 @@ def run_report(service, site_url="https://www.hr-inform.co.uk", start_date=None,
         'impressions': 'Organic Impressions',
         'ctr': 'CTR',
         'position': 'Average Position',
+        'rank_clicks': 'Clicks Rank',
+        'rank_impressions': 'Impressions Rank',
         'composite_score': 'Method A (Composite Score)',
         'combined_rank': 'Method B (Combined Rank Sum)',
         'tier': 'Method C (Tiered Allocation)',

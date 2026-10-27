@@ -277,3 +277,56 @@ def test_drupal_dato_top_1000_migration_report(mock_service, mocker):
     assert 'Tier (Tiered Allocation)' in html
 
 
+def test_drupal_dato_migration_report_multi_mechanism_expanded(mock_service, mocker):
+    """Verifies that the report pulls more than 1,000 rows across multiple mechanisms."""
+    # 600 high-click pages (low impressions) + 600 high-impression pages (zero clicks)
+    rows = []
+    for i in range(600):
+        rows.append({
+            'page': f'https://www.hr-inform.co.uk/articles/click-leader-{i}',
+            'query': f'high click query {i}',
+            'clicks': 1000 - i,
+            'impressions': 50,
+            'ctr': 0.5,
+            'position': 1.5
+        })
+    for j in range(600):
+        rows.append({
+            'page': f'https://www.hr-inform.co.uk/articles/impr-leader-{j}',
+            'query': f'high impression query {j}',
+            'clicks': 0,
+            'impressions': 10000 - j,
+            'ctr': 0.0,
+            'position': 8.0
+        })
+
+    mocker.patch(
+        'reports.migrations.drupal_dato_top_1000_migration_report.fetch_with_cache',
+        return_value=pd.DataFrame(rows)
+    )
+
+    from reports.migrations.drupal_dato_top_1000_migration_report import run_report
+    site = 'https://www.hr-inform.co.uk'
+    candidates_csv, _, _, html_path = run_report(
+        mock_service, site, '2024-01-01', '2024-12-31', limit=1000
+    )
+
+    df_cand = pd.read_csv(candidates_csv)
+    # Total candidates must exceed 1,000 because both top 1,000 clicks and top 1,000 impressions are included
+    assert len(df_cand) == 1200
+    assert 'Clicks Rank' in df_cand.columns
+    assert 'Impressions Rank' in df_cand.columns
+    assert 'Method A (Composite Score)' in df_cand.columns
+    assert 'Method B (Combined Rank Sum)' in df_cand.columns
+    assert 'Method C (Tiered Allocation)' in df_cand.columns
+
+    # Verify both click leaders and impression leaders are present
+    assert 'https://www.hr-inform.co.uk/articles/click-leader-0' in df_cand['Legacy Drupal URL'].values
+    assert 'https://www.hr-inform.co.uk/articles/impr-leader-599' in df_cand['Legacy Drupal URL'].values
+
+    with open(html_path, 'r', encoding='utf-8') as f:
+        html = f.read()
+    assert '1,200' in html
+
+
+
