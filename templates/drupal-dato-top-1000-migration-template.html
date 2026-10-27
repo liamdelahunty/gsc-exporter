@@ -442,7 +442,7 @@
                                 <td class="text-end">{{ row.ctr_formatted }}</td>
                                 <td class="text-end">{{ row.position_formatted }}</td>
                                 <td class="text-end fw-bold text-primary">{{ row.composite_score_formatted }}</td>
-                                <td class="text-end text-muted">{{ row.combined_rank }}</td>
+                                <td class="text-end text-muted">{{ row.combined_rank_formatted }}</td>
                                 <td>
                                     {% if row.tier == 'Tier 1 (Top Clicks)' %}
                                         <span class="badge-tier1">{{ row.tier }}</span>
@@ -656,6 +656,43 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- Methodology and Scoring Guide -->
+    <div class="card mt-4 border-0 shadow-sm">
+        <div class="card-body p-4 bg-light rounded-3 border">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-info-circle-fill text-primary me-2"></i>Methodology and Scoring Definitions</h5>
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="p-3 bg-white rounded border h-100">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h6 class="fw-bold mb-0 text-primary">Comp. Score (Composite Score)</h6>
+                            <span class="badge bg-primary-subtle text-primary border">Method A</span>
+                        </div>
+                        <p class="small text-muted mb-2">
+                            <strong>Formula:</strong> <code>Clicks + (Impressions / 50.0)</code>
+                        </p>
+                        <p class="small text-secondary mb-0">
+                            Balances actual organic traffic (1 point per click) with latent audience reach (1 point per 50 search impressions). Candidates in this report are sorted primarily by this score so that content teams prioritise high-traffic drivers alongside high-visibility pages that offer immediate SEO growth potential.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 bg-white rounded border h-100">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h6 class="fw-bold mb-0 text-secondary">Rank Sum (Combined Rank Sum)</h6>
+                            <span class="badge bg-secondary-subtle text-secondary border">Method B</span>
+                        </div>
+                        <p class="small text-muted mb-2">
+                            <strong>Formula:</strong> <code>Rank(Clicks) + Rank(Impressions)</code>
+                        </p>
+                        <p class="small text-secondary mb-0">
+                            An unweighted relative benchmark where each URL is independently ranked across all legacy candidates by clicks and impressions (using minimum ranking). Lower numerical values denote superior overall standing across both metrics (for example, rank #1 in clicks and rank #1 in impressions yields a Rank Sum of 2).
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Footer -->
