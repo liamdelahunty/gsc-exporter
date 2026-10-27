@@ -21,6 +21,7 @@ def build_index_html(site_url, start_date, end_date, slug):
     nav_html = f"""
     <div class="d-flex flex-wrap gap-2 justify-content-center mb-4 pb-3 border-bottom">
         <a href="dato-drupal-index-{slug}-{start_date}-to-{end_date}.html" class="btn btn-primary active px-4">Migration Index</a>
+        <a href="top-1000-migration-report-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Top 1,000 Migration Report</a>
         <a href="drupal-dato-migration-analysis-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Breakdown Dashboard (Query-Level)</a>
         <a href="drupal-dato-migration-page-level-report-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Page-Level Report (All Clicks)</a>
         <a href="drupal-dato-migration-prioritisation-report-{slug}-{start_date}-to-{end_date}.html" class="btn btn-outline-primary px-4">Top 50 Prioritisation Report</a>
@@ -32,6 +33,15 @@ def build_index_html(site_url, start_date, end_date, slug):
 
     # Report Files Configuration
     reports_config = [
+        {
+            "id": "top-1000-migration",
+            "title": "Top 1,000 Legacy URL Migration Intelligence",
+            "purpose": "Selects and classifies the top 1,000 legacy Drupal (purple) URLs to migrate into DatoCMS while retaining existing legacy URL paths.",
+            "metrics": "Calculates side-by-side Composite Score, Combined Rank Sum, and Tiered Allocation. Excludes cannibalised query competitors (catalogued for 301 redirection) and highlights CTR / metadata optimisation candidates.",
+            "html_file": f"top-1000-migration-report-{slug}-{start_date}-to-{end_date}.html",
+            "csv_file": f"top-1000-migration-candidates-{slug}-{start_date}-to-{end_date}.csv",
+            "icon": "bi-list-check"
+        },
         {
             "id": "breakdown-dashboard",
             "title": "Platform Breakdown Dashboard (Query-Level)",

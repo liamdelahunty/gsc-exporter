@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0f172a;
+            --brand-blue: #0284c7;
+            --brand-indigo: #6366f1;
+            --brand-emerald: #10b981;
+            --brand-amber: #f59e0b;
+            --brand-rose: #ef4444;
+            --card-border: #e2e8f0;
+            --bg-light: #f8fafc;
+            --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-light);
+            color: #1e293b;
+            padding: 2rem 1.5rem 4rem 1.5rem;
+            line-height: 1.5;
+        }
+
+        .dashboard-header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 1.5rem;
+        }
+
+        .dashboard-title {
+            font-family: var(--font-heading);
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 2.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .dashboard-subtitle {
+            font-size: 1rem;
+            color: #64748b;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .kpi-label {
+            font-size: 0.825rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-value {
+            font-family: var(--font-heading);
+            font-size: 1.85rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1.2;
+            margin-bottom: 0.25rem;
+        }
+
+        .kpi-subtext {
+            font-size: 0.825rem;
+            color: #64748b;
+        }
+
+        .kpi-card.candidates { border-top: 4px solid var(--brand-blue); }
+        .kpi-card.opps { border-top: 4px solid var(--brand-amber); }
+        .kpi-card.cannibalised { border-top: 4px solid var(--brand-rose); }
+        .kpi-card.dato { border-top: 4px solid var(--brand-emerald); }
+        .kpi-card.pool { border-top: 4px solid #64748b; }
+
+        .content-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .card-header-custom {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+            background-color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .card-title-custom {
+            font-family: var(--font-heading);
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-tabs-custom {
+            border-bottom: 2px solid var(--card-border);
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-tabs-custom .nav-link {
+            font-weight: 600;
+            color: #64748b;
+            border: none;
+            border-bottom: 3px solid transparent;
+            padding: 0.75rem 1.25rem;
+            margin-bottom: -2px;
+            border-radius: 0;
+            background: transparent;
+        }
+
+        .nav-tabs-custom .nav-link:hover {
+            color: var(--brand-blue);
+            border-bottom-color: #cbd5e1;
+        }
+
+        .nav-tabs-custom .nav-link.active {
+            color: var(--brand-blue);
+            border-bottom-color: var(--brand-blue);
+            background: transparent;
+        }
+
+        .table-responsive {
+            max-height: 750px;
+            overflow-y: auto;
+        }
+
+        .table-custom {
+            width: 100%;
+            margin-bottom: 0;
+            font-size: 0.875rem;
+        }
+
+        .table-custom th {
+            background-color: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--card-border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .table-custom td {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--card-border);
+            vertical-align: middle;
+        }
+
+        .table-custom tr:hover td {
+            background-color: #f1f5f9;
+        }
+
+        .badge-opp {
+            background-color: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+            font-weight: 600;
+            padding: 0.35rem 0.65rem;
+            border-radius: 6px;
+            font-size: 0.775rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .badge-protect {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+            font-weight: 600;
+            padding: 0.35rem 0.65rem;
+            border-radius: 6px;
+            font-size: 0.775rem;
+        }
+
+        .badge-tier1 {
+            background-color: #dcfce7;
+            color: #166534;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .badge-tier2 {
+            background-color: #ede9fe;
+            color: #5b21b6;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .badge-tier3 {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 500;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .badge-cannibal {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            font-weight: 600;
+            padding: 0.35rem 0.65rem;
+            border-radius: 6px;
+            font-size: 0.775rem;
+        }
+
+        .url-cell {
+            max-width: 380px;
+            word-break: break-all;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.8rem;
+        }
+
+        .query-cell {
+            max-width: 250px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 500;
+        }
+
+        .search-box {
+            position: relative;
+            min-width: 260px;
+        }
+
+        .search-box input {
+            padding-left: 2.25rem;
+            font-size: 0.875rem;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+
+        .redirect-code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.78rem;
+            background-color: #f1f5f9;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            color: #0f172a;
+            white-space: nowrap;
+        }
+
+        .copy-btn {
+            padding: 0.2rem 0.5rem;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid max-w-7xl px-md-4">
+    <!-- Header -->
+    <header class="dashboard-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+            <h1 class="dashboard-title">Top 1,000 Drupal to Dato Migration Report</h1>
+            <div class="dashboard-subtitle">
+                Property: <strong>{{ site_url }}</strong> &bull; Period: <strong>{{ period_str }}</strong> (Last 12 Months) &bull; Strategy: <strong>Retain Legacy URLs</strong>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-light text-secondary border px-3 py-2">Generated: {{ generation_date }}</span>
+        </div>
+    </header>
+
+    <!-- Strategy Notice Banner -->
+    <div class="alert alert-light border mb-4 d-flex align-items-start gap-3" role="alert" style="border-left: 4px solid var(--brand-blue) !important; background-color: #ffffff;">
+        <i class="bi bi-info-circle-fill text-primary fs-4 mt-1"></i>
+        <div>
+            <strong class="text-primary">Migration Strategy: Top 1,000 Legacy URL Preservation</strong>
+            <p class="mb-1 text-secondary" style="font-size: 0.9rem;">
+                This report classifies legacy Drupal (purple) pages to identify the priority 1,000 URLs to transfer to DatoCMS without altering their URL structure. 
+                Pages competing for the same search query are labelled as <strong>Cannibalised</strong>, excluded from the 1,000 allocation, and catalogued for 301 redirection. 
+                Pages ranking on page 1–2 with high search visibility but low CTR are highlighted for metadata optimisation (Title and Meta Description rewrite).
+            </p>
+        </div>
+    </div>
+
+    <!-- KPI Summary Cards -->
+    <div class="kpi-grid">
+        <div class="kpi-card candidates">
+            <div class="kpi-label">Top Migration Candidates</div>
+            <div class="kpi-value text-primary">{{ candidate_count_formatted }}</div>
+            <div class="kpi-subtext"><strong>{{ candidate_clicks_formatted }}</strong> clicks ({{ candidate_clicks_pct }})</div>
+        </div>
+        <div class="kpi-card opps">
+            <div class="kpi-label">CTR / Metadata Opportunities</div>
+            <div class="kpi-value text-warning">{{ opp_count_formatted }}</div>
+            <div class="kpi-subtext"><strong>{{ opp_impressions_formatted }}</strong> impressions to unlock</div>
+        </div>
+        <div class="kpi-card cannibalised">
+            <div class="kpi-label">Cannibalised URLs Excluded</div>
+            <div class="kpi-value text-danger">{{ cannibal_count_formatted }}</div>
+            <div class="kpi-subtext">Ready for <strong>301 redirection</strong></div>
+        </div>
+        <div class="kpi-card dato">
+            <div class="kpi-label">Already on DatoCMS</div>
+            <div class="kpi-value text-success">{{ dato_count_formatted }}</div>
+            <div class="kpi-subtext"><strong>{{ dato_clicks_formatted }}</strong> clicks ({{ dato_clicks_pct }})</div>
+        </div>
+        <div class="kpi-card pool">
+            <div class="kpi-label">Total Unique Legacy URLs</div>
+            <div class="kpi-value">{{ total_drupal_urls_formatted }}</div>
+            <div class="kpi-subtext">After query param stripping &amp; clean-up</div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs nav-tabs-custom" id="migrationTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="candidates-tab" data-bs-toggle="tab" data-bs-target="#candidates-pane" type="button" role="tab">
+                <i class="bi bi-list-check me-1"></i> Top 1,000 Candidates ({{ candidate_count_formatted }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="opportunities-tab" data-bs-toggle="tab" data-bs-target="#opportunities-pane" type="button" role="tab">
+                <i class="bi bi-lightning-charge-fill me-1 text-warning"></i> Metadata / CTR Opportunities ({{ opp_count_formatted }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="cannibalised-tab" data-bs-toggle="tab" data-bs-target="#cannibalised-pane" type="button" role="tab">
+                <i class="bi bi-signpost-split me-1 text-danger"></i> Cannibalised Redirects ({{ cannibal_count_formatted }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="dato-tab" data-bs-toggle="tab" data-bs-target="#dato-pane" type="button" role="tab">
+                <i class="bi bi-check-circle-fill me-1 text-success"></i> Already Migrated to Dato ({{ dato_count_formatted }})
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="migrationTabsContent">
+
+        <!-- Tab 1: Top 1,000 Candidates -->
+        <div class="tab-pane fade show active" id="candidates-pane" role="tabpanel">
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <div>
+                        <h2 class="card-title-custom">
+                            <i class="bi bi-star-fill text-primary"></i> Priority Migration Candidates
+                        </h2>
+                        <span class="text-muted small">Ranked with side-by-side Composite Score, Combined Rank Sum, and Tiered Allocation</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="search-box">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="candidateSearch" class="form-control" placeholder="Search URL or Query...">
+                        </div>
+                        <a href="{{ candidates_csv_filename }}" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1" download>
+                            <i class="bi bi-download"></i> CSV
+                        </a>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle" id="candidateTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">#</th>
+                                <th>Legacy Drupal URL</th>
+                                <th>Top Search Query</th>
+                                <th class="text-end">Clicks</th>
+                                <th class="text-end">Impr.</th>
+                                <th class="text-end">CTR</th>
+                                <th class="text-end">Avg Pos</th>
+                                <th class="text-end" title="Clicks + (Impressions / 50)">Comp. Score</th>
+                                <th class="text-end" title="Rank(Clicks) + Rank(Impr)">Rank Sum</th>
+                                <th>Tier</th>
+                                <th>Action / Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="candidateTableBody">
+                            {% for row in candidates %}
+                            <tr>
+                                <td class="fw-bold text-muted">{{ loop.index }}</td>
+                                <td class="url-cell">
+                                    <a href="{{ row.url }}" target="_blank" rel="noopener" class="text-decoration-none text-dark fw-semibold">
+                                        {{ row.url_display }}
+                                    </a>
+                                </td>
+                                <td class="query-cell" title="{{ row.top_query }}">{{ row.top_query }}</td>
+                                <td class="text-end fw-bold">{{ row.clicks_formatted }}</td>
+                                <td class="text-end">{{ row.impressions_formatted }}</td>
+                                <td class="text-end">{{ row.ctr_formatted }}</td>
+                                <td class="text-end">{{ row.position_formatted }}</td>
+                                <td class="text-end fw-bold text-primary">{{ row.composite_score_formatted }}</td>
+                                <td class="text-end text-muted">{{ row.combined_rank }}</td>
+                                <td>
+                                    {% if row.tier == 'Tier 1 (Top Clicks)' %}
+                                        <span class="badge-tier1">{{ row.tier }}</span>
+                                    {% elif row.tier == 'Tier 2 (Top Impressions)' %}
+                                        <span class="badge-tier2">{{ row.tier }}</span>
+                                    {% else %}
+                                        <span class="badge-tier3">{{ row.tier }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if row.is_opp %}
+                                        <span class="badge-opp" title="{{ row.opp_reason }}">
+                                            <i class="bi bi-lightning-fill"></i> CTR Opportunity
+                                        </span>
+                                    {% elif row.clicks >= 100 %}
+                                        <span class="badge-protect">High Performer</span>
+                                    {% else %}
+                                        <span class="text-muted small">Standard Transfer</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Metadata / CTR Opportunities -->
+        <div class="tab-pane fade" id="opportunities-pane" role="tabpanel">
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <div>
+                        <h2 class="card-title-custom text-warning">
+                            <i class="bi bi-lightning-charge-fill"></i> CTR &amp; Metadata Optimisation Opportunities
+                        </h2>
+                        <span class="text-muted small">Pages ranking in striking distance (&le; 20) with high impressions (&ge; 500) and below-expected CTR (&lt; 1.5%)</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="search-box">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="oppSearch" class="form-control" placeholder="Search Opportunities...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle" id="oppTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">#</th>
+                                <th>Legacy Drupal URL</th>
+                                <th>Primary Intent Query</th>
+                                <th class="text-end">Impressions</th>
+                                <th class="text-end">Clicks</th>
+                                <th class="text-end">CTR</th>
+                                <th class="text-end">Avg Pos</th>
+                                <th>Recommended SEO Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in opportunities %}
+                            <tr>
+                                <td class="fw-bold text-muted">{{ loop.index }}</td>
+                                <td class="url-cell">
+                                    <a href="{{ row.url }}" target="_blank" rel="noopener" class="text-decoration-none text-dark fw-semibold">
+                                        {{ row.url_display }}
+                                    </a>
+                                </td>
+                                <td class="query-cell fw-bold text-primary" title="{{ row.top_query }}">{{ row.top_query }}</td>
+                                <td class="text-end fw-bold">{{ row.impressions_formatted }}</td>
+                                <td class="text-end">{{ row.clicks_formatted }}</td>
+                                <td class="text-end text-danger fw-bold">{{ row.ctr_formatted }}</td>
+                                <td class="text-end">{{ row.position_formatted }}</td>
+                                <td>
+                                    <span class="badge-opp">
+                                        Rewrite &lt;title&gt; &amp; &lt;meta description&gt; targeting: <strong>{{ row.top_query }}</strong>
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Cannibalised Redirects -->
+        <div class="tab-pane fade" id="cannibalised-pane" role="tabpanel">
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <div>
+                        <h2 class="card-title-custom text-danger">
+                            <i class="bi bi-signpost-split"></i> Cannibalised Secondary Pages &amp; 301 Redirect Mapping
+                        </h2>
+                        <span class="text-muted small">Pages competing for the same primary query, excluded from the 1,000 quota</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="search-box">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="cannibalSearch" class="form-control" placeholder="Search Redirects...">
+                        </div>
+                        <a href="{{ cannibal_csv_filename }}" class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1" download>
+                            <i class="bi bi-download"></i> CSV
+                        </a>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle" id="cannibalTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">#</th>
+                                <th>Legacy Secondary URL (Source to Redirect)</th>
+                                <th>Primary Winning URL (Target)</th>
+                                <th>Competing Query</th>
+                                <th class="text-end">Secondary Clicks</th>
+                                <th class="text-end">Winning Clicks</th>
+                                <th>301 Redirect Directives</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in cannibalised %}
+                            <tr>
+                                <td class="fw-bold text-muted">{{ loop.index }}</td>
+                                <td class="url-cell text-danger">{{ row.source_url_display }}</td>
+                                <td class="url-cell text-success fw-semibold">{{ row.target_url_display }}</td>
+                                <td class="query-cell" title="{{ row.query }}">{{ row.query }}</td>
+                                <td class="text-end text-muted">{{ row.source_clicks }}</td>
+                                <td class="text-end fw-bold text-success">{{ row.target_clicks }}</td>
+                                <td>
+                                    <span class="redirect-code">Redirect 301 {{ row.source_path }} {{ row.target_path }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Already Migrated to Dato -->
+        <div class="tab-pane fade" id="dato-pane" role="tabpanel">
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <div>
+                        <h2 class="card-title-custom text-success">
+                            <i class="bi bi-check-circle-fill"></i> Already Migrated Dato Pages
+                        </h2>
+                        <span class="text-muted small">Live DatoCMS pages excluded from the 1,000 quota, reconciled against legacy URLs</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="search-box">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="datoSearch" class="form-control" placeholder="Search Dato URLs...">
+                        </div>
+                        <a href="{{ dato_csv_filename }}" class="btn btn-outline-success btn-sm d-flex align-items-center gap-1" download>
+                            <i class="bi bi-download"></i> CSV
+                        </a>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle" id="datoTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">#</th>
+                                <th>Live Dato URL</th>
+                                <th>Reconciled Legacy Drupal URL</th>
+                                <th>Top Query</th>
+                                <th class="text-end">Clicks</th>
+                                <th class="text-end">Impr.</th>
+                                <th class="text-end">CTR</th>
+                                <th class="text-end">Avg Pos</th>
+                                <th>URL Reversion Review</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in dato_pages %}
+                            <tr>
+                                <td class="fw-bold text-muted">{{ loop.index }}</td>
+                                <td class="url-cell">
+                                    <a href="{{ row.url }}" target="_blank" rel="noopener" class="text-decoration-none text-success fw-semibold">
+                                        {{ row.url_display }}
+                                    </a>
+                                </td>
+                                <td class="url-cell text-muted">
+                                    {% if row.legacy_url %}
+                                        {{ row.legacy_url_display }}
+                                    {% else %}
+                                        <span class="text-muted small">No prior equivalent / Direct match</span>
+                                    {% endif %}
+                                </td>
+                                <td class="query-cell" title="{{ row.top_query }}">{{ row.top_query }}</td>
+                                <td class="text-end fw-bold">{{ row.clicks_formatted }}</td>
+                                <td class="text-end">{{ row.impressions_formatted }}</td>
+                                <td class="text-end">{{ row.ctr_formatted }}</td>
+                                <td class="text-end">{{ row.position_formatted }}</td>
+                                <td>
+                                    {% if row.needs_review %}
+                                        <span class="badge bg-warning text-dark">URL Altered from Legacy</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark border">Matched Legacy</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-5 pt-3 border-top text-center text-muted small">
+        <p>Google Search Console Exporter &bull; Top 1,000 Drupal to DatoCMS Migration Intelligence Report &bull; Generated {{ generation_date }}</p>
+    </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function setupFilter(inputId, tableId) {
+        const input = document.getElementById(inputId);
+        const table = document.getElementById(tableId);
+        if (!input || !table) return;
+
+        input.addEventListener('keyup', function() {
+            const query = this.value.toLowerCase().trim();
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        });
+    }
+
+    setupFilter('candidateSearch', 'candidateTable');
+    setupFilter('oppSearch', 'oppTable');
+    setupFilter('cannibalSearch', 'cannibalTable');
+    setupFilter('datoSearch', 'datoTable');
+</script>
+</body>
+</html>

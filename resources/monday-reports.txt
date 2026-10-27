@@ -1,0 +1,84 @@
+Here are the code bases on shell.cloud.google.com:
+
+GA4: /home/liamvictor/projects/ga4-api-explorer
+GSC: /home/liamvictor/projects/gsc-exporter
+
+However, I will be running these locally:
+"C:\Users\liam.delahunty\OneDrive - Peninsula Group Online\Documents\2. Areas\Code\ga4-api-explorer"
+"C:\Users\liam.delahunty\OneDrive - Peninsula Group Online\Documents\2. Areas\Code\gsc-page-exporter"
+
+
+I run a weekly Monday report for our Accountancy Daily property: 
+
+Google Search Console
+
+/projects/gsc-page-exporter
+
+Look at /resources/weekly-performance-reporting-guide.html
+
+In bash shell run:
+
+source .venv/Scripts/activate
+
+python reports/weekly_editorial_summary_report.py sc-domain:accountancydaily.co
+
+Send email, title it: GSC Weekly Report for sc-domain:accountancydaily.co Period: YYYY-MM-DD to YYYY-MM-DD 
+
+TO: "Sara White" <Sara.White@croner.co.uk>; "Jacob Grattage" <Jacob.Grattage@croner.co.uk>
+
+CC: "David Tuckwell" <David.Tuckwell@croner.co.uk>; "Stuart Baxter" <Stuart.Baxter@croner.co.uk>; "Anika Sidhika" <Anika.Sidhika@croner.co.uk>; "Matt Barnsley" <Matt.Barnsley@croner.co.uk>
+
+Attach, eg,
+weekly-editorial-summary-sc-domain-accountancydaily-co-2026-09-26-to-2026-10-02.csv
+weekly-editorial-summary-sc-domain-accountancydaily-co-2026-09-26-to-2026-10-02-distribution.html
+
+
+--
+
+Then we do the GA4 / GSC "Canary" reports for a range of properties:
+
+Subject: Weekly Canary report: Generated: YYYY-MM-DD
+
+TO: 
+"David Tuckwell" <David.Tuckwell@croner.co.uk>; "Stuart Baxter" <Stuart.Baxter@croner.co.uk>; "Anika Sidhika" <Anika.Sidhika@croner.co.uk>; "Sara White" <Sara.White@croner.co.uk>; "Jacob Grattage" <Jacob.Grattage@croner.co.uk>; "Paul Robbins" <Paul.Robbins@croner.co.uk>; "Scott Houston" <Scott.Houston@croner.co.uk>; "Andrew Murphy" <Andrew.Murphy@croner.co.uk>
+
+CC: 
+"Yann Stepienik" <Yann.Stepienik@croner.co.uk>; "Orizu Nwokeji" <Orizu.Nwokeji@croner.co.uk>; "Muhammad Faheem" <Muhammad.Faheem@croner.co.uk>
+
+Message will be:
+
+"Hi everyone,
+
+Please find attached the three canary reports for the last week across our main properties.
+
+These are snapshot reports to show trends over the last week compared to last week, month, and WoW from last year.
+
+For the best experience download the reports to your local computer and drag into your preferred browser."
+
+and then my commentry
+
+
+GSC Canary
+
+2. Areas/Code/gsc-exporter 
+
+source .venv/Scripts/activate
+
+python reports/monitoring/canary_report.py --config config/properties.json 
+
+deactivate
+
+
+
+GA4 Canary
+
+2. Areas/Code/ga4-api-explorer
+
+source .venv/Scripts/activate
+
+python reports/monitoring/weekly_canary_html.py --config config/properties.json
+
+python reports/monitoring/weekly_canary_html.py --config config/properties.json --source
+
+deactivate
+

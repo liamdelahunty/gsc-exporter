@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Specification: Property Indexation & Keyword Ranking Reports</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; color: #212529; }
+        .hero-banner { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; padding: 2.5rem 2rem; border-radius: 12px; margin-bottom: 2rem; }
+        .spec-card { border: 1px solid #e2e8f0; border-radius: 10px; background: white; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .badge-head { background-color: #ef4444; color: white; }
+        .badge-longtail { background-color: #10b981; color: white; }
+        
+        /* Inline code styling: high-contrast dark text on subtle slate background */
+        code {
+            background-color: #e2e8f0;
+            color: #0f172a;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.875em;
+            font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        /* Terminal block styling for command line interface */
+        .terminal-block {
+            background-color: #0f172a;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin: 0.75rem 0 1.5rem 0;
+            border: 1px solid #1e293b;
+        }
+        .terminal-header {
+            background-color: #1e293b;
+            padding: 0.4rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #334155;
+        }
+        .terminal-header-title {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .terminal-content {
+            padding: 1rem 1.25rem;
+            margin: 0;
+            overflow-x: auto;
+            background-color: #0f172a;
+        }
+        .terminal-content code {
+            background: transparent;
+            color: #f8fafc;
+            padding: 0;
+            border: none;
+            font-size: 0.925rem;
+            line-height: 1.5;
+            display: block;
+        }
+        .prompt-symbol {
+            color: #4ade80;
+            margin-right: 0.5rem;
+            user-select: none;
+            font-weight: bold;
+        }
+        .cmd-text {
+            color: #38bdf8;
+            font-weight: 500;
+        }
+        .cmd-args {
+            color: #f8fafc;
+        }
+
+        /* Full prompt code block */
+        .full-prompt-block {
+            background-color: #0f172a;
+            border-radius: 8px;
+            padding: 1.25rem;
+            overflow-x: auto;
+            border: 1px solid #1e293b;
+        }
+        .full-prompt-block code {
+            background: transparent;
+            color: #f8fafc;
+            padding: 0;
+            border: none;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        .copy-btn { font-size: 0.75rem; padding: 0.2rem 0.6rem; }
+        footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #dee2e6; text-align: center; color: #6c757d; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <header class="navbar navbar-expand-lg navbar-light bg-light border-bottom mb-4">
+        <div class="container-fluid">
+            <div class="d-flex align-items-baseline">
+                <h1 class="h4 mb-0"><a class="navbar-brand fw-bold text-primary" href="index.html">GSC Exporter Scripts</a></h1>
+                <span class="text-muted me-4">Resources &amp; Specs</span>
+            </div>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="index.html">&larr; Back to Resources</a></li>
+                    <li class="nav-item"><a class="nav-link" href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">GitHub</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <main class="container py-3">
+
+        <div class="hero-banner shadow-sm">
+            <span class="badge bg-light text-primary mb-2 px-3 py-1 fw-bold">Implementation Specification</span>
+            <h1 class="display-6 fw-bold">Property Indexation, Keyword Breadth, and Question Ranking Reports</h1>
+            <p class="lead mb-3">Specification and prompt to build two modular reports analysing URL indexation depth, keyword portfolio distribution (head vs long tail), and question search queries.</p>
+            <div class="d-flex gap-2">
+                <a href="#prompt-block" class="btn btn-light btn-sm fw-semibold">View Raw Execution Prompt</a>
+                <a href="index.html" class="btn btn-outline-light btn-sm">Return to Resources Index</a>
+            </div>
+        </div>
+
+        <section class="spec-card">
+            <h2 class="h4 text-primary border-bottom pb-2 mb-3">1. Background and Technical Feasibility</h2>
+            <p>This specification addresses three complementary requirements for Google Search Console (GSC) property intelligence:</p>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="p-3 border rounded bg-light h-100">
+                        <h3 class="h6 fw-bold text-dark">Indexed URLs Count</h3>
+                        <p class="small text-muted mb-0">The GSC Search Analytics API surfaces URLs with at least one impression during the queried window. This provides the count of <strong>active ranking URLs</strong>. In addition, the GSC Sitemaps API can optionally be queried to report submitted vs indexed URL figures from submitted XML sitemaps.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 border rounded bg-light h-100">
+                        <h3 class="h6 fw-bold text-dark">Keyword Breadth</h3>
+                        <p class="small text-muted mb-0">Calculates unique search query counts per page and across the entire property. Segments queries into <strong>Head</strong> (up to 3 words) and <strong>Long Tail</strong> (4+ words), as well as impression distribution demand tiers.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 border rounded bg-light h-100">
+                        <h3 class="h6 fw-bold text-dark">Question Queries</h3>
+                        <p class="small text-muted mb-0">Scoped as a dedicated report to isolate and categorise question queries (e.g. What, How, Why, When, Where, Who, Which, Can/Is/Does). Surfaces striking-distance opportunities for editorial optimisation and FAQ enhancement.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="spec-card">
+            <h2 class="h4 text-primary border-bottom pb-2 mb-3">2. Report 1: Property Indexation and Keyword Breadth</h2>
+            <p><strong>Script Location:</strong> <code>reports/property_indexation_keyword_report.py</code></p>
+            
+            <h3 class="h6 fw-bold mt-4">Key Metrics and Processing</h3>
+            <ul class="mb-3">
+                <li><strong>Active Ranking URLs:</strong> Unique count of pages receiving impressions via <code>fetch_with_cache</code> with dimensions <code>['page', 'query']</code>.</li>
+                <li><strong>Property Unique Keywords:</strong> Total distinct queries ranking across the entire property (<code>df['query'].nunique()</code>).</li>
+                <li><strong>Keywords per URL:</strong> Grouped query breadth (<code>df.groupby('page')['query'].nunique()</code>) alongside clicks, impressions, CTR, and average position.</li>
+                <li><strong>Keyword Segmentation:</strong>
+                    <ul>
+                        <li><span class="badge badge-head">Head</span> 1 to 3 words (broad intent / core commercial queries)</li>
+                        <li><span class="badge badge-longtail">Long Tail</span> 4+ words (high intent / specific queries)</li>
+                    </ul>
+                </li>
+                <li><strong>Optional Sitemap Metric:</strong> Queries <code>service.sitemaps().list()</code> to display submitted vs indexed URL counts from submitted sitemaps for context.</li>
+            </ul>
+
+            <h3 class="h6 fw-bold mt-4">Output Files</h3>
+            <ul>
+                <li>CSV: <code>output/&lt;site-url&gt;/property-indexation-keyword-portfolio-&lt;slug&gt;-&lt;start&gt;-to-&lt;end&gt;.csv</code></li>
+                <li>HTML: <code>output/&lt;site-url&gt;/property-indexation-keyword-portfolio-&lt;slug&gt;-&lt;start&gt;-to-&lt;end&gt;.html</code></li>
+            </ul>
+
+            <h3 class="h6 fw-bold mt-4">Command-Line Interface</h3>
+            <div class="terminal-block">
+                <div class="terminal-header">
+                    <span class="terminal-header-title">Terminal / Bash</span>
+                    <button class="btn btn-outline-light copy-btn" onclick="copyCli('cmd-report-1', this)">Copy Command</button>
+                </div>
+                <pre class="terminal-content"><code id="cmd-report-1"><span class="prompt-symbol">$</span><span class="cmd-text">python reports/property_indexation_keyword_report.py</span> <span class="cmd-args">&lt;site-url&gt; --last-month --limit 250 --long-tail-threshold 4</span></code></pre>
+            </div>
+        </section>
+
+        <section class="spec-card">
+            <h2 class="h4 text-primary border-bottom pb-2 mb-3">3. Report 2: Question Queries Ranking Report</h2>
+            <p><strong>Script Location:</strong> <code>reports/question_queries_report.py</code></p>
+
+            <h3 class="h6 fw-bold mt-4">Objectives and Classification Engine</h3>
+            <ul class="mb-3">
+                <li><strong>Detection Logic:</strong> Matches 5W1H interrogative pronouns and adverbs (<em>what, how, why, when, where, who, which</em>), auxiliary question verbs (<em>can, could, should, would, is, are, do, does, did, have, has</em>), explicit question marks (<code>?</code>), and comparison patterns (<em>difference between, versus, vs</em>).</li>
+                <li><strong>Opportunity Tiers:</strong>
+                    <ul>
+                        <li><strong>Top Performers:</strong> Average position &le; 3.0 (featured snippet / AI Overview candidates).</li>
+                        <li><strong>Striking Distance:</strong> Positions 3.1 to 20.0 (actionable targets for content refreshes and FAQ schema).</li>
+                        <li><strong>High Demand, Low CTR:</strong> Above-average impressions with below-average CTR.</li>
+                    </ul>
+                </li>
+                <li><strong>URL Mapping:</strong> Pinpoints the destination pages currently answering each question query to identify content cannibalisation or thin answers.</li>
+            </ul>
+
+            <h3 class="h6 fw-bold mt-4">Output Files</h3>
+            <ul>
+                <li>CSV: <code>output/&lt;site-url&gt;/question-queries-ranking-&lt;slug&gt;-&lt;start&gt;-to-&lt;end&gt;.csv</code></li>
+                <li>HTML: <code>output/&lt;site-url&gt;/question-queries-ranking-&lt;slug&gt;-&lt;start&gt;-to-&lt;end&gt;.html</code></li>
+            </ul>
+
+            <h3 class="h6 fw-bold mt-4">Command-Line Interface</h3>
+            <div class="terminal-block">
+                <div class="terminal-header">
+                    <span class="terminal-header-title">Terminal / Bash</span>
+                    <button class="btn btn-outline-light copy-btn" onclick="copyCli('cmd-report-2', this)">Copy Command</button>
+                </div>
+                <pre class="terminal-content"><code id="cmd-report-2"><span class="prompt-symbol">$</span><span class="cmd-text">python reports/question_queries_report.py</span> <span class="cmd-args">&lt;site-url&gt; --last-month --category how --striking-distance-only --limit 500</span></code></pre>
+            </div>
+        </section>
+
+        <section class="spec-card" id="prompt-block">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                <h2 class="h4 text-primary mb-0">4. Copyable Implementation Prompt</h2>
+                <button class="btn btn-outline-primary btn-sm copy-btn" onclick="copyPrompt(this)">Copy Prompt to Clipboard</button>
+            </div>
+            <p class="text-muted small">Provide the prompt below to your assistant or CLI session to implement the complete reporting pipeline.</p>
+            <div class="full-prompt-block">
+                <pre class="mb-0"><code id="raw-prompt"># Task: Implement Property Indexation, Keyword Breadth, and Question Ranking Reports
+
+Implement two new modular reports in the gsc-exporter codebase to analyse indexation depth, keyword portfolio distribution (head vs long tail), and question search queries.
+
+## 1. Context and Codebase Architecture
+
+Review the existing repository architecture before implementation:
+- core/client.py: Provides GSC API authentication via get_gsc_service() and site listing via get_available_properties().
+- core/cache.py: Provides fetch_with_cache(service, site_url, start_date, end_date, dimensions, ...) with monthly chunk fragmentation.
+- core/naming.py: Standardises output directories using dot-notation (get_output_dir(site_url)) and output file slugs using hyphens (get_filename_slug(site_url)).
+- core/date_utils.py: Provides parse_standard_date_args(args, service, site_url) handling --start-date, --end-date, and --last-month.
+- reports/: Houses modular reports following the standard run_report(service, site_url, ...) signature.
+- interactive-runner.py: Discovers and launches reports interactively.
+- utilities/validate_all_reports.py: Runs automated sanity checks across reports.
+
+Strict conventions to observe:
+- British English throughout all code comments, docstrings, documentation, and user-facing text (e.g. analyse, categorise, prioritisation, behaviour).
+- Do not use em dashes anywhere (use colons, semicolons, parentheses, or commas instead).
+- Output files must be hyphen-separated, all lowercase, and SEO-friendly.
+- Python module names in reports/ must be lowercase with underscores.
+- Each report execution must produce at least one CSV file and one interactive HTML report using Bootstrap 5.
+- Console output must print the explicit file paths (including file:// URIs).
+
+## 2. Report 1: Property Indexation and Keyword Breadth Report
+- Script: reports/property_indexation_keyword_report.py
+- Objectives:
+  1. Measure total active ranking/indexed URLs for the specified property and date range.
+  2. Calculate total unique keywords ranking across the entire property.
+  3. Calculate unique keywords ranking per URL.
+  4. Segment keywords into Head (1 to 3 words) and Long Tail (4+ words).
+  5. Optionally query service.sitemaps().list() to show submitted vs indexed counts from sitemaps.
+- Outputs:
+  - CSV: output/&lt;site-url&gt;/property-indexation-keyword-portfolio-&lt;slug&gt;-&lt;start&gt;-to-&lt;end&gt;.csv
+  - HTML: output/&lt;site-url&gt;/property-indexation-keyword-portfolio-&lt;slug&gt;-&lt;start&gt;-to-&lt;end&gt;.html
+
+## 3. Report 2: Question Queries Ranking Report
+- Script: reports/question_queries_report.py
+- Objectives:
+  1. Identify all queries matching interrogative patterns (what, how, why, when, where, who, which, can, is, do, does, ?).
+  2. Categorise questions by interrogative type and rank tier (top performers vs striking distance positions 4-20).
+  3. Map questions to destination URLs.
+- Outputs:
+  - CSV: output/&lt;site-url&gt;/question-queries-ranking-&lt;slug&gt;-&lt;start&gt;-to-&lt;end&gt;.csv
+  - HTML: output/&lt;site-url&gt;/question-queries-ranking-&lt;slug&gt;-&lt;start&gt;-to-&lt;end&gt;.html
+
+## 4. Integration & Validation
+- Register both reports in interactive-runner.py and utilities/validate_all_reports.py.
+- Create unit tests for word counting and question regex matching in tests/.</code></pre>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="mt-4 py-4 bg-light border-top">
+        <div class="container text-center text-secondary">
+            <p><a href="index.html">Resources</a> | <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function copyCli(elementId, btn) {
+            const rawEl = document.getElementById(elementId);
+            // Extract text excluding prompt symbol
+            let text = rawEl.innerText.replace(/^\$\s*/, '').trim();
+            navigator.clipboard.writeText(text).then(() => {
+                const orig = btn.innerText;
+                btn.innerText = 'Copied!';
+                btn.classList.add('btn-success');
+                btn.classList.remove('btn-outline-light');
+                setTimeout(() => {
+                    btn.innerText = orig;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-outline-light');
+                }, 2000);
+            });
+        }
+
+        function copyPrompt(btn) {
+            const promptText = document.getElementById('raw-prompt').innerText;
+            navigator.clipboard.writeText(promptText).then(() => {
+                const orig = btn.innerText;
+                btn.innerText = 'Copied!';
+                btn.classList.add('btn-success');
+                btn.classList.remove('btn-outline-primary');
+                setTimeout(() => {
+                    btn.innerText = orig;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-outline-primary');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

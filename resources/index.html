@@ -7,7 +7,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         html { height: 100%; }
-        body { display: flex; flex-direction: column; min-height: 100vh; }
+        body { display: flex; flex-direction: column; min-height: 100vh; background-color: #f8f9fa; }
+        .section-title { font-size: 1.15rem; font-weight: 600; color: #1e3a8a; margin-top: 2rem; margin-bottom: 0.75rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.4rem; }
+        .list-group-item a { text-decoration: none; color: #1d4ed8; }
+        .list-group-item a:hover { text-decoration: underline; color: #1e40af; }
     </style>
 </head>
 <body>
@@ -15,8 +18,8 @@
     <header class="navbar navbar-expand-lg navbar-light bg-light border-bottom mb-4">
         <div class="container-fluid">
             <div class="d-flex align-items-baseline">
-                <h1 class="h3 mb-0 "><a class="navbar-brand" href="index.html">GSC Exporter Scripts</a></h1>
-                <span class="text-muted me-4">Resources</span>
+                <h1 class="h3 mb-0"><a class="navbar-brand text-primary fw-bold" href="index.html">GSC Exporter Scripts</a></h1>
+                <span class="text-muted me-4">Resources Directory</span>
             </div>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -30,7 +33,7 @@
                         <a class="nav-link" href="script-flags.html">Script Flags</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="index.html">Resources</a>
+                        <a class="nav-link active" href="index.html">Resources</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">GitHub</a>
@@ -40,44 +43,88 @@
         </div>
     </header>
 
-    <main class="container py-4 flex-grow-1">
+    <main class="container py-3 flex-grow-1">
 
-        <h1 class="mb-3">Resources</h1>
-        <div class="list-group">
-            <li class="list-group-item"><a href="account-wide-ideas.html">Account-wide Strategy & Script Ideas</a></li>
-            <li class="list-group-item"><a href="data-collection-schedule.html">Best Practice Data Collection Schedule</a></li>
-            <li class="list-group-item"><a href="caching-feature-ideas.html">Caching Feature Implementation Ideas</a></li>
-            <li class="list-group-item"><a href="caching-recommendations.html">Caching Recommendations (GSC & GA4 Strategy)</a></li>
-            <li class="list-group-item"><a href="cloud-shell-auth-guide.txt">Cloud Shell Authentication Guide</a></li>
-            <li class="list-group-item"><a href="codebase-improvement-plan.html">Codebase Improvement Plan (GA4-Inspired Refactor)</a></li>
-            <li class="list-group-item"><a href="common-scenarios.html">Common Scenarios & Script Usage</a></li>
-            <li class="list-group-item"><a href="merge-forked-repo-changes.html">Git Workflow: Pushing and Syncing with Upstream</a></li>
-            <li class="list-group-item"><a href="gsc-script-ideas.html">GSC Script Ideas</a></li>
-            <li class="list-group-item"><a href="how-to-read-discover-key-performance-metrics-report.html">How to Read the Discover Key Performance Metrics Report</a></li>
-            <li class="list-group-item"><a href="how-to-read-the-gsc-wrapped-report.html">How to Read the GSC Wrapped Report</a></li>
-            <li class="list-group-item"><a href="how-to-read-key-performance-metrics-report.html">How to Read the Key Performance Metrics Report</a></li>
-            <li class="list-group-item"><a href="how-to-read-the-monthly-summary-report.html">How to Read the Monthly Summary Report</a></li>
-            <li class="list-group-item"><a href="how-to-read-pages-queries-report.html">How to Read the Pages & Queries Report</a></li>
-            <li class="list-group-item"><a href="how-to-read-queries-pages-analysis-report.html">How to Read the Queries & Pages Analysis Report</a></li>
-            <li class="list-group-item"><a href="how-to-read-the-performance-analysis-report.html">How to Read the Performance Analysis Report</a></li>
-            <li class="list-group-item"><a href="how-to-read-the-query-position-report.html">How to Read the Query Position Distribution Report</a></li>
+        <h1 class="mb-2">Documentation and Resources</h1>
+        <p class="text-muted mb-4">Documentation, guides, specifications, and workflows for Google Search Console reporting.</p>
+
+        <!-- Group 1: Specifications & Implementation Prompts -->
+        <h2 class="section-title">Specifications and Implementation Prompts</h2>
+        <ul class="list-group mb-4 shadow-sm">
+            <li class="list-group-item"><a href="prompt-indexed-urls-and-keyword-ranking-reports.html">Prompt Specification: Property Indexation and Keyword Ranking Reports</a></li>
+            <li class="list-group-item"><a href="prompt-url-silo-keyword-clustering-report.html">Prompt Specification: URL Silo Clustering Report (by Shared Keyword Footprint)</a></li>
+            <li class="list-group-item"><a href="REFACTOR_PROMPT.md">Modular Refactor Implementation Prompt (Markdown)</a></li>
+            <li class="list-group-item"><a href="report-blank.html">HTML Report Base Template</a></li>
+        </ul>
+
+        <!-- Group 2: Report Interpretation & How-to Guides -->
+        <h2 class="section-title">Report Interpretation and How-to Guides</h2>
+        <ul class="list-group mb-4 shadow-sm">
             <li class="list-group-item"><a href="how-to-read-the-snapshot-report.html">How to Read the Snapshot Report</a></li>
+            <li class="list-group-item"><a href="how-to-read-the-performance-analysis-report.html">How to Read the Performance Analysis Report</a></li>
+            <li class="list-group-item"><a href="how-to-read-the-monthly-summary-report.html">How to Read the Monthly Summary Report</a></li>
+            <li class="list-group-item"><a href="how-to-read-key-performance-metrics-report.html">How to Read the Key Performance Metrics Report</a></li>
+            <li class="list-group-item"><a href="how-to-read-discover-key-performance-metrics-report.html">How to Read the Discover Key Performance Metrics Report</a></li>
+            <li class="list-group-item"><a href="how-to-read-pages-queries-report.html">How to Read the Pages and Queries Report</a></li>
+            <li class="list-group-item"><a href="how-to-read-queries-pages-analysis-report.html">How to Read the Queries and Pages Analysis Report</a></li>
+            <li class="list-group-item"><a href="how-to-read-the-query-position-report.html">How to Read the Query Position Distribution Report</a></li>
+            <li class="list-group-item"><a href="how-to-read-the-gsc-wrapped-report.html">How to Read the GSC Wrapped Report</a></li>
+            <li class="list-group-item"><a href="scenario-top-pages-keywords.html">Scenario: Top 100 Pages and Their Keywords</a></li>
+        </ul>
+
+        <!-- Group 3: Migration Reporting Guides -->
+        <h2 class="section-title">Migration Reporting Guides</h2>
+        <ul class="list-group mb-4 shadow-sm">
             <li class="list-group-item"><a href="hr-inform-migration-reports-guide.html">HR-Inform Migration Reports Guide (Drupal to DatoCMS)</a></li>
             <li class="list-group-item"><a href="library-migration-reports-guide.html">Library Migration Reports Guide (Croner-i Library to Marketing)</a></li>
-            <li class="list-group-item"><a href="report-blank.html">HTML Report Template (Base)</a></li>
+        </ul>
+
+        <!-- Group 4: Strategy, Architecture & Roadmap -->
+        <h2 class="section-title">Strategy, Architecture and Roadmap</h2>
+        <ul class="list-group mb-4 shadow-sm">
+            <li class="list-group-item"><a href="codebase-improvement-plan.html">Codebase Improvement Plan (GA4-Inspired Refactor)</a></li>
+            <li class="list-group-item"><a href="next-developments.md">Future Developments and Roadmap (Markdown)</a></li>
+            <li class="list-group-item"><a href="account-wide-ideas.html">Account-wide Strategy and Script Ideas</a></li>
+            <li class="list-group-item"><a href="gsc-script-ideas.html">GSC Script Ideas</a></li>
+            <li class="list-group-item"><a href="data-collection-schedule.html">Best Practice Data Collection Schedule</a></li>
+            <li class="list-group-item"><a href="caching-recommendations.html">Caching Recommendations (GSC and GA4 Strategy)</a></li>
+            <li class="list-group-item"><a href="caching-feature-ideas.html">Caching Feature Implementation Ideas</a></li>
+            <li class="list-group-item"><a href="branding.md">Branding and Styling Guidelines (Markdown)</a></li>
+        </ul>
+
+        <!-- Group 5: Technical Reference & Operations -->
+        <h2 class="section-title">Technical Reference and Operations</h2>
+        <ul class="list-group mb-4 shadow-sm">
+            <li class="list-group-item"><a href="script-flags.html">Script Flags and Arguments Matrix</a></li>
+            <li class="list-group-item"><a href="common-scenarios.html">Common Scenarios and Script Usage</a></li>
             <li class="list-group-item"><a href="python_scripts_overview.md">Python Scripts Overview (Markdown)</a></li>
-            <li class="list-group-item"><a href="scenario-top-pages-keywords.html">Scenario: Top 100 Pages & Their Keywords</a></li>
-            <li class="list-group-item"><a href="script-flags.html">Script Flags & Arguments Matrix</a></li>
-            <li class="list-group-item"><a href="reporting-blueprint.html"><strong>Weekly & Monthly Reporting Blueprint</strong></a></li>
-            <ul>Weekly:
-            <li class="list-group-item"><a href="query-change-reports.html">Identifying Query Changes Week-on-Week</a></li>
+            <li class="list-group-item"><a href="reports/all-reports-documentation.md">All Modular Reports Documentation (Markdown)</a></li>
+            <li class="list-group-item"><a href="INSTRUCTIONS.md">Setup and General Instructions (Markdown)</a></li>
+            <li class="list-group-item"><a href="gsc-exporter-automation-guide.html">GSC Exporter Automation Guide (HTML)</a></li>
+            <li class="list-group-item"><a href="cloud-shell-automation-guide.html">Cloud Shell Automation and Quickstart Guide (HTML)</a></li>
+            <li class="list-group-item"><a href="cloud-shell-automation-guide.md">Cloud Shell Automation Guide (Markdown)</a></li>
+            <li class="list-group-item"><a href="cloud-shell-auth-guide.txt">Cloud Shell Authentication Guide (Text)</a></li>
+            <li class="list-group-item"><a href="merge-forked-repo-changes.html">Git Workflow: Pushing and Syncing with Upstream</a></li>
+            <li class="list-group-item"><a href="REFACTOR_LOG.md">Refactor Execution Log (Markdown)</a></li>
+            <li class="list-group-item"><a href="z-chat-log.md">Chat Log and Planning Archive (Markdown)</a></li>
+        </ul>
+
+        <!-- Group 6: Weekly & Monthly Reporting Workflows -->
+        <h2 class="section-title">Weekly and Monthly Reporting Workflows</h2>
+        <ul class="list-group mb-4 shadow-sm">
+            <li class="list-group-item"><a href="reporting-blueprint.html">Weekly and Monthly Reporting Blueprint</a></li>
+            <li class="list-group-item"><a href="monthly-reporting-guide.html">Monthly Performance Reporting Guide</a></li>
             <li class="list-group-item"><a href="weekly-performance-reporting-guide.html">Weekly Performance Reporting Guide</a></li>
-            <li class="list-group-item"><a href="weekly-comparison-report-spec.html">New Report Specification: Weekly Comparison</a></li>
-            </ul>
-        </div>
+            <li class="list-group-item"><a href="weekly-comparison-report-spec.html">Weekly Comparison Report Specification</a></li>
+            <li class="list-group-item"><a href="query-change-reports.html">Identifying Query Changes Week-on-Week</a></li>
+            <li class="list-group-item"><a href="monday-reporting-guide.html">Monday Performance Reporting Guide</a></li>
+            <li class="list-group-item"><a href="monday-ga4-gsc-reporting-guide.html">Monday GA4 and GSC Reporting Guide</a></li>
+            <li class="list-group-item"><a href="monday-reports.txt">Monday Reports Schedule and Command List (Text)</a></li>
+        </ul>
+
     </main>
     
-    <footer class="mt-3 bg-light border-top mt-4 py-4">    
+    <footer class="mt-auto bg-light border-top py-4">    
         <div class="container text-center text-secondary">
             <p><a href="index.html">Resources</a> | <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p>
         </div>

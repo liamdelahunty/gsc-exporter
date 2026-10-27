@@ -105,6 +105,17 @@ Example Usage:
         print(f"{'#'*60}")
         
         for report in reports_to_run:
+            # Resolve script path if bare filename or kebab-case was provided
+            if not os.path.exists(report):
+                for candidate in [
+                    os.path.join('reports', report),
+                    os.path.join('reports', report.replace('-', '_')),
+                    report.replace('-', '_')
+                ]:
+                    if os.path.exists(candidate):
+                        report = candidate
+                        break
+
             if not os.path.exists(report):
                 print(f"\n[!] Warning: Script '{report}' not found. Skipping.")
                 continue

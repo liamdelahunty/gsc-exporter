@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monday Performance Reporting Guide - Standard Operating Procedure</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --primary-navy: #0f172a;
+            --accent-blue: #0284c7;
+            --accent-green: #059669;
+            --accent-amber: #d97706;
+            --accent-red: #dc2626;
+            --bg-light: #f8fafc;
+            --card-border: #e2e8f0;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: #334155;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            padding-bottom: 5rem;
+        }
+
+        .header-banner {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 3rem 0 2.5rem;
+            margin-bottom: 2.5rem;
+            border-bottom: 4px solid var(--accent-blue);
+        }
+
+        .main-card {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            padding: 2.25rem;
+            margin-bottom: 2.25rem;
+        }
+
+        h1, h2, h3, h4, h5 {
+            color: var(--primary-navy);
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 0.6rem;
+            margin-top: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .badge-step {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            background-color: var(--accent-blue);
+            color: white;
+            border-radius: 50%;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-right: 0.6rem;
+        }
+
+        /* Terminal & Code Blocks */
+        .terminal-box {
+            background: #090d16;
+            border-radius: 8px;
+            border: 1px solid #1e293b;
+            margin-bottom: 1.25rem;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .terminal-header {
+            background: #111827;
+            padding: 0.5rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #1f2937;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            font-family: monospace;
+        }
+
+        .terminal-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .terminal-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .dot-red { background: #ef4444; }
+        .dot-yellow { background: #f59e0b; }
+        .dot-green { background: #10b981; }
+
+        pre {
+            margin: 0;
+            padding: 1.1rem 1.25rem;
+            background: transparent;
+            color: #38bdf8;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        code:not(pre code) {
+            background-color: #f1f5f9;
+            color: #0369a1;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.88em;
+            font-family: monospace;
+        }
+
+        /* Email Card Styling */
+        .email-card {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+            overflow: hidden;
+            margin-top: 1.25rem;
+        }
+
+        .email-header {
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 1.25rem;
+        }
+
+        .email-row {
+            display: flex;
+            align-items: flex-start;
+            padding: 0.4rem 0;
+            font-size: 0.9rem;
+        }
+
+        .email-label {
+            width: 90px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            padding-top: 3px;
+        }
+
+        .email-value {
+            flex-grow: 1;
+            color: #0f172a;
+            word-break: break-word;
+        }
+
+        .email-body {
+            padding: 1.25rem;
+            background: #ffffff;
+            font-size: 0.92rem;
+            border-top: 1px dashed #e2e8f0;
+        }
+
+        .recipient-pill {
+            display: inline-block;
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 0.15rem 0.55rem;
+            border-radius: 12px;
+            font-size: 0.82rem;
+            margin: 2px 3px 2px 0;
+            border: 1px solid #bae6fd;
+        }
+
+        .recipient-pill.cc {
+            background: #f1f5f9;
+            color: #475569;
+            border-color: #cbd5e1;
+        }
+
+        /* Buttons & Actions */
+        .btn-copy {
+            transition: all 0.2s ease;
+        }
+
+        .btn-copy:hover {
+            transform: translateY(-1px);
+        }
+
+        .copy-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #0f172a;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 1050;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .nav-tabs .nav-link {
+            font-weight: 600;
+            color: #64748b;
+        }
+        .nav-tabs .nav-link.active {
+            color: #0284c7;
+            font-weight: 700;
+            border-bottom: 2px solid #0284c7;
+        }
+
+        .insight-box {
+            background: #f0fdf4;
+            border-left: 4px solid var(--accent-green);
+            padding: 1.25rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1.25rem 0;
+        }
+
+        .triage-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .triage-red { background-color: #ef4444; }
+        .triage-amber { background-color: #f59e0b; }
+        .triage-green { background-color: #10b981; }
+
+        .callout-tip {
+            border-left: 4px solid #3b82f6;
+            background-color: #eff6ff;
+            padding: 1rem 1.25rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+        }
+
+        .callout-warning {
+            border-left: 4px solid #f59e0b;
+            background-color: #fffbeb;
+            padding: 1rem 1.25rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Section -->
+    <header class="header-banner">
+        <div class="container">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <span class="badge bg-primary text-uppercase px-2.5 py-1.5 mb-2 fw-semibold">Standard Operating Procedure</span>
+                    <h1 class="text-white mb-1">Monday Performance Reporting Guide</h1>
+                    <p class="text-slate-300 mb-0 fs-5 text-light">Operational walkthrough for Accountancy Daily editorial metrics & weekly portfolio canary monitoring.</p>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-dark border border-secondary text-light px-3 py-2 fs-6">
+                        <i class="bi bi-windows me-1 text-info"></i> Environment: Local Windows (PC)
+                    </span>
+                    <div class="mt-2 text-white-50 small">
+                        Schedule: Every Monday by 10:30 AM
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- Navigation / Jump Bar -->
+        <div class="card bg-white border-1 mb-3 shadow-sm">
+            <div class="card-body py-2.5 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <span class="fw-bold text-secondary small text-uppercase"><i class="bi bi-compass me-1"></i> Quick Jump:</span>
+                <div class="btn-group btn-group-sm">
+                    <a href="#date-calculator" class="btn btn-outline-info">Date & Subject Hub</a>
+                    <a href="#overview" class="btn btn-outline-secondary">Overview & Setup</a>
+                    <a href="#report-1-editorial" class="btn btn-outline-primary">1. Accountancy Daily Editorial</a>
+                    <a href="#report-2-canary" class="btn btn-outline-primary">2. Canary Monitoring Suite</a>
+                    <a href="#interpreting-canary" class="btn btn-outline-secondary">Commentary Guide</a>
+                    <a href="#quick-cheat-sheet" class="btn btn-outline-dark">Quick Cheat Sheet</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Live Date Calculator & Quick-Copy Hub -->
+        <section id="date-calculator" class="main-card border-primary border-2 mb-4 bg-white">
+            <div class="d-flex flex-wrap justify-content-between align-items-center pb-2 mb-3 border-bottom">
+                <div class="d-flex align-items-center">
+                    <span class="badge-step bg-primary me-2"><i class="bi bi-calendar3"></i></span>
+                    <div>
+                        <h4 class="mb-0 text-primary">Live Date Calculator &amp; One-Click Email Subjects</h4>
+                        <small class="text-muted">Calculates the trailing 7-day GSC reporting window and prepares ready-to-paste subject lines.</small>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+                    <label for="inputBaseDate" class="small fw-bold text-secondary mb-0">Run Date:</label>
+                    <input type="date" id="inputBaseDate" class="form-control form-control-sm" style="width: 145px;" onchange="recalculateDates()">
+                    <label for="selectLagDays" class="small fw-bold text-secondary mb-0 ms-2">GSC Lag:</label>
+                    <select id="selectLagDays" class="form-select form-select-sm" style="width: 135px;" onchange="recalculateDates()">
+                        <option value="2">2 Days (Fast)</option>
+                        <option value="3" selected>3 Days (Standard)</option>
+                        <option value="4">4 Days (Extended)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <!-- Subject 1: Editorial -->
+                <div class="col-lg-6">
+                    <div class="p-3 rounded border bg-light h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge bg-primary text-white"><i class="bi bi-newspaper me-1"></i> Accountancy Daily Subject</span>
+                                <small class="text-muted font-monospace" id="calc-editorial-period-badge">Period: Calculating...</small>
+                            </div>
+                            <div class="bg-white p-2.5 rounded border my-2 font-monospace small text-dark fw-bold" id="hub-editorial-subject" style="word-break: break-all;">
+                                GSC Weekly Report for sc-domain:accountancydaily.co Period: ...
+                            </div>
+                        </div>
+                        <div class="mt-2 text-end">
+                            <button class="btn btn-sm btn-primary w-100 btn-copy" onclick="copyEditorialSubject()">
+                                <i class="bi bi-clipboard-check me-1"></i> Copy Editorial Subject Line
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subject 2: Canary -->
+                <div class="col-lg-6">
+                    <div class="p-3 rounded border bg-light h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge bg-dark text-white"><i class="bi bi-activity me-1"></i> Portfolio Canary Subject</span>
+                                <small class="text-muted font-monospace" id="calc-canary-date-badge">Generated: Calculating...</small>
+                            </div>
+                            <div class="bg-white p-2.5 rounded border my-2 font-monospace small text-dark fw-bold" id="hub-canary-subject" style="word-break: break-all;">
+                                Weekly Canary report: Generated: ...
+                            </div>
+                        </div>
+                        <div class="mt-2 text-end">
+                            <button class="btn btn-sm btn-dark w-100 btn-copy" onclick="copyCanarySubject()">
+                                <i class="bi bi-clipboard-check me-1"></i> Copy Canary Subject Line
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Overview & Architecture -->
+        <section id="overview" class="main-card">
+            <h2><span class="badge-step"><i class="bi bi-info-lg"></i></span> Overview & Windows Environment Setup</h2>
+            <p class="lead">
+                Every Monday morning, two vital reporting operations are run to monitor organic search health, content distribution, and overall portfolio stability across our digital properties.
+            </p>
+
+            <div class="row g-4 mt-1">
+                <div class="col-md-6">
+                    <div class="p-3 border rounded-3 bg-light h-100">
+                        <h5 class="text-primary mb-2"><i class="bi bi-newspaper me-2"></i>Report 1: Accountancy Daily Editorial</h5>
+                        <p class="small text-muted mb-2"><strong>Focus:</strong> Content Performance & Editorial Strategy</p>
+                        <p class="small mb-0">
+                            Analyses story reach, click volume, and viral distribution across <strong>Google Web Search</strong>, <strong>Google Discover</strong>, and <strong>Google News</strong> over the past 7 days. Helps editors know exactly which articles won the week.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 border rounded-3 bg-light h-100">
+                        <h5 class="text-primary mb-2"><i class="bi bi-activity me-2"></i>Report 2: Weekly Canary Monitoring Suite</h5>
+                        <p class="small text-muted mb-2"><strong>Focus:</strong> Triage & Anomaly Detection (11 Properties)</p>
+                        <p class="small mb-0">
+                            A triple-report early warning system across both Google Search Console (GSC) and Google Analytics 4 (GA4). Detects algorithmic drops, tracking drop-offs, and shifts across WoW (Week-on-Week), MoM (Month-on-Month), and YoY (Year-on-Year).
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <h4 class="mt-4 mb-3">Local Windows Directory Map</h4>
+            <p>On your local Windows machine, these repositories reside within your OneDrive development directory:</p>
+
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 22%;">System / Repo</th>
+                            <th style="width: 58%;">Local Windows Path</th>
+                            <th style="width: 20%;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>GSC Exporter</strong><br><small class="text-muted">(Editorial & GSC Canary)</small></td>
+                            <td><code>C:\Users\liam.delahunty\OneDrive - Peninsula Group Online\Documents\2. Areas\Code\gsc-page-exporter</code></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-secondary btn-copy" onclick="copyText('C:\\Users\\liam.delahunty\\OneDrive - Peninsula Group Online\\Documents\\2. Areas\\Code\\gsc-page-exporter')">
+                                    <i class="bi bi-clipboard me-1"></i> Copy Path
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>GA4 API Explorer</strong><br><small class="text-muted">(GA4 Canary Reports)</small></td>
+                            <td><code>C:\Users\liam.delahunty\OneDrive - Peninsula Group Online\Documents\2. Areas\Code\ga4-api-explorer</code></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-secondary btn-copy" onclick="copyText('C:\\Users\\liam.delahunty\\OneDrive - Peninsula Group Online\\Documents\\2. Areas\\Code\\ga4-api-explorer')">
+                                    <i class="bi bi-clipboard me-1"></i> Copy Path
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="callout-tip">
+                <i class="bi bi-lightbulb-fill text-primary me-2"></i>
+                <strong>Terminal Recommendation:</strong> You can execute these commands in <strong>Git Bash</strong>, <strong>PowerShell</strong>, or <strong>Windows Terminal</strong>. Ensure you activate the project's Python virtual environment (<code>.venv</code>) before executing any script.
+            </div>
+        </section>
+
+        <!-- Section 1: Accountancy Daily Editorial Report -->
+        <section id="report-1-editorial" class="main-card">
+            <h2><span class="badge-step">1</span> Accountancy Daily: Weekly Editorial Summary Report</h2>
+            
+            <div class="insight-box">
+                <h5 class="text-success mb-2"><i class="bi bi-lightbulb me-2"></i>What We Learn From This Report</h5>
+                <ul class="mb-0 ps-3">
+                    <li><strong>Google Discover Reach:</strong> Identifies which high-interest or viral headlines resonated with readers in their personalised mobile feeds. High click counts here indicate strong headline engagement.</li>
+                    <li><strong>Google News Presence:</strong> Shows story performance in the "Top Stories" news carousel and News app, signalling strong editorial authority on breaking regulatory and fiscal matters.</li>
+                    <li><strong>Web Search Demand:</strong> Surfaces steady evergreen accounting queries (tax codes, VAT changes, technical compliance), distinguishing long-tail queries from transient news spikes.</li>
+                    <li><strong>Week-on-Week Editorial Momentum:</strong> Automatically measures growth/decline across clicks, impressions, CTR, and unique article counts compared to the preceding 7-day period.</li>
+                </ul>
+            </div>
+
+            <h4 class="mt-4 mb-2">Step-by-Step Execution (Windows)</h4>
+            <p>Open your terminal, navigate to the GSC repository, activate the virtual environment, and run the editorial report generator:</p>
+
+            <!-- Terminal Tabs -->
+            <ul class="nav nav-tabs mb-2" id="editorialTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="gitbash-tab" data-bs-toggle="tab" data-bs-target="#gitbash-pane" type="button" role="tab">Git Bash</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="powershell-tab" data-bs-toggle="tab" data-bs-target="#powershell-pane" type="button" role="tab">PowerShell</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="cmd-tab" data-bs-toggle="tab" data-bs-target="#cmd-pane" type="button" role="tab">Command Prompt (CMD)</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="editorialTabContent">
+                <!-- Git Bash Pane -->
+                <div class="tab-pane fade show active" id="gitbash-pane" role="tabpanel">
+                    <div class="terminal-box">
+                        <div class="terminal-header">
+                            <div class="terminal-dots">
+                                <span class="terminal-dot dot-red"></span>
+                                <span class="terminal-dot dot-yellow"></span>
+                                <span class="terminal-dot dot-green"></span>
+                            </div>
+                            <span>Git Bash</span>
+                            <button class="btn btn-sm btn-outline-light py-0 px-2" onclick="copyBlock('cmd-editorial-gitbash')"><i class="bi bi-clipboard"></i> Copy</button>
+                        </div>
+                        <pre id="cmd-editorial-gitbash">cd "C:\Users\liam.delahunty\OneDrive - Peninsula Group Online\Documents\2. Areas\Code\gsc-page-exporter"
+source .venv/Scripts/activate
+python reports/weekly_editorial_summary_report.py sc-domain:accountancydaily.co
+deactivate</pre>
+                    </div>
+                </div>
+
+                <!-- PowerShell Pane -->
+                <div class="tab-pane fade" id="powershell-pane" role="tabpanel">
+                    <div class="terminal-box">
+                        <div class="terminal-header">
+                            <div class="terminal-dots">
+                                <span class="terminal-dot dot-red"></span>
+                                <span class="terminal-dot dot-yellow"></span>
+                                <span class="terminal-dot dot-green"></span>
+                            </div>
+                            <span>PowerShell</span>
+                            <button class="btn btn-sm btn-outline-light py-0 px-2" onclick="copyBlock('cmd-editorial-ps')"><i class="bi bi-clipboard"></i> Copy</button>
+                        </div>
+                        <pre id="cmd-editorial-ps">cd "C:\Users\liam.delahunty\OneDrive - Peninsula Group Online\Documents\2. Areas\Code\gsc-page-exporter"
+.\.venv\Scripts\Activate.ps1
+python reports\weekly_editorial_summary_report.py sc-domain:accountancydaily.co
+deactivate</pre>
+                    </div>
+                </div>
+
+                <!-- CMD Pane -->
+                <div class="tab-pane fade" id="cmd-pane" role="tabpanel">
+                    <div class="terminal-box">
+                        <div class="terminal-header">
+                            <div class="terminal-dots">
+                                <span class="terminal-dot dot-red"></span>
+                                <span class="terminal-dot dot-yellow"></span>
+                                <span class="terminal-dot dot-green"></span>
+                            </div>
+                            <span>Command Prompt</span>
+                            <button class="btn btn-sm btn-outline-light py-0 px-2" onclick="copyBlock('cmd-editorial-cmd')"><i class="bi bi-clipboard"></i> Copy</button>
+                        </div>
+                        <pre id="cmd-editorial-cmd">cd "C:\Users\liam.delahunty\OneDrive - Peninsula Group Online\Documents\2. Areas\Code\gsc-page-exporter"
+.venv\Scripts\activate.bat
+python reports\weekly_editorial_summary_report.py sc-domain:accountancydaily.co
+deactivate</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="callout-tip mt-2">
+                <strong>Smart Date Handling:</strong> You do not need to supply dates manually. The script automatically probes Google Search Console to detect the latest available date (handling GSC's standard 48-72 hour reporting lag), calculates the most recent 7-day window, and compares it against the prior 7 days.
+            </div>
+
+            <h4 class="mt-4 mb-2">Output Deliverables & What to Attach</h4>
+            <p>Upon completion, the script prints a formatted summary table directly into your terminal and saves three files in the property output directory (<code>output/sc-domain-accountancydaily-co/</code>):</p>
+
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Generated File</th>
+                            <th>Purpose</th>
+                            <th>Email Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="table-success">
+                            <td><code>weekly-editorial-summary-sc-domain-accountancydaily-co-<span class="dyn-editorial-period-slug">YYYY-MM-DD-to-YYYY-MM-DD</span>.csv</code></td>
+                            <td>Raw breakdown of top performing articles, clicks, and impressions.</td>
+                            <td><span class="badge bg-success"><i class="bi bi-paperclip me-1"></i> Attach to Email</span></td>
+                        </tr>
+                        <tr class="table-success">
+                            <td><code>weekly-editorial-summary-sc-domain-accountancydaily-co-<span class="dyn-editorial-period-slug">YYYY-MM-DD-to-YYYY-MM-DD</span>-distribution.html</code></td>
+                            <td>Clean, standalone HTML dashboard for editors and stakeholders.</td>
+                            <td><span class="badge bg-success"><i class="bi bi-paperclip me-1"></i> Attach to Email</span></td>
+                        </tr>
+                        <tr class="table-light text-muted">
+                            <td><code>weekly-editorial-summary-sc-domain-accountancydaily-co-<span class="dyn-editorial-period-slug">YYYY-MM-DD-to-YYYY-MM-DD</span>-internal.html</code></td>
+                            <td>Internal diagnostic view with query inspection notes.</td>
+                            <td><span class="badge bg-secondary">Keep Local (Do Not Send)</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Email Spec Card -->
+            <h4 class="mt-4 mb-2">Email Dispatch Card</h4>
+            <p class="text-muted small">Send this email to the editorial leads. Copy each field or use the complete copy helper below:</p>
+
+            <div class="email-card">
+                <div class="email-header">
+                    <div class="email-row">
+                        <div class="email-label">To:</div>
+                        <div class="email-value">
+                            <span class="recipient-pill">"Sara White" &lt;Sara.White@croner.co.uk&gt;</span>
+                            <span class="recipient-pill">"Jacob Grattage" &lt;Jacob.Grattage@croner.co.uk&gt;</span>
+                            <button class="btn btn-xs btn-outline-secondary ms-2 py-0 px-1" onclick="copyText('Sara.White@croner.co.uk; Jacob.Grattage@croner.co.uk')">Copy TO</button>
+                        </div>
+                    </div>
+                    <div class="email-row">
+                        <div class="email-label">CC:</div>
+                        <div class="email-value">
+                            <span class="recipient-pill cc">"David Tuckwell" &lt;David.Tuckwell@croner.co.uk&gt;</span>
+                            <span class="recipient-pill cc">"Stuart Baxter" &lt;Stuart.Baxter@croner.co.uk&gt;</span>
+                            <span class="recipient-pill cc">"Anika Sidhika" &lt;Anika.Sidhika@croner.co.uk&gt;</span>
+                            <span class="recipient-pill cc">"Matt Barnsley" &lt;Matt.Barnsley@croner.co.uk&gt;</span>
+                            <button class="btn btn-xs btn-outline-secondary ms-2 py-0 px-1" onclick="copyText('David.Tuckwell@croner.co.uk; Stuart.Baxter@croner.co.uk; Anika.Sidhika@croner.co.uk; Matt.Barnsley@croner.co.uk')">Copy CC</button>
+                        </div>
+                    </div>
+                    <div class="email-row">
+                        <div class="email-label">Subject:</div>
+                        <div class="email-value d-flex align-items-center justify-content-between">
+                            <code class="text-dark fw-bold" id="subject-editorial">GSC Weekly Report for sc-domain:accountancydaily.co Period: Calculating...</code>
+                            <button class="btn btn-xs btn-outline-primary ms-2 py-0 px-2" onclick="copyEditorialSubject()"><i class="bi bi-clipboard-check me-1"></i> Copy Subject</button>
+                        </div>
+                    </div>
+                    <div class="email-row">
+                        <div class="email-label">Attach:</div>
+                        <div class="email-value small text-primary">
+                            <i class="bi bi-file-earmark-spreadsheet me-1"></i> <code>weekly-editorial-summary-sc-domain-accountancydaily-co-<span class="dyn-editorial-period-slug">YYYY-MM-DD-to-YYYY-MM-DD</span>.csv</code><br>
+                            <i class="bi bi-file-earmark-code me-1"></i> <code>weekly-editorial-summary-sc-domain-accountancydaily-co-<span class="dyn-editorial-period-slug">YYYY-MM-DD-to-YYYY-MM-DD</span>-distribution.html</code>
+                        </div>
+                    </div>
+                </div>
+                <div class="email-body">
+                    <p class="text-muted small mb-2"><strong>Email Body:</strong> Copy and paste the <em>COPY-PASTE EMAIL SUMMARY</em> block outputted directly by the script in your terminal window, and add a brief sign-off.</p>
+                    <div class="p-3 bg-light rounded border text-muted small font-monospace">
+                        Hi Sara, Jacob,<br><br>
+                        Please find attached the weekly Google Search Console editorial performance summary for Accountancy Daily covering <span class="dyn-editorial-period-display">YYYY-MM-DD to YYYY-MM-DD</span>.<br><br>
+                        [PASTE TERMINAL CONSOLE SUMMARY TABLE HERE]<br><br>
+                        Please download and open the attached distribution HTML file in your browser to inspect the full page-level and search-type breakdown.<br><br>
+                        Best regards,<br>
+                        Liam
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Canary Monitoring Suite -->
+        <section id="report-2-canary" class="main-card">
+            <h2><span class="badge-step">2</span> Portfolio Canary Monitoring Suite (GA4 & GSC)</h2>
+
+            <div class="insight-box">
+                <h5 class="text-success mb-2"><i class="bi bi-activity me-2"></i>What We Learn From The Canary Suite</h5>
+                <p class="mb-2">
+                    A "canary" report acts as our early warning radar across 11 key group properties (Croner, Croner-i, Accountancy Daily, HR-inform, Employer Advice, My VIP Tax Team, Croner Taxwise). It alerts us to:
+                </p>
+                <ul class="mb-0 ps-3">
+                    <li><strong>Technical & Tagging Outages:</strong> Sudden portfolio-wide drops in GA4 sessions or GSC impressions signal broken tracking containers or deployment regressions.</li>
+                    <li><strong>Algorithmic & Crawling Fluctuations:</strong> Significant WoW shifts in GSC clicks and average positions highlight Google search algorithm volatility or indexing issues.</li>
+                    <li><strong>Channel & Campaign Shifts:</strong> By comparing medium-level and source-level traffic, we isolate whether traffic shifts stem from paid campaigns, marketing emails, referral changes, or organic search.</li>
+                    <li><strong>Tri-Horizon Health:</strong> Shows performance across <strong>Week-on-Week (WoW)</strong>, <strong>Month-on-Month (MoM)</strong>, and <strong>Year-on-Year (YoY)</strong> simultaneously to contextualise seasonal fluctuations.</li>
+                </ul>
+            </div>
+
+            <h4 class="mt-4 mb-3">The 3 Required Reports Explained</h4>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="card h-100 border-primary border-top border-4">
+                        <div class="card-body">
+                            <h6 class="card-title text-primary"><i class="bi bi-google me-1"></i> 1. GSC Canary</h6>
+                            <p class="small text-muted mb-1"><strong>Script:</strong> <code>canary_report.py</code></p>
+                            <p class="small text-muted mb-2"><strong>Repo:</strong> <code>gsc-page-exporter</code></p>
+                            <p class="small mb-0">Organic search health across all 11 properties. Reports clicks, impressions, CTR, and average position vs previous week & month.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-info border-top border-4">
+                        <div class="card-body">
+                            <h6 class="card-title text-info"><i class="bi bi-bar-chart-fill me-1"></i> 2. GA4 Canary (Medium)</h6>
+                            <p class="small text-muted mb-1"><strong>Script:</strong> <code>weekly_canary_html.py</code></p>
+                            <p class="small text-muted mb-2"><strong>Repo:</strong> <code>ga4-api-explorer</code></p>
+                            <p class="small mb-0">Total active users and traffic split by channel medium (organic, direct, referral, email) vs last week, last month, and YoY.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-secondary border-top border-4">
+                        <div class="card-body">
+                            <h6 class="card-title text-secondary"><i class="bi bi-funnel-fill me-1"></i> 3. GA4 Canary (Source / Medium)</h6>
+                            <p class="small text-muted mb-1"><strong>Script:</strong> <code>weekly_canary_html.py --source</code></p>
+                            <p class="small text-muted mb-2"><strong>Repo:</strong> <code>ga4-api-explorer</code></p>
+                            <p class="small mb-0">Granular view breaking down specific traffic sources (Google organic, Bing, newsletter tags, partner referral domains).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Execution Steps for Canary -->
+            <h4 class="mt-4 mb-2">Execution Instructions (Windows)</h4>
+            <p>Run Part A in the GSC repo, then switch to Part B in the GA4 repo:</p>
+
+            <div class="p-3 border rounded-3 bg-white mb-3">
+                <h5 class="text-primary mb-2"><i class="bi bi-1-circle-fill me-2"></i>Part A: Generate GSC Canary Report</h5>
+                <p class="small text-muted mb-2">Run from the <code>gsc-page-exporter</code> repository:</p>
+
+                <div class="terminal-box">
+                    <div class="terminal-header">
+                        <div class="terminal-dots">
+                            <span class="terminal-dot dot-red"></span>
+                            <span class="terminal-dot dot-yellow"></span>
+                            <span class="terminal-dot dot-green"></span>
+                        </div>
+                        <span>Git Bash / Windows Terminal</span>
+                        <button class="btn btn-sm btn-outline-light py-0 px-2" onclick="copyBlock('cmd-gsc-canary')"><i class="bi bi-clipboard"></i> Copy</button>
+                    </div>
+                    <pre id="cmd-gsc-canary">cd "C:\Users\liam.delahunty\OneDrive - Peninsula Group Online\Documents\2. Areas\Code\gsc-page-exporter"
+source .venv/Scripts/activate
+python reports/monitoring/canary_report.py --config config/properties.json
+deactivate</pre>
+                </div>
+                <p class="small text-muted mb-0">
+                    <i class="bi bi-check2-circle text-success me-1"></i> Output saved to: <code>output/account/gsc-monitoring-YYYY-MM-DD.html</code>
+                </p>
+            </div>
+
+            <div class="p-3 border rounded-3 bg-white mb-3">
+                <h5 class="text-primary mb-2"><i class="bi bi-2-circle-fill me-2"></i>Part B: Generate GA4 Canary Reports (Medium & Source)</h5>
+                <p class="small text-muted mb-2">Run from the <code>ga4-api-explorer</code> repository:</p>
+
+                <div class="terminal-box">
+                    <div class="terminal-header">
+                        <div class="terminal-dots">
+                            <span class="terminal-dot dot-red"></span>
+                            <span class="terminal-dot dot-yellow"></span>
+                            <span class="terminal-dot dot-green"></span>
+                        </div>
+                        <span>Git Bash / Windows Terminal</span>
+                        <button class="btn btn-sm btn-outline-light py-0 px-2" onclick="copyBlock('cmd-ga4-canary')"><i class="bi bi-clipboard"></i> Copy</button>
+                    </div>
+                    <pre id="cmd-ga4-canary">cd "C:\Users\liam.delahunty\OneDrive - Peninsula Group Online\Documents\2. Areas\Code\ga4-api-explorer"
+source .venv/Scripts/activate
+python reports/monitoring/weekly_canary_html.py --config config/properties.json
+python reports/monitoring/weekly_canary_html.py --config config/properties.json --source
+deactivate</pre>
+                </div>
+                <p class="small text-muted mb-0">
+                    <i class="bi bi-check2-circle text-success me-1"></i> Outputs saved to:
+                    <code>output/account/ga4-monitoring-YYYY-MM-DD-medium.html</code> &amp; 
+                    <code>output/account/ga4-monitoring-YYYY-MM-DD-source_medium.html</code>
+                </p>
+            </div>
+
+            <!-- Email Spec Card for Canary -->
+            <h4 class="mt-4 mb-2">Canary Email Dispatch Card</h4>
+            <p class="text-muted small">Send this email to key management and analytical stakeholders across the group:</p>
+
+            <div class="email-card">
+                <div class="email-header">
+                    <div class="email-row">
+                        <div class="email-label">To:</div>
+                        <div class="email-value">
+                            <span class="recipient-pill">"David Tuckwell" &lt;David.Tuckwell@croner.co.uk&gt;</span>
+                            <span class="recipient-pill">"Stuart Baxter" &lt;Stuart.Baxter@croner.co.uk&gt;</span>
+                            <span class="recipient-pill">"Anika Sidhika" &lt;Anika.Sidhika@croner.co.uk&gt;</span>
+                            <span class="recipient-pill">"Sara White" &lt;Sara.White@croner.co.uk&gt;</span>
+                            <span class="recipient-pill">"Jacob Grattage" &lt;Jacob.Grattage@croner.co.uk&gt;</span>
+                            <span class="recipient-pill">"Paul Robbins" &lt;Paul.Robbins@croner.co.uk&gt;</span>
+                            <span class="recipient-pill">"Scott Houston" &lt;Scott.Houston@croner.co.uk&gt;</span>
+                            <span class="recipient-pill">"Andrew Murphy" &lt;Andrew.Murphy@croner.co.uk&gt;</span>
+                            <button class="btn btn-xs btn-outline-secondary ms-2 py-0 px-1" onclick="copyText('David.Tuckwell@croner.co.uk; Stuart.Baxter@croner.co.uk; Anika.Sidhika@croner.co.uk; Sara.White@croner.co.uk; Jacob.Grattage@croner.co.uk; Paul.Robbins@croner.co.uk; Scott.Houston@croner.co.uk; Andrew.Murphy@croner.co.uk')">Copy All TO</button>
+                        </div>
+                    </div>
+                    <div class="email-row">
+                        <div class="email-label">CC:</div>
+                        <div class="email-value">
+                            <span class="recipient-pill cc">"Yann Stepienik" &lt;Yann.Stepienik@croner.co.uk&gt;</span>
+                            <span class="recipient-pill cc">"Orizu Nwokeji" &lt;Orizu.Nwokeji@croner.co.uk&gt;</span>
+                            <span class="recipient-pill cc">"Muhammad Faheem" &lt;Muhammad.Faheem@croner.co.uk&gt;</span>
+                            <button class="btn btn-xs btn-outline-secondary ms-2 py-0 px-1" onclick="copyText('Yann.Stepienik@croner.co.uk; Orizu.Nwokeji@croner.co.uk; Muhammad.Faheem@croner.co.uk')">Copy All CC</button>
+                        </div>
+                    </div>
+                    <div class="email-row">
+                        <div class="email-label">Subject:</div>
+                        <div class="email-value d-flex align-items-center justify-content-between">
+                            <code class="text-dark fw-bold" id="subject-canary">Weekly Canary report: Generated: Calculating...</code>
+                            <button class="btn btn-xs btn-outline-primary ms-2 py-0 px-2" onclick="copyCanarySubject()"><i class="bi bi-clipboard-check me-1"></i> Copy Subject</button>
+                        </div>
+                    </div>
+                    <div class="email-row">
+                        <div class="email-label">Attach (3):</div>
+                        <div class="email-value small text-primary">
+                            <i class="bi bi-paperclip me-1"></i> <code>output/account/gsc-monitoring-<span class="dyn-canary-date">YYYY-MM-DD</span>.html</code><br>
+                            <i class="bi bi-paperclip me-1"></i> <code>output/account/ga4-monitoring-<span class="dyn-canary-date">YYYY-MM-DD</span>-medium.html</code><br>
+                            <i class="bi bi-paperclip me-1"></i> <code>output/account/ga4-monitoring-<span class="dyn-canary-date">YYYY-MM-DD</span>-source_medium.html</code>
+                        </div>
+                    </div>
+                </div>
+                <div class="email-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small fw-bold">Email Message Body:</span>
+                        <button class="btn btn-sm btn-outline-primary py-0" onclick="copyBlock('canary-email-text')"><i class="bi bi-clipboard"></i> Copy Email Text</button>
+                    </div>
+                    <div id="canary-email-text" class="p-3 bg-light rounded border text-secondary small font-monospace" style="white-space: pre-wrap;">Hi everyone,
+
+Please find attached the three canary reports for the last week across our main properties.
+
+These are snapshot reports to show trends over the last week compared to last week, month, and WoW from last year.
+
+For the best experience download the reports to your local computer and drag into your preferred browser.
+
+Key Observations & Commentary:
+• [Insert 2-4 bullet points highlighting critical changes, flagged properties, or notable wins]
+
+Best regards,
+Liam</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Interpreting Canary & Writing Commentary -->
+        <section id="interpreting-canary" class="main-card">
+            <h2><span class="badge-step"><i class="bi bi-journal-text"></i></span> How to Read the Canary Reports & Draft Commentary</h2>
+            <p>The email commentary is your opportunity to synthesise the data so directors and stakeholders can digest the state of our digital estate in 30 seconds.</p>
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="border rounded p-3 bg-light h-100">
+                        <h5 class="mb-3 text-primary"><i class="bi bi-palette me-2"></i>Understanding the Colour Thresholds</h5>
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="triage-indicator triage-red"></span>
+                            <strong>Critical / Red Drop (≤ -25%):</strong> Immediate investigation required. Could indicate broken tracking, 404 errors, indexing de-listings, or significant search algorithm drops.
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="triage-indicator triage-amber"></span>
+                            <strong>Warning / Amber (-10% to -25%):</strong> Moderate dip. Often seasonal (e.g. half-terms, bank holidays) or routine ranking fluctuations.
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="triage-indicator" style="background-color: #cbd5e1;"></span>
+                            <strong>Neutral / Grey (-10% to +10%):</strong> Stable expected operational baseline.
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="triage-indicator triage-green"></span>
+                            <strong>Positive / Green (≥ +10%):</strong> Notable uptick in users or organic visibility (campaign launch, seasonal surge, or viral news story).
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="border rounded p-3 bg-light h-100">
+                        <h5 class="mb-3 text-primary"><i class="bi bi-search me-2"></i>Triage Flowchart for Writing Commentary</h5>
+                        <ol class="small mb-0 ps-3">
+                            <li class="mb-2"><strong>Open the GSC Canary:</strong> Check the Portfolio Health summary box at the top. Note how many properties are Critical, Warning, or Stable.</li>
+                            <li class="mb-2"><strong>Correlate with GA4 Medium:</strong> If a property is red in GSC, is it also red in GA4 Organic Medium? If yes, it is an actual organic visibility decline. If GA4 is green/stable, other channels may be compensating.</li>
+                            <li class="mb-2"><strong>Drill into GA4 Source/Medium:</strong> If a property has a severe drop, inspect the source table to see if it is isolated to Google Organic, Direct (possible tracking drop), or Email (campaign hiatus).</li>
+                            <li><strong>Synthesise:</strong> Write 2 to 4 actionable bullets highlighting the most impactful trends.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <div class="callout-tip mt-4">
+                <h6 class="text-primary fw-bold mb-1"><i class="bi bi-pencil-square me-2"></i>Example Real-World Commentary</h6>
+                <div class="small text-muted font-monospace mt-2 bg-white p-2 rounded border">
+                    Key Observations &amp; Commentary:<br>
+                    • <strong>Portfolio Stability:</strong> 8 of 11 properties remain stable or positive WoW across both GSC and GA4.<br>
+                    • <strong>Accountancy Daily (+18% WoW):</strong> Strong Discover engagement on autumn tax compliance stories drove a notable uptick in new user acquisition.<br>
+                    • <strong>Croner-i Library (-14% WoW):</strong> Minor seasonal dip consistent with previous year's half-term baseline; organic search rankings remain firmly intact.<br>
+                    • <strong>Tracking Notice:</strong> All GA4 containers and GSC properties report uninterrupted data collection with no anomalies detected.
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Quick Cheat Sheet -->
+        <section id="quick-cheat-sheet" class="main-card">
+            <h2><span class="badge-step"><i class="bi bi-lightning-charge-fill"></i></span> Unified Quick-Run Cheat Sheet</h2>
+            <p>If you need to run all Monday morning reports in one swift sequence, copy and run this unified block in <strong>Git Bash</strong>:</p>
+
+            <div class="terminal-box">
+                <div class="terminal-header">
+                    <div class="terminal-dots">
+                        <span class="terminal-dot dot-red"></span>
+                        <span class="terminal-dot dot-yellow"></span>
+                        <span class="terminal-dot dot-green"></span>
+                    </div>
+                    <span>Git Bash Master Sequence</span>
+                    <button class="btn btn-sm btn-outline-light py-0 px-2" onclick="copyBlock('cmd-unified-all')"><i class="bi bi-clipboard"></i> Copy All Commands</button>
+                </div>
+                <pre id="cmd-unified-all"># === 1. ACCOUNTANCY DAILY EDITORIAL REPORT ===
+cd "C:\Users\liam.delahunty\OneDrive - Peninsula Group Online\Documents\2. Areas\Code\gsc-page-exporter"
+source .venv/Scripts/activate
+python reports/weekly_editorial_summary_report.py sc-domain:accountancydaily.co
+
+# === 2. GSC CANARY REPORT ===
+python reports/monitoring/canary_report.py --config config/properties.json
+deactivate
+
+# === 3. GA4 CANARY REPORTS ===
+cd "C:\Users\liam.delahunty\OneDrive - Peninsula Group Online\Documents\2. Areas\Code\ga4-api-explorer"
+source .venv/Scripts/activate
+python reports/monitoring/weekly_canary_html.py --config config/properties.json
+python reports/monitoring/weekly_canary_html.py --config config/properties.json --source
+deactivate
+
+echo "All Monday reports generated successfully!"</pre>
+            </div>
+        </section>
+
+        <!-- Section: Troubleshooting & FAQs -->
+        <section class="main-card">
+            <h2><span class="badge-step"><i class="bi bi-question-circle-fill"></i></span> Troubleshooting &amp; FAQs</h2>
+            
+            <div class="accordion" id="faqAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingOne">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                            Authentication Error / Expired Google OAuth Token
+                        </button>
+                    </h2>
+                    <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body small">
+                            If a script returns an <code>HttpError 401: Invalid Credentials</code>, your local OAuth refresh token may have expired. Delete the local cache file (e.g. <code>.cache/token.json</code> or <code>token.pickle</code>) and re-run the script. A Google OAuth browser prompt will appear asking you to authorise access.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingTwo">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                            GSC Data Lag: Why are the dates 2 to 3 days behind today?
+                        </button>
+                    </h2>
+                    <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body small">
+                            Google Search Console takes 48 to 72 hours to finalize and aggregate search queries, clicks, and impressions. The scripts use smart date detection to automatically anchor to the latest <em>complete</em> available date, ensuring we never compare incomplete partial days.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingThree">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                            Missing Dependencies / ModuleNotFoundError
+                        </button>
+                    </h2>
+                    <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body small">
+                            Ensure your virtual environment is active (<code>source .venv/Scripts/activate</code>). If a package like <code>jinja2</code> or <code>google-analytics-data</code> is missing, install the requirements file using: <code>pip install -r requirements.txt</code>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Copy Toast Notification -->
+    <div id="copyToast" class="copy-toast">
+        <i class="bi bi-check2-circle text-success fs-5"></i>
+        <span id="toastMessage">Copied to clipboard!</span>
+    </div>
+
+    <!-- Bootstrap JS & Interactive Helper Script -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentCalculations = {};
+
+        function showToast(message) {
+            const toast = document.getElementById('copyToast');
+            const toastMsg = document.getElementById('toastMessage');
+            toastMsg.innerText = message || 'Copied to clipboard!';
+            toast.style.display = 'flex';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        function copyText(text, successMsg) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(successMsg || 'Copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        function copyBlock(elementId) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                const text = el.innerText || el.textContent;
+                copyText(text.trim(), 'Copied content to clipboard!');
+            }
+        }
+
+        function padZero(n) {
+            return String(n).padStart(2, '0');
+        }
+
+        function formatDate(d) {
+            return `${d.getFullYear()}-${padZero(d.getMonth() + 1)}-${padZero(d.getDate())}`;
+        }
+
+        function recalculateDates() {
+            let baseDate;
+            const inputEl = document.getElementById('inputBaseDate');
+            if (inputEl && inputEl.value) {
+                const parts = inputEl.value.split('-');
+                baseDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            } else {
+                baseDate = new Date();
+                if (inputEl) inputEl.value = formatDate(baseDate);
+            }
+
+            const lagSelect = document.getElementById('selectLagDays');
+            const lagDays = lagSelect ? parseInt(lagSelect.value, 10) : 3;
+
+            // Calculate trailing end date (accounting for GSC reporting lag)
+            const endDate = new Date(baseDate);
+            endDate.setDate(baseDate.getDate() - lagDays);
+
+            // Calculate start date: 7-day period inclusive (endDate minus 6 days)
+            const startDate = new Date(endDate);
+            startDate.setDate(endDate.getDate() - 6);
+
+            const todayStr = formatDate(baseDate);
+            const startDateStr = formatDate(startDate);
+            const endDateStr = formatDate(endDate);
+            const periodStr = `${startDateStr} to ${endDateStr}`;
+            const periodSlug = `${startDateStr}-to-${endDateStr}`;
+
+            const editorialSubject = `GSC Weekly Report for sc-domain:accountancydaily.co Period: ${periodStr}`;
+            const canarySubject = `Weekly Canary report: Generated: ${todayStr}`;
+
+            currentCalculations = {
+                todayStr,
+                startDateStr,
+                endDateStr,
+                periodStr,
+                periodSlug,
+                editorialSubject,
+                canarySubject
+            };
+
+            // Update Hub elements
+            const hubEdSub = document.getElementById('hub-editorial-subject');
+            if (hubEdSub) hubEdSub.innerText = editorialSubject;
+
+            const hubCanSub = document.getElementById('hub-canary-subject');
+            if (hubCanSub) hubCanSub.innerText = canarySubject;
+
+            const badgeEd = document.getElementById('calc-editorial-period-badge');
+            if (badgeEd) badgeEd.innerText = `Period: ${periodStr}`;
+
+            const badgeCan = document.getElementById('calc-canary-date-badge');
+            if (badgeCan) badgeCan.innerText = `Generated: ${todayStr}`;
+
+            // Update Section 1 (Editorial) elements
+            const subEd = document.getElementById('subject-editorial');
+            if (subEd) subEd.innerText = editorialSubject;
+
+            document.querySelectorAll('.dyn-editorial-period-slug').forEach(el => {
+                el.innerText = periodSlug;
+            });
+
+            document.querySelectorAll('.dyn-editorial-period-display').forEach(el => {
+                el.innerText = periodStr;
+            });
+
+            // Update Section 2 (Canary) elements
+            const subCan = document.getElementById('subject-canary');
+            if (subCan) subCan.innerText = canarySubject;
+
+            document.querySelectorAll('.dyn-canary-date').forEach(el => {
+                el.innerText = todayStr;
+            });
+        }
+
+        function copyEditorialSubject() {
+            if (!currentCalculations.editorialSubject) {
+                recalculateDates();
+            }
+            copyText(currentCalculations.editorialSubject, `Copied: "${currentCalculations.editorialSubject}"`);
+        }
+
+        function copyCanarySubject() {
+            if (!currentCalculations.canarySubject) {
+                recalculateDates();
+            }
+            copyText(currentCalculations.canarySubject, `Copied: "${currentCalculations.canarySubject}"`);
+        }
+
+        // Initialize on DOM load
+        document.addEventListener('DOMContentLoaded', () => {
+            const dateInput = document.getElementById('inputBaseDate');
+            if (dateInput && !dateInput.value) {
+                dateInput.value = formatDate(new Date());
+            }
+            recalculateDates();
+        });
+    </script>
+</body>
+</html>

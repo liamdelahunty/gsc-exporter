@@ -37,6 +37,7 @@ def main():
         ["reports/queries_pages_analysis.py", site_url, "--last-month"],
         ["reports/query_position_analysis.py", site_url, "--last-month"],
         ["reports/query_segmentation_report.py", site_url, "--last-month"],
+        ["reports/head_mid_long_tail_report.py", site_url, "--last-month"],
         ["reports/keyword_cannibalisation_report.py", site_url, "--last-month"],
         ["reports/page_performance_over_time.py", site_url, "--last-month"],
         ["reports/page_performance_single_page.py", site_url, "https://navigate-safety.croneri.co.uk/", "--last-month"],
@@ -54,6 +55,8 @@ def main():
         ["reports/url_inspection_report.py", site_url, "--last-month"],
         ["reports/search_appearance_report.py", site_url, "--last-month"],
         ["reports/consolidated_performance_overview_report.py", site_url, "--last-month"],
+        # HR-Inform Migration Reports
+        ["reports/migrations/drupal_dato_top_1000_migration_report.py", "https://www.hr-inform.co.uk", "--last-month"],
         # Library Migration Reports
         ["reports/migrations/library_marketing_migration_prioritisation_report.py", "https://library.croneri.co.uk/", "--last-month"],
         ["reports/migrations/library_marketing_migration_analysis.py", "https://library.croneri.co.uk/", "--last-month"],
