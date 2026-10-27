@@ -136,6 +136,19 @@ def run_report(service, site_url, start_date, end_date, limit=500):
         print("[!] No search query data found for the selected property and period.")
         return None, None, None
 
+    # Fetch site-level totals to identify anonymised query volume
+    df_site = fetch_with_cache(service, site_url, start_date, end_date, dimensions=[])
+    if df_site is not None and not df_site.empty and 'clicks' in df_site.columns:
+        site_total_clicks = int(df_site['clicks'].sum())
+        site_total_impressions = int(df_site['impressions'].sum())
+        site_overall_ctr = (site_total_clicks / site_total_impressions) if site_total_impressions > 0 else 0.0
+        site_avg_pos = float(df_site['position'].mean()) if 'position' in df_site.columns else 0.0
+    else:
+        site_total_clicks = int(df['clicks'].sum())
+        site_total_impressions = int(df['impressions'].sum())
+        site_overall_ctr = (site_total_clicks / site_total_impressions) if site_total_impressions > 0 else 0.0
+        site_avg_pos = 0.0
+
     # Ensure numeric columns are properly typed
     df['clicks'] = pd.to_numeric(df['clicks'], errors='coerce').fillna(0).astype(int)
     df['impressions'] = pd.to_numeric(df['impressions'], errors='coerce').fillna(0).astype(int)
@@ -154,9 +167,15 @@ def run_report(service, site_url, start_date, end_date, limit=500):
 
     # Overall totals
     total_queries = len(df)
-    total_clicks = int(df['clicks'].sum())
-    total_impressions = int(df['impressions'].sum())
-    overall_ctr = (total_clicks / total_impressions) if total_impressions > 0 else 0.0
+    analysed_clicks = int(df['clicks'].sum())
+    analysed_impressions = int(df['impressions'].sum())
+    overall_ctr = (analysed_clicks / analysed_impressions) if analysed_impressions > 0 else 0.0
+
+    anonymised_clicks = max(0, site_total_clicks - analysed_clicks)
+    anonymised_impressions = max(0, site_total_impressions - analysed_impressions)
+    anonymised_ctr = (anonymised_clicks / anonymised_impressions) if anonymised_impressions > 0 else 0.0
+    anonymised_clicks_pct = (anonymised_clicks / site_total_clicks) if site_total_clicks > 0 else 0.0
+    anonymised_impressions_pct = (anonymised_impressions / site_total_impressions) if site_total_impressions > 0 else 0.0
 
     # 3. Word-count segment summaries
     word_segments = ['Head', 'Mid Tail', 'Long Tail']
@@ -169,7 +188,7 @@ def run_report(service, site_url, start_date, end_date, limit=500):
     for seg in word_segments:
         subset = df[df['word_segment'] == seg]
         summary_row = calculate_segment_metrics(
-            subset, total_clicks, total_impressions, total_queries, seg,
+            subset, analysed_clicks, analysed_impressions, total_queries, seg,
             extra_fields={'words_def': word_definitions[seg]}
         )
         word_segments_summary.append(summary_row)
@@ -184,10 +203,32 @@ def run_report(service, site_url, start_date, end_date, limit=500):
     volume_tiers_summary = []
     for tier_name, thresh_def, subset in volume_tiers:
         summary_row = calculate_segment_metrics(
-            subset, total_clicks, total_impressions, total_queries, tier_name,
+            subset, analysed_clicks, analysed_impressions, total_queries, tier_name,
             extra_fields={'tier': tier_name, 'threshold_def': thresh_def}
         )
         volume_tiers_summary.append(summary_row)
+
+    if anonymised_clicks > 0:
+        volume_tiers_summary.append({
+            'segment': 'Anonymised Queries',
+            'tier': 'Anonymised Queries',
+            'threshold_def': 'Below GSC privacy threshold',
+            'query_count': 'N/A',
+            'query_count_raw': 0,
+            'query_pct': 'N/A',
+            'clicks': format_int(anonymised_clicks),
+            'clicks_raw': anonymised_clicks,
+            'clicks_pct': format_pct(anonymised_clicks / site_total_clicks if site_total_clicks > 0 else 0),
+            'impressions': format_int(anonymised_impressions),
+            'impressions_raw': anonymised_impressions,
+            'impressions_pct': format_pct(anonymised_impressions / site_total_impressions if site_total_impressions > 0 else 0),
+            'ctr': format_pct(anonymised_ctr),
+            'ctr_raw': anonymised_ctr,
+            'position': 'N/A',
+            'position_raw': 0.0,
+            'brand_clicks_pct': 'N/A',
+            'brand_clicks_raw': 0
+        })
 
     # 5. Exact word length distribution (1, 2, 3, 4, 5, 6, 7+)
     exact_words_summary = []
@@ -202,7 +243,7 @@ def run_report(service, site_url, start_date, end_date, limit=500):
             seg_name = "Long Tail"
         
         row_metrics = calculate_segment_metrics(
-            subset, total_clicks, total_impressions, total_queries, seg_name,
+            subset, analysed_clicks, analysed_impressions, total_queries, seg_name,
             extra_fields={'label': label}
         )
         exact_words_summary.append(row_metrics)
@@ -289,7 +330,7 @@ def run_report(service, site_url, start_date, end_date, limit=500):
             'Category Type': 'Demand Curve Volume Tier',
             'Segment': r['tier'],
             'Definition': r['threshold_def'],
-            'Queries': r['query_count_raw'],
+            'Queries': r['query_count_raw'] if r.get('query_count_raw') else 'N/A',
             '% of Total Queries': r['query_pct'],
             'Clicks': r['clicks_raw'],
             '% of Total Clicks': r['clicks_pct'],
@@ -298,6 +339,21 @@ def run_report(service, site_url, start_date, end_date, limit=500):
             'CTR': r['ctr'],
             'Avg Position': r['position'],
             'Brand Clicks %': r['brand_clicks_pct']
+        })
+    if anonymised_clicks > 0:
+        summary_export_rows.append({
+            'Category Type': 'Property Reconciliation',
+            'Segment': 'Total Property Traffic (GSC Scorecard)',
+            'Definition': 'All queries including privacy-filtered anonymised searches',
+            'Queries': 'N/A',
+            '% of Total Queries': '100.00%',
+            'Clicks': site_total_clicks,
+            '% of Total Clicks': '100.00%',
+            'Impressions': site_total_impressions,
+            '% of Total Impressions': '100.00%',
+            'CTR': format_pct(site_overall_ctr),
+            'Avg Position': format_float(site_avg_pos),
+            'Brand Clicks %': 'N/A'
         })
     pd.DataFrame(summary_export_rows).to_csv(summary_csv_path, index=False, encoding='utf-8')
 
@@ -316,9 +372,19 @@ def run_report(service, site_url, start_date, end_date, limit=500):
         site_url=site_url,
         period_str=f"{start_date} to {end_date}",
         generation_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        site_total_clicks_formatted=format_int(site_total_clicks),
+        site_total_impressions_formatted=format_int(site_total_impressions),
+        site_overall_ctr=format_pct(site_overall_ctr),
+        anonymised_clicks_raw=anonymised_clicks,
+        anonymised_clicks_formatted=format_int(anonymised_clicks),
+        anonymised_clicks_pct=format_pct(anonymised_clicks_pct),
+        anonymised_impressions_formatted=format_int(anonymised_impressions),
+        anonymised_impressions_pct=format_pct(anonymised_impressions_pct),
+        analysed_clicks_formatted=format_int(analysed_clicks),
+        analysed_impressions_formatted=format_int(analysed_impressions),
         total_queries_formatted=format_int(total_queries),
-        total_clicks_formatted=format_int(total_clicks),
-        total_impressions_formatted=format_int(total_impressions),
+        total_clicks_formatted=format_int(analysed_clicks),
+        total_impressions_formatted=format_int(analysed_impressions),
         overall_ctr=format_pct(overall_ctr),
         head_clicks_formatted=head_metrics['clicks'],
         head_clicks_pct=head_metrics['clicks_pct'],
@@ -349,7 +415,10 @@ def run_report(service, site_url, start_date, end_date, limit=500):
     for r in word_segments_summary:
         print(f"{r['segment']:<12} {r['words_def']:<11} {r['query_count']:<10} {r['clicks']:<10} {r['clicks_pct']:<10} {r['ctr']:<8} {r['position']}")
     print("-" * 70)
-    print(f"{'Total':<12} {'All':<11} {format_int(total_queries):<10} {format_int(total_clicks):<10} {'100.0%':<10} {format_pct(overall_ctr):<8}")
+    print(f"{'Analysed':<12} {'Queries':<11} {format_int(total_queries):<10} {format_int(analysed_clicks):<10} {'100.0%':<10} {format_pct(overall_ctr):<8}")
+    if anonymised_clicks > 0:
+        print(f"{'Anonymised':<12} {'Privacy':<11} {'N/A':<10} {format_int(anonymised_clicks):<10} {format_pct(anonymised_clicks_pct):<10} {format_pct(anonymised_ctr):<8}")
+        print(f"{'Site Total':<12} {'All Traffic':<11} {'-':<10} {format_int(site_total_clicks):<10} {'100.0%':<10} {format_pct(site_overall_ctr):<8}")
     print("=" * 70)
     print(f"Summary CSV saved to:   file://{os.path.abspath(summary_csv_path)}")
     print(f"Full Queries CSV saved: file://{os.path.abspath(queries_csv_path)}")

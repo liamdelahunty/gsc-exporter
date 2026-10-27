@@ -239,26 +239,50 @@
         <!-- KPI Cards -->
         <div class="kpi-grid">
             <div class="kpi-card total">
-                <div class="kpi-label">Total Organic Clicks</div>
-                <div class="kpi-value">{{ total_clicks_formatted }}</div>
-                <div class="kpi-subtext">{{ total_impressions_formatted }} impressions &bull; {{ overall_ctr }} CTR</div>
+                <div class="kpi-label">Total Property Clicks</div>
+                <div class="kpi-value">{{ site_total_clicks_formatted }}</div>
+                <div class="kpi-subtext">{{ site_total_impressions_formatted }} impressions &bull; {{ site_overall_ctr }} CTR</div>
             </div>
+            {% if anonymised_clicks_raw > 0 %}
+            <div class="kpi-card" style="border-top: 4px solid #f59e0b;">
+                <div class="kpi-label">Anonymised Queries</div>
+                <div class="kpi-value text-warning">{{ anonymised_clicks_formatted }}</div>
+                <div class="kpi-subtext"><strong>{{ anonymised_clicks_pct }}</strong> of total clicks (GSC privacy threshold)</div>
+            </div>
+            <div class="kpi-card" style="border-top: 4px solid #0284c7;">
+                <div class="kpi-label">Analysed Query Clicks</div>
+                <div class="kpi-value text-primary">{{ analysed_clicks_formatted }}</div>
+                <div class="kpi-subtext">Across <strong>{{ total_queries_formatted }}</strong> distinct search queries</div>
+            </div>
+            {% endif %}
             <div class="kpi-card head">
                 <div class="kpi-label">Head Traffic (1-2 Words)</div>
                 <div class="kpi-value">{{ head_clicks_formatted }}</div>
-                <div class="kpi-subtext"><strong>{{ head_clicks_pct }}</strong> of total clicks ({{ head_queries_formatted }} queries)</div>
+                <div class="kpi-subtext"><strong>{{ head_clicks_pct }}</strong> of analysed clicks ({{ head_queries_formatted }} queries)</div>
             </div>
             <div class="kpi-card mid">
                 <div class="kpi-label">Mid Tail Traffic (3-4 Words)</div>
                 <div class="kpi-value">{{ mid_clicks_formatted }}</div>
-                <div class="kpi-subtext"><strong>{{ mid_clicks_pct }}</strong> of total clicks ({{ mid_queries_formatted }} queries)</div>
+                <div class="kpi-subtext"><strong>{{ mid_clicks_pct }}</strong> of analysed clicks ({{ mid_queries_formatted }} queries)</div>
             </div>
             <div class="kpi-card long">
                 <div class="kpi-label">Long Tail Traffic (5+ Words)</div>
                 <div class="kpi-value">{{ long_clicks_formatted }}</div>
-                <div class="kpi-subtext"><strong>{{ long_clicks_pct }}</strong> of total clicks ({{ long_queries_formatted }} queries)</div>
+                <div class="kpi-subtext"><strong>{{ long_clicks_pct }}</strong> of analysed clicks ({{ long_queries_formatted }} queries)</div>
             </div>
         </div>
+
+        {% if anonymised_clicks_raw > 0 %}
+        <!-- GSC Privacy Threshold Callout Banner -->
+        <div class="alert alert-light border mb-4 d-flex align-items-center" role="alert" style="border-left: 4px solid #0284c7 !important; background-color: #f8fafc;">
+            <div>
+                <strong class="text-primary">Google Search Console Privacy Threshold Notice:</strong>
+                Of the <strong>{{ site_total_clicks_formatted }}</strong> total clicks recorded at the property level, 
+                <strong>{{ anonymised_clicks_formatted }} ({{ anonymised_clicks_pct }})</strong> are anonymised by Google due to low query volume or privacy rules. 
+                The breakdown below segments the <strong>{{ analysed_clicks_formatted }}</strong> clicks from <strong>{{ total_queries_formatted }}</strong> distinct identified queries.
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Charts Grid -->
         <div class="row g-4 mb-4">
@@ -389,6 +413,8 @@
                                     <span class="badge-mid">{{ row.tier }}</span>
                                 {% elif 'Long' in row.tier %}
                                     <span class="badge-long">{{ row.tier }}</span>
+                                {% elif 'Anonymised' in row.tier %}
+                                    <span class="badge bg-warning text-dark">{{ row.tier }}</span>
                                 {% else %}
                                     <span class="badge bg-light text-dark">{{ row.tier }}</span>
                                 {% endif %}

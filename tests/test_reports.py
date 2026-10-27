@@ -171,7 +171,19 @@ def test_head_mid_long_tail_report(mock_service, mocker):
         'ctr': [0.12, 0.12, 0.05, 0.0375, 0.0],
         'position': [1.2, 1.8, 3.4, 8.5, 12.0]
     }
-    mocker.patch('reports.head_mid_long_tail_report.fetch_with_cache', return_value=pd.DataFrame(query_mock_data))
+    site_mock_data = {
+        'clicks': [250],
+        'impressions': [2500],
+        'ctr': [0.10],
+        'position': [3.5]
+    }
+
+    def side_effect(service, site_url, start_date, end_date, dimensions=None, **kwargs):
+        if dimensions == []:
+            return pd.DataFrame(site_mock_data)
+        return pd.DataFrame(query_mock_data)
+
+    mocker.patch('reports.head_mid_long_tail_report.fetch_with_cache', side_effect=side_effect)
     from reports.head_mid_long_tail_report import run_report
     
     site = 'https://www.example.com/'
@@ -182,5 +194,15 @@ def test_head_mid_long_tail_report(mock_service, mocker):
     assert summary_csv is not None and os.path.exists(summary_csv)
     assert queries_csv is not None and os.path.exists(queries_csv)
     assert html_path is not None and os.path.exists(html_path)
+
+    # Check anonymised data inclusion in summary CSV and HTML
+    df_summary = pd.read_csv(summary_csv)
+    assert 'Property Reconciliation' in df_summary['Category Type'].values
+    assert 'Anonymised Queries' in df_summary['Segment'].values
+
+    with open(html_path, 'r', encoding='utf-8') as f:
+        html_content = f.read()
+    assert 'Google Search Console Privacy Threshold Notice' in html_content
+    assert 'Anonymised Queries' in html_content
 
 
