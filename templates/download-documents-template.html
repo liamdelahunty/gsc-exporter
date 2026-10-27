@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0f172a;
+            --brand-blue: #0284c7;
+            --brand-indigo: #6366f1;
+            --brand-emerald: #10b981;
+            --brand-amber: #f59e0b;
+            --brand-rose: #ef4444;
+            --card-border: #e2e8f0;
+            --bg-light: #f8fafc;
+            --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-light);
+            color: #1e293b;
+            padding: 2rem 1.5rem 4rem 1.5rem;
+            line-height: 1.5;
+        }
+
+        .dashboard-header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 1.5rem;
+        }
+
+        .dashboard-title {
+            font-family: var(--font-heading);
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 2.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .dashboard-subtitle {
+            font-size: 1rem;
+            color: #64748b;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .kpi-label {
+            font-size: 0.825rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-value {
+            font-family: var(--font-heading);
+            font-size: 1.85rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1.2;
+            margin-bottom: 0.25rem;
+        }
+
+        .kpi-subtext {
+            font-size: 0.825rem;
+            color: #64748b;
+        }
+
+        .kpi-card.docs { border-top: 4px solid var(--brand-blue); }
+        .kpi-card.clicks { border-top: 4px solid var(--brand-emerald); }
+        .kpi-card.impr { border-top: 4px solid var(--brand-indigo); }
+        .kpi-card.types { border-top: 4px solid var(--brand-amber); }
+
+        .content-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .card-header-custom {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .card-title-custom {
+            font-family: var(--font-heading);
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .table-responsive {
+            max-height: none;
+            overflow-x: auto;
+        }
+
+        .table-custom {
+            width: 100%;
+            margin-bottom: 0;
+            font-size: 0.875rem;
+        }
+
+        .table-custom th {
+            background-color: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--card-border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .table-custom td {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--card-border);
+            vertical-align: middle;
+        }
+
+        .table-custom tr:hover td {
+            background-color: #f1f5f9;
+        }
+
+        .search-box {
+            position: relative;
+            min-width: 260px;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+
+        .search-box input {
+            padding-left: 2.25rem;
+            font-size: 0.875rem;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .search-box input:focus {
+            border-color: var(--brand-blue);
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+        }
+
+        .url-cell {
+            max-width: 320px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .query-cell {
+            max-width: 240px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .badge-type {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            padding: 0.35rem 0.6rem;
+            border-radius: 4px;
+        }
+        .badge-pdf { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .badge-docx, .badge-doc { background-color: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .badge-xlsx, .badge-xls { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+        .badge-csv { background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+        .badge-other { background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid max-w-7xl">
+    <!-- Header -->
+    <header class="dashboard-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h1 class="dashboard-title">
+                <i class="bi bi-file-earmark-arrow-down-fill text-primary me-2"></i>Download Documents Audit
+            </h1>
+            <p class="dashboard-subtitle mb-0">
+                Identifies all downloadable document assets (PDF, Word, Excel, CSV) driving Google search traffic for <strong>{{ site_url }}</strong> &bull; Period: {{ period_str }}
+            </p>
+        </div>
+        <div>
+            <a href="{{ csv_filename }}" class="btn btn-outline-primary d-flex align-items-center gap-2" download>
+                <i class="bi bi-download"></i> Export Document Data (CSV)
+            </a>
+        </div>
+    </header>
+
+    <!-- KPI Grid -->
+    <div class="kpi-grid">
+        <div class="kpi-card docs">
+            <div class="kpi-label">Unique Documents</div>
+            <div class="kpi-value text-primary">{{ doc_count_formatted }}</div>
+            <div class="kpi-subtext">Active downloadable assets</div>
+        </div>
+        <div class="kpi-card clicks">
+            <div class="kpi-label">Organic Clicks</div>
+            <div class="kpi-value text-success">{{ total_clicks_formatted }}</div>
+            <div class="kpi-subtext">Direct search downloads</div>
+        </div>
+        <div class="kpi-card impr">
+            <div class="kpi-label">Organic Impressions</div>
+            <div class="kpi-value text-indigo">{{ total_impressions_formatted }}</div>
+            <div class="kpi-subtext">Search appearance impressions</div>
+        </div>
+        <div class="kpi-card types">
+            <div class="kpi-label">Primary File Types</div>
+            <div class="kpi-value text-amber">{{ file_types_summary }}</div>
+            <div class="kpi-subtext">Segmented by extension</div>
+        </div>
+    </div>
+
+    <!-- Main Documents Table -->
+    <div class="content-card">
+        <div class="card-header-custom">
+            <div>
+                <h2 class="card-title-custom text-primary">
+                    <i class="bi bi-folder-symlink"></i> All Downloadable Document Assets
+                </h2>
+                <span class="text-muted small">Sorted by organic clicks and impressions</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-1">
+                    <label for="pageSize" class="small text-muted mb-0">Show:</label>
+                    <select id="pageSize" class="form-select form-select-sm" style="width: auto;">
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                        <option value="250">250</option>
+                        <option value="all">All</option>
+                    </select>
+                </div>
+                <div class="search-box">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="docSearch" class="form-control" placeholder="Search filename, URL, query...">
+                </div>
+                <a href="{{ csv_filename }}" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1" download>
+                    <i class="bi bi-download"></i> CSV
+                </a>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-custom align-middle" id="docTable">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Document Filename</th>
+                        <th>Type</th>
+                        <th>Document URL</th>
+                        <th>Primary Search Query</th>
+                        <th class="text-end">Clicks</th>
+                        <th class="text-end">Impr.</th>
+                        <th class="text-end">CTR</th>
+                        <th class="text-end">Avg Pos</th>
+                    </tr>
+                </thead>
+                <tbody id="docTableBody">
+                    {% for doc in documents %}
+                    <tr>
+                        <td class="fw-bold text-muted">{{ loop.index }}</td>
+                        <td class="fw-semibold text-dark">{{ doc.filename }}</td>
+                        <td>
+                            {% if doc.file_type == 'PDF' %}
+                                <span class="badge-type badge-pdf">PDF</span>
+                            {% elif doc.file_type in ['DOC', 'DOCX'] %}
+                                <span class="badge-type badge-docx">{{ doc.file_type }}</span>
+                            {% elif doc.file_type in ['XLS', 'XLSX'] %}
+                                <span class="badge-type badge-xlsx">{{ doc.file_type }}</span>
+                            {% elif doc.file_type == 'CSV' %}
+                                <span class="badge-type badge-csv">CSV</span>
+                            {% else %}
+                                <span class="badge-type badge-other">{{ doc.file_type }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="url-cell">
+                            <a href="{{ doc.url }}" target="_blank" rel="noopener" class="text-decoration-none text-primary small">
+                                {{ doc.url_display }}
+                            </a>
+                        </td>
+                        <td class="query-cell" title="{{ doc.top_query }}">{{ doc.top_query }}</td>
+                        <td class="text-end fw-bold">{{ doc.clicks_formatted }}</td>
+                        <td class="text-end">{{ doc.impressions_formatted }}</td>
+                        <td class="text-end">{{ doc.ctr_formatted }}</td>
+                        <td class="text-end">{{ doc.position_formatted }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 border-top bg-light">
+            <span class="small text-muted" id="paginationInfo">Showing 1 to 50 documents</span>
+            <nav aria-label="Documents table pagination">
+                <ul class="pagination pagination-sm mb-0" id="paginationControls">
+                    <!-- Populated by JavaScript -->
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-5 pt-3 border-top text-center text-muted small">
+        <p>Google Search Console Exporter &bull; Download Documents Audit Report &bull; Generated {{ generation_date }}</p>
+    </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function setupDocumentPagination() {
+        const table = document.getElementById('docTable');
+        const searchInput = document.getElementById('docSearch');
+        const pageSizeSelect = document.getElementById('pageSize');
+        const infoEl = document.getElementById('paginationInfo');
+        const paginationEl = document.getElementById('paginationControls');
+        if (!table || !infoEl || !paginationEl) return;
+
+        const allRows = Array.from(table.querySelectorAll('tbody tr'));
+        let currentPage = 1;
+        let pageSize = parseInt(pageSizeSelect ? pageSizeSelect.value : 50, 10);
+        if (isNaN(pageSize)) pageSize = 50;
+
+        function getFilteredRows() {
+            const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            if (!query) return allRows;
+            return allRows.filter(row => row.innerText.toLowerCase().includes(query));
+        }
+
+        function render() {
+            const filteredRows = getFilteredRows();
+            const total = filteredRows.length;
+            const actualPageSize = (pageSizeSelect && pageSizeSelect.value === 'all') ? total : pageSize;
+            const totalPages = Math.max(1, Math.ceil(total / (actualPageSize || 1)));
+
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIdx = (currentPage - 1) * actualPageSize;
+            const endIdx = Math.min(startIdx + actualPageSize, total);
+
+            allRows.forEach(row => row.style.display = 'none');
+            for (let i = startIdx; i < endIdx; i++) {
+                filteredRows[i].style.display = '';
+            }
+
+            if (total === 0) {
+                infoEl.textContent = 'Showing 0 to 0 of 0 documents';
+            } else {
+                infoEl.textContent = `Showing ${(startIdx + 1).toLocaleString()} to ${endIdx.toLocaleString()} of ${total.toLocaleString()} documents`;
+            }
+
+            let paginationHtml = '';
+            paginationHtml += `
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <button class="page-link" type="button" data-page="${currentPage - 1}" aria-label="Previous">&laquo;</button>
+                </li>
+            `;
+
+            const pagesToShow = [];
+            if (totalPages <= 7) {
+                for (let i = 1; i <= totalPages; i++) pagesToShow.push(i);
+            } else {
+                pagesToShow.push(1);
+                if (currentPage > 3) pagesToShow.push('...');
+                const start = Math.max(2, currentPage - 1);
+                const end = Math.min(totalPages - 1, currentPage + 1);
+                for (let i = start; i <= end; i++) pagesToShow.push(i);
+                if (currentPage < totalPages - 2) pagesToShow.push('...');
+                pagesToShow.push(totalPages);
+            }
+
+            pagesToShow.forEach(p => {
+                if (p === '...') {
+                    paginationHtml += `<li class="page-item disabled"><span class="page-link">&hellip;</span></li>`;
+                } else {
+                    paginationHtml += `
+                        <li class="page-item ${p === currentPage ? 'active' : ''}">
+                            <button class="page-link" type="button" data-page="${p}">${p}</button>
+                        </li>
+                    `;
+                }
+            });
+
+            paginationHtml += `
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <button class="page-link" type="button" data-page="${currentPage + 1}" aria-label="Next">&raquo;</button>
+                </li>
+            `;
+
+            paginationEl.innerHTML = paginationHtml;
+
+            paginationEl.querySelectorAll('button[data-page]').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetPage = parseInt(this.getAttribute('data-page'), 10);
+                    if (targetPage >= 1 && targetPage <= totalPages && targetPage !== currentPage) {
+                        currentPage = targetPage;
+                        render();
+                    }
+                });
+            });
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                currentPage = 1;
+                render();
+            });
+        }
+
+        if (pageSizeSelect) {
+            pageSizeSelect.addEventListener('change', function() {
+                const val = this.value;
+                pageSize = val === 'all' ? allRows.length : parseInt(val, 10);
+                currentPage = 1;
+                render();
+            });
+        }
+
+        render();
+    }
+
+    setupDocumentPagination();
+</script>
+</body>
+</html>

@@ -390,6 +390,11 @@
                 <i class="bi bi-check-circle-fill me-1 text-success"></i> Already Migrated to Dato ({{ dato_count_formatted }})
             </button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="downloads-tab" data-bs-toggle="tab" data-bs-target="#downloads-pane" type="button" role="tab">
+                <i class="bi bi-file-earmark-arrow-down-fill me-1 text-info"></i> Download Documents ({{ downloads_count_formatted }})
+            </button>
+        </li>
     </ul>
 
     <!-- Tab Content -->
@@ -679,6 +684,68 @@
             </div>
         </div>
 
+        <!-- Tab 5: Download Documents (PDF, DOC, XLS, CSV) -->
+        <div class="tab-pane fade" id="downloads-pane" role="tabpanel">
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <div>
+                        <h2 class="card-title-custom text-info">
+                            <i class="bi bi-file-earmark-arrow-down-fill"></i> Download Documents (PDF, DOC, XLS, CSV)
+                        </h2>
+                        <span class="text-muted small">All downloadable assets and documents detected across the site</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="search-box">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="downloadsSearch" class="form-control" placeholder="Search Documents or Query...">
+                        </div>
+                        <a href="{{ downloads_csv_filename }}" class="btn btn-outline-info btn-sm d-flex align-items-center gap-1" download>
+                            <i class="bi bi-download"></i> CSV
+                        </a>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle" id="downloadsTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">#</th>
+                                <th>Document Filename</th>
+                                <th>Type</th>
+                                <th>Document URL</th>
+                                <th>Top Search Query</th>
+                                <th class="text-end">Clicks</th>
+                                <th class="text-end">Impr.</th>
+                                <th class="text-end">CTR</th>
+                                <th class="text-end">Avg Pos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in download_documents %}
+                            <tr>
+                                <td class="fw-bold text-muted">{{ loop.index }}</td>
+                                <td class="fw-semibold text-dark">{{ doc.filename }}</td>
+                                <td>
+                                    <span class="badge bg-secondary-subtle text-secondary border fw-bold">{{ doc.file_type }}</span>
+                                </td>
+                                <td class="url-cell">
+                                    <a href="{{ doc.url }}" target="_blank" rel="noopener" class="text-decoration-none text-primary small">
+                                        {{ doc.url_display }}
+                                    </a>
+                                </td>
+                                <td class="query-cell" title="{{ doc.top_query }}">{{ doc.top_query }}</td>
+                                <td class="text-end fw-bold">{{ doc.clicks_formatted }}</td>
+                                <td class="text-end">{{ doc.impressions_formatted }}</td>
+                                <td class="text-end">{{ doc.ctr_formatted }}</td>
+                                <td class="text-end">{{ doc.position_formatted }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Methodology and Scoring Guide -->
@@ -878,6 +945,7 @@
     setupFilter('oppSearch', 'oppTable');
     setupFilter('cannibalSearch', 'cannibalTable');
     setupFilter('datoSearch', 'datoTable');
+    setupFilter('downloadsSearch', 'downloadsTable');
 </script>
 </body>
 </html>

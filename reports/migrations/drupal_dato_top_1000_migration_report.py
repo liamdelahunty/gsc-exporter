@@ -8,7 +8,7 @@ import sys
 import re
 import argparse
 from datetime import datetime, date, timedelta
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 import pandas as pd
 import numpy as np
 from jinja2 import Environment, FileSystemLoader
@@ -40,6 +40,29 @@ UTILITY_PATTERNS = [
     r'/rss/?$'
 ]
 
+# Supported downloadable document extensions
+DOCUMENT_EXTENSIONS = (
+    '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv',
+    '.ppt', '.pptx', '.odt', '.ods', '.rtf', '.zip'
+)
+
+def is_download_document(url):
+    """Checks whether a URL targets a downloadable document asset (PDF, DOC, XLS, CSV etc.)."""
+    if not isinstance(url, str) or not url:
+        return False
+    parsed = urlparse(url.strip())
+    path = parsed.path.lower()
+    return any(path.endswith(ext) for ext in DOCUMENT_EXTENSIONS)
+
+def get_document_type(url):
+    """Extracts uppercase document extension or 'DOC'."""
+    parsed = urlparse(url.strip())
+    path = parsed.path.lower()
+    for ext in DOCUMENT_EXTENSIONS:
+        if path.endswith(ext):
+            return ext.lstrip('.').upper()
+    return "DOC"
+
 def clean_and_strip_url(url):
     """
     Normalises URLs by stripping query parameters, anchor fragments,
@@ -56,12 +79,23 @@ def clean_and_strip_url(url):
     clean_url = f"{scheme}://{netloc}{path}"
     return clean_url.rstrip('/')
 
-def is_utility_url(url):
-    """Checks whether a URL is a utility or non-content endpoint."""
+def is_utility_url(url, site_url=None):
+    """
+    Checks whether a URL is a utility, non-content, or root home page endpoint.
+    Root home pages and login/admin endpoints are excluded from legacy content migration.
+    """
     if not isinstance(url, str) or not url:
         return True
-    parsed = urlparse(url)
-    path = parsed.path.lower()
+    parsed = urlparse(url.strip())
+    path = parsed.path.lower().rstrip('/')
+    # Root home page is not legacy content to migrate
+    if not path or path == "":
+        return True
+    if site_url:
+        clean_site = clean_and_strip_url(site_url)
+        clean_u = clean_and_strip_url(url)
+        if clean_u == clean_site:
+            return True
     for pattern in UTILITY_PATTERNS:
         if re.search(pattern, path):
             return True
@@ -155,9 +189,47 @@ def run_report(service, site_url="https://www.hr-inform.co.uk", start_date=None,
     df['position'] = pd.to_numeric(df['position'], errors='coerce').fillna(0.0)
     df['clean_url'] = df['page'].apply(clean_and_strip_url)
 
-    # Filter out empty or home page root if desired, and utility pages
-    df['is_utility'] = df['clean_url'].apply(is_utility_url)
-    df_content = df[~df['is_utility']].copy()
+    # Filter out empty or home page root, and utility pages
+    df['is_utility'] = df['clean_url'].apply(lambda u: is_utility_url(u, site_url))
+    df_valid = df[~df['is_utility']].copy()
+
+    # Separate downloadable document assets (PDF, DOC, XLS, CSV etc.) into their own dedicated dataset
+    df_valid['is_download'] = df_valid['clean_url'].apply(is_download_document)
+    df_downloads_raw = df_valid[df_valid['is_download']].copy()
+    df_content = df_valid[~df_valid['is_download']].copy()
+
+    # Process Download Documents
+    download_docs_summary = []
+    if not df_downloads_raw.empty:
+        for u, group in df_downloads_raw.groupby('clean_url'):
+            clicks = int(group['clicks'].sum())
+            impressions = int(group['impressions'].sum())
+            ctr = (clicks / impressions) if impressions > 0 else 0.0
+            avg_pos = float(group['position'].mean()) if impressions == 0 else float((group['position'] * group['impressions']).sum() / impressions)
+            sorted_group = group.sort_values(by=['clicks', 'impressions'], ascending=[False, False])
+            top_query_row = sorted_group.iloc[0]
+            top_query = top_query_row['query']
+            file_type = get_document_type(u)
+            raw_filename = os.path.basename(urlparse(u).path)
+            doc_filename = unquote(raw_filename) if raw_filename else u
+
+            download_docs_summary.append({
+                'url': u,
+                'url_display': get_url_display(u),
+                'file_type': file_type,
+                'filename': doc_filename,
+                'top_query': top_query,
+                'clicks': clicks,
+                'clicks_formatted': f"{clicks:,}",
+                'impressions': impressions,
+                'impressions_formatted': f"{impressions:,}",
+                'ctr': ctr,
+                'ctr_formatted': f"{ctr:.2%}",
+                'position': avg_pos,
+                'position_formatted': f"{avg_pos:.1f}"
+            })
+        download_docs_summary.sort(key=lambda x: (x['clicks'], x['impressions']), reverse=True)
+    print(f"    Identified {len(download_docs_summary):,} downloadable document assets (PDF, DOC, XLS, CSV).")
 
     # Classify platform (Dato vs Drupal)
     df_content['is_dato'] = df_content['clean_url'].isin(dato_clean_urls)
@@ -408,11 +480,13 @@ def run_report(service, site_url="https://www.hr-inform.co.uk", start_date=None,
     candidates_csv_name = f"top-1000-migration-candidates-{slug}-{start_date}-to-{end_date}.csv"
     cannibal_csv_name = f"cannibalised-redirects-{slug}-{start_date}-to-{end_date}.csv"
     dato_csv_name = f"already-migrated-dato-pages-{slug}-{start_date}-to-{end_date}.csv"
+    downloads_csv_name = f"download-documents-{slug}-{start_date}-to-{end_date}.csv"
     html_name = f"top-1000-migration-report-{slug}-{start_date}-to-{end_date}.html"
 
     candidates_csv_path = os.path.join(output_dir, candidates_csv_name)
     cannibal_csv_path = os.path.join(output_dir, cannibal_csv_name)
     dato_csv_path = os.path.join(output_dir, dato_csv_name)
+    downloads_csv_path = os.path.join(output_dir, downloads_csv_name)
     html_path = os.path.join(output_dir, html_name)
 
     # 9. Save CSV Files
@@ -482,6 +556,29 @@ def run_report(service, site_url="https://www.hr-inform.co.uk", start_date=None,
     else:
         pd.DataFrame(columns=['Live Dato URL']).to_csv(dato_csv_path, index=False)
 
+    # Download Documents CSV (PDF, DOC, XLS, CSV etc.)
+    if download_docs_summary:
+        df_downloads_export = pd.DataFrame(download_docs_summary)[[
+            'url', 'file_type', 'filename', 'top_query',
+            'clicks', 'impressions', 'ctr', 'position'
+        ]].copy()
+        df_downloads_export.rename(columns={
+            'url': 'Document URL',
+            'file_type': 'File Type',
+            'filename': 'Document Filename',
+            'top_query': 'Primary Search Query',
+            'clicks': 'Organic Clicks',
+            'impressions': 'Organic Impressions',
+            'ctr': 'CTR',
+            'position': 'Average Position'
+        }, inplace=True)
+        df_downloads_export.to_csv(downloads_csv_path, index=False, encoding='utf-8')
+    else:
+        pd.DataFrame(columns=[
+            'Document URL', 'File Type', 'Document Filename', 'Primary Search Query',
+            'Organic Clicks', 'Organic Impressions', 'CTR', 'Average Position'
+        ]).to_csv(downloads_csv_path, index=False, encoding='utf-8')
+
     # 10. Render HTML Report
     templates_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'templates'))
     env = Environment(loader=FileSystemLoader(templates_dir))
@@ -490,6 +587,7 @@ def run_report(service, site_url="https://www.hr-inform.co.uk", start_date=None,
     candidate_clicks = int(df_top_1000['clicks'].sum())
     total_site_clicks = int(df_content['clicks'].sum())
     dato_clicks = int(df_dato_raw['clicks'].sum()) if not df_dato_raw.empty else 0
+    download_clicks = sum(d['clicks'] for d in download_docs_summary)
 
     candidate_clicks_pct = (candidate_clicks / total_site_clicks) if total_site_clicks > 0 else 0.0
     dato_clicks_pct = (dato_clicks / total_site_clicks) if total_site_clicks > 0 else 0.0
@@ -508,14 +606,18 @@ def run_report(service, site_url="https://www.hr-inform.co.uk", start_date=None,
         dato_count_formatted=f"{len(dato_pages_summary):,}",
         dato_clicks_formatted=f"{dato_clicks:,}",
         dato_clicks_pct=f"{dato_clicks_pct:.1%}",
+        downloads_count_formatted=f"{len(download_docs_summary):,}",
+        downloads_clicks_formatted=f"{download_clicks:,}",
         total_drupal_urls_formatted=f"{total_drupal_urls:,}",
         candidates_csv_filename=candidates_csv_name,
         cannibal_csv_filename=cannibal_csv_name,
         dato_csv_filename=dato_csv_name,
+        downloads_csv_filename=downloads_csv_name,
         candidates=candidate_records,
         opportunities=opp_records,
         cannibalised=cannibalised_list,
-        dato_pages=dato_pages_summary
+        dato_pages=dato_pages_summary,
+        download_documents=download_docs_summary
     )
 
     with open(html_path, 'w', encoding='utf-8') as f:
@@ -530,14 +632,16 @@ def run_report(service, site_url="https://www.hr-inform.co.uk", start_date=None,
     print(f"CTR / Title & Meta Opportunities:          {len(df_opportunities):,} ({int(df_opportunities['impressions'].sum()):,} impr)")
     print(f"Cannibalised Secondary URLs (Excluded):    {len(cannibalised_list):,} (mapped to 301 redirects)")
     print(f"Already Migrated DatoCMS URLs:             {len(dato_pages_summary):,} ({dato_clicks:,} clicks)")
+    print(f"Download Documents Identified:             {len(download_docs_summary):,} ({download_clicks:,} clicks)")
     print("-" * 75)
     print(f"Candidates CSV:   file://{os.path.abspath(candidates_csv_path)}")
     print(f"Redirects CSV:    file://{os.path.abspath(cannibal_csv_path)}")
     print(f"Dato Reconciled:  file://{os.path.abspath(dato_csv_path)}")
+    print(f"Download Docs:    file://{os.path.abspath(downloads_csv_path)}")
     print(f"HTML Dashboard:   file://{os.path.abspath(html_path)}")
     print("=" * 75 + "\n")
 
-    return candidates_csv_path, cannibal_csv_path, dato_csv_path, html_path
+    return candidates_csv_path, cannibal_csv_path, dato_csv_path, downloads_csv_path, html_path
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run Top 1,000 Drupal to Dato migration classification report.')
