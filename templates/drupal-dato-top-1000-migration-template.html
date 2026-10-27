@@ -423,7 +423,7 @@
                                 <th class="text-end">Avg Pos</th>
                                 <th class="text-end" title="Clicks + (Impressions / 50)">Comp. Score</th>
                                 <th class="text-end" title="Rank(Clicks) + Rank(Impr)">Rank Sum</th>
-                                <th>Tier</th>
+                                <th title="Tier 1: Top 700 Clicks | Tier 2: Top 300 Impressions | Tier 3: Long Tail">Tier</th>
                                 <th>Action / Status</th>
                             </tr>
                         </thead>
@@ -663,7 +663,7 @@
         <div class="card-body p-4 bg-light rounded-3 border">
             <h5 class="fw-bold text-dark mb-3"><i class="bi bi-info-circle-fill text-primary me-2"></i>Methodology and Scoring Definitions</h5>
             <div class="row g-4">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="p-3 bg-white rounded border h-100">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <h6 class="fw-bold mb-0 text-primary">Comp. Score (Composite Score)</h6>
@@ -677,7 +677,7 @@
                         </p>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="p-3 bg-white rounded border h-100">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <h6 class="fw-bold mb-0 text-secondary">Rank Sum (Combined Rank Sum)</h6>
@@ -688,6 +688,20 @@
                         </p>
                         <p class="small text-secondary mb-0">
                             An unweighted relative benchmark where each URL is independently ranked across all legacy candidates by clicks and impressions (using minimum ranking). Lower numerical values denote superior overall standing across both metrics (for example, rank #1 in clicks and rank #1 in impressions yields a Rank Sum of 2).
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white rounded border h-100">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h6 class="fw-bold mb-0 text-success">Tier (Tiered Allocation)</h6>
+                            <span class="badge bg-success-subtle text-success border">Method C</span>
+                        </div>
+                        <p class="small text-muted mb-2">
+                            <strong>Formula:</strong> <code>Tier 1 (Top Clicks) &bull; Tier 2 (Top Impr) &bull; Tier 3 (Long Tail)</code>
+                        </p>
+                        <p class="small text-secondary mb-0">
+                            A segmented quota model guaranteeing the migration captures proven traffic drivers (Tier 1: top 700 by clicks) alongside high latent demand opportunities (Tier 2: next top 300 by impressions from remaining candidates). Any remaining inventory is designated as Tier 3 long tail for phased or conditional review.
                         </p>
                     </div>
                 </div>
