@@ -271,5 +271,8 @@ def test_drupal_dato_top_1000_migration_report(mock_service, mocker):
         html = f.read()
     assert 'Top 1,000 Drupal to Dato Migration Report' in html
     assert 'Redirect 301 /news/redundancy-guide /employment-law/statutory-redundancy' in html
+    assert 'Methodology and Scoring Definitions' in html
+    assert 'Comp. Score (Composite Score)' in html
+    assert 'Rank Sum (Combined Rank Sum)' in html
 
 
