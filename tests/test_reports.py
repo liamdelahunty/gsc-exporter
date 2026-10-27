@@ -209,46 +209,55 @@ def test_head_mid_long_tail_report(mock_service, mocker):
 def test_drupal_dato_top_1000_migration_report(mock_service, mocker):
     migration_mock_data = {
         'page': [
+            'https://www.hr-inform.co.uk/',                                # Root homepage to ignore
             'https://www.hr-inform.co.uk/features/working-during-heatwave', # Live Dato page
             'https://www.hr-inform.co.uk/user/login',                      # Utility page to ignore
             'https://www.hr-inform.co.uk/employment-law/statutory-redundancy', # Winner for query
             'https://www.hr-inform.co.uk/news/redundancy-guide',           # Cannibalised for query
             'https://www.hr-inform.co.uk/templates/disciplinary-sample?page=2', # Stripped params & CTR Opp
-            'https://www.hr-inform.co.uk/guides/maternity-rights'          # Standard candidate
+            'https://www.hr-inform.co.uk/guides/maternity-rights',         # Standard candidate
+            'https://www.hr-inform.co.uk/system/files/downloads/2017-09/Template%20payslips.docx' # Download document
         ],
         'query': [
+            'hr inform homepage',
             'working during heatwave',
             'login hr inform',
             'statutory redundancy pay',
             'statutory redundancy pay',
             'disciplinary sample template',
-            'maternity rights uk'
+            'maternity rights uk',
+            'free payslip template docx'
         ],
-        'clicks': [50, 5, 200, 20, 3, 40],
-        'impressions': [400, 10, 1500, 150, 900, 500],
-        'ctr': [0.125, 0.5, 0.133, 0.133, 0.0033, 0.08],
-        'position': [2.1, 1.0, 1.5, 6.2, 5.0, 3.2]
+        'clicks': [150, 50, 5, 200, 20, 3, 40, 25],
+        'impressions': [2000, 400, 10, 1500, 150, 900, 500, 300],
+        'ctr': [0.075, 0.125, 0.5, 0.133, 0.133, 0.0033, 0.08, 0.083],
+        'position': [1.0, 2.1, 1.0, 1.5, 6.2, 5.0, 3.2, 2.2]
     }
     mocker.patch('reports.migrations.drupal_dato_top_1000_migration_report.fetch_with_cache',
                  return_value=pd.DataFrame(migration_mock_data))
     
     from reports.migrations.drupal_dato_top_1000_migration_report import run_report
     site = 'https://www.hr-inform.co.uk'
-    candidates_csv, cannibal_csv, dato_csv, html_path = run_report(
+    candidates_csv, cannibal_csv, dato_csv, downloads_csv, html_path = run_report(
         mock_service, site, '2024-01-01', '2024-12-31', limit=1000
     )
 
     assert candidates_csv is not None and os.path.exists(candidates_csv)
     assert cannibal_csv is not None and os.path.exists(cannibal_csv)
     assert dato_csv is not None and os.path.exists(dato_csv)
+    assert downloads_csv is not None and os.path.exists(downloads_csv)
     assert html_path is not None and os.path.exists(html_path)
 
     # Verify Candidates CSV
     df_cand = pd.read_csv(candidates_csv)
     assert 'https://www.hr-inform.co.uk/employment-law/statutory-redundancy' in df_cand['Legacy Drupal URL'].values
-    # Utility and live Dato pages must not be in candidates
+    # Root page, utility and live Dato pages must not be in candidates
+    assert 'https://www.hr-inform.co.uk' not in df_cand['Legacy Drupal URL'].values
+    assert 'https://www.hr-inform.co.uk/' not in df_cand['Legacy Drupal URL'].values
     assert 'https://www.hr-inform.co.uk/user/login' not in df_cand['Legacy Drupal URL'].values
     assert 'https://www.hr-inform.co.uk/features/working-during-heatwave' not in df_cand['Legacy Drupal URL'].values
+    # Download document must be separated and not in candidates
+    assert 'https://www.hr-inform.co.uk/system/files/downloads/2017-09/Template%20payslips.docx' not in df_cand['Legacy Drupal URL'].values
     # Cannibalised secondary page must not be in candidates
     assert 'https://www.hr-inform.co.uk/news/redundancy-guide' not in df_cand['Legacy Drupal URL'].values
     # Parameter should be stripped
@@ -266,6 +275,12 @@ def test_drupal_dato_top_1000_migration_report(mock_service, mocker):
     df_dato = pd.read_csv(dato_csv)
     assert 'https://www.hr-inform.co.uk/features/working-during-heatwave' in df_dato['Live Dato URL'].values
 
+    # Verify Download Documents CSV
+    df_down = pd.read_csv(downloads_csv)
+    assert 'https://www.hr-inform.co.uk/system/files/downloads/2017-09/Template%20payslips.docx' in df_down['Document URL'].values
+    assert 'DOCX' in df_down['File Type'].values
+    assert 'Template payslips.docx' in df_down['Document Filename'].values
+
     # Verify HTML
     with open(html_path, 'r', encoding='utf-8') as f:
         html = f.read()
@@ -274,5 +289,114 @@ def test_drupal_dato_top_1000_migration_report(mock_service, mocker):
     assert 'Methodology and Scoring Definitions' in html
     assert 'Comp. Score (Composite Score)' in html
     assert 'Rank Sum (Combined Rank Sum)' in html
+    assert 'Tier (Tiered Allocation)' in html
+
+
+def test_drupal_dato_migration_report_multi_mechanism_expanded(mock_service, mocker):
+    """Verifies that the report pulls more than 1,000 rows across multiple mechanisms."""
+    # 600 high-click pages (low impressions) + 600 high-impression pages (zero clicks)
+    rows = []
+    for i in range(600):
+        rows.append({
+            'page': f'https://www.hr-inform.co.uk/articles/click-leader-{i}',
+            'query': f'high click query {i}',
+            'clicks': 1000 - i,
+            'impressions': 50,
+            'ctr': 0.5,
+            'position': 1.5
+        })
+    for j in range(600):
+        rows.append({
+            'page': f'https://www.hr-inform.co.uk/articles/impr-leader-{j}',
+            'query': f'high impression query {j}',
+            'clicks': 0,
+            'impressions': 10000 - j,
+            'ctr': 0.0,
+            'position': 8.0
+        })
+
+    mocker.patch(
+        'reports.migrations.drupal_dato_top_1000_migration_report.fetch_with_cache',
+        return_value=pd.DataFrame(rows)
+    )
+
+    from reports.migrations.drupal_dato_top_1000_migration_report import run_report
+    site = 'https://www.hr-inform.co.uk'
+    candidates_csv, _, _, _, html_path = run_report(
+        mock_service, site, '2024-01-01', '2024-12-31', limit=1000
+    )
+
+    df_cand = pd.read_csv(candidates_csv)
+    # Total candidates must exceed 1,000 because both top 1,000 clicks and top 1,000 impressions are included
+    assert len(df_cand) == 1200
+    assert 'Clicks Rank' in df_cand.columns
+    assert 'Impressions Rank' in df_cand.columns
+    assert 'Method A (Composite Score)' in df_cand.columns
+    assert 'Method B (Combined Rank Sum)' in df_cand.columns
+    assert 'Method C (Tiered Allocation)' in df_cand.columns
+
+    # Verify both click leaders and impression leaders are present
+    assert 'https://www.hr-inform.co.uk/articles/click-leader-0' in df_cand['Legacy Drupal URL'].values
+    assert 'https://www.hr-inform.co.uk/articles/impr-leader-599' in df_cand['Legacy Drupal URL'].values
+
+    with open(html_path, 'r', encoding='utf-8') as f:
+        html = f.read()
+    assert '1,200' in html
+
+
+def test_download_documents_report(mock_service, mocker):
+    """Verifies that the standalone download documents report extracts all file types."""
+    mock_data = {
+        'page': [
+            'https://www.hr-inform.co.uk/downloads/sample-handbook.pdf',
+            'https://www.hr-inform.co.uk/downloads/salary-grid.xlsx',
+            'https://www.hr-inform.co.uk/downloads/payslip-template.docx',
+            'https://www.hr-inform.co.uk/downloads/data-export.csv',
+            'https://www.hr-inform.co.uk/articles/standard-article' # Not a document
+        ],
+        'query': [
+            'sample employee handbook pdf',
+            'salary grid template xlsx',
+            'payslip template download docx',
+            'workplace data export csv',
+            'standard employment law article'
+        ],
+        'clicks': [85, 42, 60, 15, 200],
+        'impressions': [900, 500, 800, 250, 3000],
+        'ctr': [0.094, 0.084, 0.075, 0.06, 0.067],
+        'position': [2.1, 3.4, 1.8, 4.2, 1.5]
+    }
+    mocker.patch(
+        'reports.migrations.download_documents_report.fetch_with_cache',
+        return_value=pd.DataFrame(mock_data)
+    )
+
+    from reports.migrations.download_documents_report import run_report
+    site = 'https://www.hr-inform.co.uk'
+    csv_path, html_path = run_report(
+        mock_service, site, '2024-01-01', '2024-12-31'
+    )
+
+    assert csv_path is not None and os.path.exists(csv_path)
+    assert html_path is not None and os.path.exists(html_path)
+
+    df_docs = pd.read_csv(csv_path)
+    # Only the 4 document assets should be present
+    assert len(df_docs) == 4
+    assert 'https://www.hr-inform.co.uk/downloads/sample-handbook.pdf' in df_docs['Document URL'].values
+    assert 'https://www.hr-inform.co.uk/downloads/salary-grid.xlsx' in df_docs['Document URL'].values
+    assert 'https://www.hr-inform.co.uk/articles/standard-article' not in df_docs['Document URL'].values
+
+    assert 'PDF' in df_docs['File Type'].values
+    assert 'XLSX' in df_docs['File Type'].values
+    assert 'DOCX' in df_docs['File Type'].values
+    assert 'CSV' in df_docs['File Type'].values
+
+    with open(html_path, 'r', encoding='utf-8') as f:
+        html = f.read()
+    assert 'Download Documents Audit' in html
+    assert 'sample-handbook.pdf' in html
+
+
 
 
