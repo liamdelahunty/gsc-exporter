@@ -145,28 +145,39 @@ def run_report(service, sites, start_date, end_date, report_label=None):
 
 if __name__ == '__main__':
     import argparse
-    from core.client import get_gsc_service
+    from core.client import get_gsc_service, get_available_properties
 
     parser = argparse.ArgumentParser(description='Run a monthly summary report.')
     parser.add_argument('site_url', nargs='?', help='The URL of the site to analyse.')
     parser.add_argument('--sites-file', help='Text file with site URLs.')
+    parser.add_argument('--account-wide', '--all-sites', action='store_true', help='Run the report account-wide across all accessible GSC properties.')
     parser.add_argument('--start-date', help='Start date (YYYY-MM-DD).')
     parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
     parser.add_argument('--last-7-days', action='store_true', help='Run for the last 7 available days.')
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
 
     args = parser.parse_args()
-    
+
+    service = get_gsc_service()
+    if not service:
+        sys.exit(1)
 
     sites = []
     if args.sites_file:
         with open(args.sites_file, 'r') as f:
-            sites = [line.strip() for line in f if line.strip()]
+            sites = [line.strip() for line in f if line.strip() and not line.strip().startswith('#')]
+    elif args.account_wide:
+        sites = get_available_properties(service)
     elif args.site_url:
         sites = [args.site_url]
+    else:
+        parser.print_help()
+        sys.exit(1)
 
-    service = get_gsc_service()
-    if service:
-        start_date, end_date = parse_standard_date_args(args, service, args.site_url)
-    if service and sites:
-        run_report(service, sites, start_date, end_date)
+    if not sites:
+        print("No sites provided to process.")
+        sys.exit(1)
+
+    anchor_site = args.site_url if args.site_url else sites[0]
+    start_date, end_date = parse_standard_date_args(args, service, anchor_site)
+    run_report(service, sites, start_date, end_date)

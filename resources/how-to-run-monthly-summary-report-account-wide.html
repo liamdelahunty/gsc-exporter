@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Run Monthly Summary Report Account-Wide</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            padding: 2rem;
+            background-color: #f8f9fa;
+            color: #212529;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .main-container {
+            max-width: 1040px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 2.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.08);
+        }
+        .guide-section {
+            margin-bottom: 2.5rem;
+            border-left: 4px solid #0d6efd;
+            padding-left: 1.5rem;
+        }
+        .guide-section h2 {
+            color: #0d6efd;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        pre {
+            background-color: #1e293b;
+            color: #38bdf8;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+        code {
+            color: #d63384;
+            background-color: #f1f5f9;
+            padding: 0.15rem 0.35rem;
+            border-radius: 0.25rem;
+            font-size: 0.9em;
+        }
+        pre code {
+            color: inherit;
+            background-color: transparent;
+            padding: 0;
+            font-size: inherit;
+        }
+        .table-custom {
+            font-size: 0.92rem;
+        }
+        .badge-step {
+            display: inline-block;
+            background-color: #0d6efd;
+            color: #ffffff;
+            width: 1.75rem;
+            height: 1.75rem;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 1.75rem;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        .callout {
+            background-color: #e7f1ff;
+            border-left: 4px solid #0d6efd;
+            padding: 1rem 1.25rem;
+            border-radius: 0.375rem;
+            margin: 1.25rem 0;
+        }
+        .callout-warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem 1.25rem;
+            border-radius: 0.375rem;
+            margin: 1.25rem 0;
+        }
+        footer {
+            margin-top: 3rem;
+            text-align: center;
+            color: #6c757d;
+            border-top: 1px solid #dee2e6;
+            padding-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-light border-bottom mb-4 rounded shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold text-primary" href="index.html">GSC Exporter Resources</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Index</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="how-to-read-the-monthly-summary-report.html">Report Interpretation</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="monthly-reporting-guide.html">Monthly Reporting Guide</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://github.com/liamdelahunty/gsc-exporter" target="_blank"><i class="bi bi-github"></i> GitHub</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="mb-4">
+            <span class="badge bg-primary mb-2">Operations Guide</span>
+            <h1 class="display-6 fw-bold">How to Run the Monthly Summary Report Account-Wide</h1>
+            <p class="lead text-secondary">
+                Learn how to execute the Monthly Summary Report across your entire Google Search Console portfolio, consolidating high-level performance metrics into a single unified executive dashboard and CSV extract.
+            </p>
+        </div>
+
+        <!-- Section 1: Overview & Architecture -->
+        <div class="guide-section">
+            <h2><span class="badge-step">1</span> Overview &amp; Output Architecture</h2>
+            <p>
+                The <code>reports/monthly_summary_report.py</code> script is designed to operate in two distinct modes depending on how many properties are supplied:
+            </p>
+            <ul>
+                <li>
+                    <strong>Single Property Mode:</strong> When passed a single URL or domain (e.g. <code>sc-domain:example.com</code>), the report generates a single-site summary stored in <code>output/&lt;domain-slug&gt;/</code>.
+                </li>
+                <li>
+                    <strong>Account-Wide Portfolio Mode:</strong> When executed with multiple properties (via <code>--account-wide</code> or <code>--sites-file</code>), the script queries each property, extracts performance totals and footprint dimensions, sorts them hierarchically, and aggregates everything into an account-level summary table.
+                </li>
+            </ul>
+
+            <div class="callout">
+                <strong><i class="bi bi-folder2-open me-1"></i> Generated Output Locations (Account-Wide Mode):</strong><br>
+                All account-wide outputs are saved directly to the dedicated <code>output/account/</code> directory:
+                <ul class="mb-0 mt-2">
+                    <li><strong>HTML Dashboard:</strong> <code>output/account/monthly-summary-report-account-wide-[START-DATE]-to-[END-DATE].html</code></li>
+                    <li><strong>Raw Metrics CSV:</strong> <code>output/account/monthly-summary-report-account-wide-[START-DATE]-to-[END-DATE].csv</code></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Section 2: Execution Methods -->
+        <div class="guide-section">
+            <h2><span class="badge-step">2</span> Execution Methods</h2>
+            <p>There are two primary ways to run an account-wide report across your Google Search Console portfolio:</p>
+
+            <h4 class="h5 mt-3 fw-bold text-dark">Method A: Automated Discovery (<code>--account-wide</code> / <code>--all-sites</code>)</h4>
+            <p>
+                This is the quickest method. It communicates with the Google Search Console API, dynamically retrieves every property your credentials have access to, and compiles the portfolio summary automatically.
+            </p>
+            <pre><code># Run for the last complete calendar month across all accessible properties
+python reports/monthly_summary_report.py --account-wide --last-month
+
+# Run for a custom date range across all accessible properties
+python reports/monthly_summary_report.py --account-wide --start-date 2026-10-01 --end-date 2026-10-31</code></pre>
+
+            <h4 class="h5 mt-4 fw-bold text-dark">Method B: Curated Portfolio List (<code>--sites-file</code>)</h4>
+            <p>
+                Use this method when you want to report on a specific group of core sites or exclude secondary staging and test properties. Site URLs are supplied via a plain text file, one per line (lines beginning with <code>#</code> are treated as comments).
+            </p>
+            <pre><code># Run for a curated site list for the last complete calendar month
+python reports/monthly_summary_report.py --sites-file site-lists/sites.txt --last-month
+
+# Run for a custom curated list (e.g. core commercial properties)
+python reports/monthly_summary_report.py --sites-file site-lists/core.txt --last-month</code></pre>
+        </div>
+
+        <!-- Section 3: CLI Flags & Date Arguments -->
+        <div class="guide-section">
+            <h2><span class="badge-step">3</span> CLI Flags &amp; Date Selection</h2>
+            <p>The report conforms to the standardised GSC Exporter CLI parameter interface:</p>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-custom">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Argument / Flag</th>
+                            <th>Description</th>
+                            <th>Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>--account-wide</code> / <code>--all-sites</code></td>
+                            <td>Automatically queries all properties in the GSC account.</td>
+                            <td><code>--account-wide</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>--sites-file &lt;path&gt;</code></td>
+                            <td>Specifies a text file containing target site URLs, one per line.</td>
+                            <td><code>--sites-file site-lists/sites.txt</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>--last-month</code></td>
+                            <td>Calculates and analyses the last complete calendar month (recommended for monthly close).</td>
+                            <td><code>--last-month</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>--start-date YYYY-MM-DD</code></td>
+                            <td>Explicit start date for the reporting interval.</td>
+                            <td><code>--start-date 2026-09-01</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>--end-date YYYY-MM-DD</code></td>
+                            <td>Explicit end date for the reporting interval.</td>
+                            <td><code>--end-date 2026-09-30</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>--last-7-days</code></td>
+                            <td>Calculates and runs for the trailing 7 days of available data.</td>
+                            <td><code>--last-7-days</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>--branding-config &lt;path&gt;</code></td>
+                            <td>Optional custom branding JSON file for header logo, colours, and support links.</td>
+                            <td><code>--branding-config config/branding.json</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section 4: Metrics Included -->
+        <div class="guide-section">
+            <h2><span class="badge-step">4</span> Portfolio Metrics Included in the Table</h2>
+            <p>For every property processed, the report extracts and calculates the following key performance indicators:</p>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-custom">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Column Header</th>
+                            <th>Data Source</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Property</strong></td>
+                            <td>GSC Site URL</td>
+                            <td>The canonical property identifier (e.g. <code>sc-domain:croneri.co.uk</code> or <code>https://app.croneri.co.uk/</code>).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Clicks</strong></td>
+                            <td>Overall Site Query</td>
+                            <td>Total volume of user clicks from organic Google Search results.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Impressions</strong></td>
+                            <td>Overall Site Query</td>
+                            <td>Total organic search appearances across all queries and pages.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>CTR</strong></td>
+                            <td>Calculated</td>
+                            <td>Overall Click-Through Rate (<code>Total Clicks / Impressions</code>).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Avg. Position</strong></td>
+                            <td>Overall Site Query</td>
+                            <td>Average ranking position across all organic query appearances.</td>
+                        </tr>
+                        <tr>
+                            <td><strong># Queries</strong></td>
+                            <td><code>['query']</code> dimension</td>
+                            <td>Number of distinct search queries that generated impressions for the property.</td>
+                        </tr>
+                        <tr>
+                            <td><strong># Pages</strong></td>
+                            <td><code>['page']</code> dimension</td>
+                            <td>Number of distinct landing URLs that received organic visibility.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="mt-2 text-muted small">
+                <strong>Hierarchical Sorting:</strong> The generated table orders rows by root domain, prioritizing Domain properties (<code>sc-domain:</code>) first, followed by primary <code>www.</code> properties, then subdomains, sorted by total clicks descending.
+            </p>
+        </div>
+
+        <!-- Section 5: Best Practice Workflow -->
+        <div class="guide-section">
+            <h2><span class="badge-step">5</span> Recommended Operational Workflow</h2>
+            <p>To ensure optimal execution speed and avoid repeated network calls to Google APIs, follow this standard three-step workflow:</p>
+
+            <ol>
+                <li class="mb-3">
+                    <strong>Inspect or Refresh Available Domains (Optional):</strong><br>
+                    Verify the list of sites associated with your Google credentials:
+                    <pre><code>python utilities/show_available_domains.py > site-lists/available-domains.txt</code></pre>
+                </li>
+                <li class="mb-3">
+                    <strong>Warm the Cache (Recommended):</strong><br>
+                    Prime local monthly cache chunks before running the summary report. This fetches data in chunks and stores them locally in <code>cache/</code>:
+                    <pre><code>python utilities/cache_warmer.py --file site-lists/sites.txt</code></pre>
+                </li>
+                <li class="mb-3">
+                    <strong>Generate the Account-Wide Summary:</strong><br>
+                    Execute the monthly summary report across all sites:
+                    <pre><code>python reports/monthly_summary_report.py --sites-file site-lists/sites.txt --last-month</code></pre>
+                    Or run across the whole account dynamically:
+                    <pre><code>python reports/monthly_summary_report.py --account-wide --last-month</code></pre>
+                </li>
+                <li>
+                    <strong>Review and Distribute:</strong><br>
+                    Open the generated HTML dashboard in your browser or attach the CSV file to your monthly stakeholder performance pack.
+                </li>
+            </ol>
+        </div>
+
+        <!-- Section 6: Troubleshooting -->
+        <div class="guide-section">
+            <h2><span class="badge-step">6</span> Troubleshooting &amp; Tips</h2>
+            <div class="callout-warning">
+                <strong><i class="bi bi-exclamation-triangle-fill me-1"></i> Authentication Check:</strong><br>
+                If authentication fails or tokens expire, delete <code>config/token.json</code> and re-run. A local browser window will open to authorize access via Google OAuth.
+            </div>
+            <ul>
+                <li>
+                    <strong>Handling Comments in Site Lists:</strong> Ensure any custom site list files prefix comments with <code>#</code>. The parser automatically ignores comment lines and blank lines.
+                </li>
+                <li>
+                    <strong>High API Latency:</strong> Generating footprint metrics (<code># Queries</code> and <code># Pages</code>) requires two dimension queries per site. Priming the cache via <code>utilities/cache_warmer.py</code> drastically reduces execution time.
+                </li>
+            </ul>
+        </div>
+
+        <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+            <a href="index.html" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to Resources Index</a>
+            <a href="how-to-read-the-monthly-summary-report.html" class="btn btn-outline-primary">How to Read the Report <i class="bi bi-arrow-right"></i></a>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container text-center">
+            <p><a href="index.html">Resources</a> | <a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter GitHub Repository</a></p>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -397,6 +397,75 @@ def test_download_documents_report(mock_service, mocker):
     assert 'Download Documents Audit' in html
     assert 'sample-handbook.pdf' in html
 
+def test_monthly_summary_report_account_wide(mock_service, mocker):
+    mock_summary_df = pd.DataFrame([{
+        'clicks': 1500,
+        'impressions': 30000,
+        'ctr': 0.05,
+        'position': 8.4
+    }])
+    mock_dim_df = pd.DataFrame([{'query': 'q1'}, {'query': 'q2'}])
+
+    def mock_fetch(service, site_url, start_date, end_date, dimensions):
+        if not dimensions:
+            return mock_summary_df
+        return mock_dim_df
+
+    mocker.patch('reports.monthly_summary_report.fetch_with_cache', side_effect=mock_fetch)
+    from reports.monthly_summary_report import run_report
+
+    sites = ['sc-domain:example.com', 'https://www.example.co.uk/']
+    html_path = run_report(mock_service, sites, '2026-09-01', '2026-09-30')
+
+    assert html_path is not None
+    assert os.path.exists(html_path)
+    csv_path = html_path.replace('.html', '.csv')
+    assert os.path.exists(csv_path)
+    assert 'account-wide' in html_path
+
+    df_out = pd.read_csv(csv_path)
+    assert len(df_out) == 2
+    assert 'sc-domain:example.com' in df_out['site_url'].values
+
+    with open(html_path, 'r', encoding='utf-8') as f:
+        html = f.read()
+    assert 'GSC Monthly Summary' in html
+
+def test_monthly_summary_report_single_site(mock_service, mocker):
+    mock_summary_df = pd.DataFrame([{
+        'clicks': 850,
+        'impressions': 12000,
+        'ctr': 0.07,
+        'position': 5.2
+    }])
+    mock_dim_df = pd.DataFrame([{'query': 'q1'}])
+
+    def mock_fetch(service, site_url, start_date, end_date, dimensions):
+        if not dimensions:
+            return mock_summary_df
+        return mock_dim_df
+
+    mocker.patch('reports.monthly_summary_report.fetch_with_cache', side_effect=mock_fetch)
+    from reports.monthly_summary_report import run_report
+
+    site = 'https://www.example.co.uk/'
+    html_path = run_report(mock_service, site, '2026-09-01', '2026-09-30')
+
+    assert html_path is not None
+    assert os.path.exists(html_path)
+    csv_path = html_path.replace('.html', '.csv')
+    assert os.path.exists(csv_path)
+
+    df_out = pd.read_csv(csv_path)
+    assert len(df_out) == 1
+    assert 'https://www.example.co.uk/' in df_out['site_url'].values
+
+    with open(html_path, 'r', encoding='utf-8') as f:
+        html = f.read()
+    assert 'GSC Monthly Summary for https://www.example.co.uk/' in html
+
+
+
 
 
 
