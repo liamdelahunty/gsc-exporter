@@ -1,13 +1,13 @@
 # Key Performance Metrics
 
-Performs analysis of Google Search Console data, gathering key performance metrics.
+Performs analysis of Google Search Console data, gathering key performance metrics on a monthly or weekly basis.
 Refactored for modular GSC Exporter.
 
 ---
 
 ## Command Line Usage
 
-### Standard Example (Monthly)
+### Standard Example
 ```bash
 python reports/key_performance_metrics.py <site_url> --last-month
 ```
@@ -26,9 +26,10 @@ python reports/key_performance_metrics.py <site_url> --weekly --weeks 4
 
 ### Optional Arguments
 
-* **`--months`**: Number of months for monthly report (default: `16`).
-* **`--weekly`**: Produce reports aggregated on a weekly basis, starting on Monday and ending on Sunday.
-* **`--weeks`**: Number of weeks to report on (default: `4`). Automatically enables weekly mode.
+* **`--months`**: Number of months for monthly report, defaulting to 16. (default: `16`)
+* **`--weekly`**: Run report on a weekly basis with weeks starting on Monday.
+* **`--weeks`**: Number of weeks for weekly report, defaulting to 4. Automatically enables weekly mode. (default: `None`)
+
 
 ---
 
@@ -36,28 +37,26 @@ python reports/key_performance_metrics.py <site_url> --weekly --weeks 4
 
 This report generates the following files in the output directory:
 
-* Monthly mode:
-  * `output/<domain>/key-metrics-{slug}-{month}.csv`
-  * `output/<domain>/key-metrics-{slug}-{month}.html`
-* Weekly mode:
-  * `output/<domain>/key-metrics-weekly-{slug}-{end-date}.csv`
-  * `output/<domain>/key-metrics-weekly-{slug}-{end-date}.html`
+* `output/<domain>/key-metrics-weekly-{slug}-{end_date}.csv` (CSV dataset)
+* `output/<domain>/key-metrics-weekly-{slug}-{end_date}.html` (HTML report)
+* `output/<domain>/key-metrics-{slug}-{most_recent}.csv` (CSV dataset)
+* `output/<domain>/key-metrics-{slug}-{most_recent}.html` (HTML report)
 
 ---
 
 ## How to Interpret the Key Performance Metrics Report
 
-A macro-level dashboard tracking site health and search type distribution over a 16-month period.
+A macro-level dashboard tracking site health and organic visibility over monthly (16-month) or weekly intervals.
 
-### 1. Seasonal Trends
-* Spot year-over-year (YoY) changes, holiday dips, or quarterly industry trends.
+### 1. Seasonal Trends and Weekly Cadence
+* Spot year-over-year (YoY) changes, holiday dips, or quarterly industry trends in monthly mode.
+* Track short-term week-on-week fluctuations and recent campaign momentum in weekly mode.
 
-### 2. Search Type Distribution
-* Segment traffic across **Web, Image, Video, and News** search.
-* Identify if image search or video search is a major traffic contributor, which warrants additional media optimization.
+### 2. Search Performance Metrics
+* Track absolute clicks and impressions alongside click-through rates (CTR) and average search positions.
 
 ### 3. Historical Trajectory
-* Assess whether SEO strategies are yielding long-term compound growth or if site-wide visibility is in decline.
+* Assess whether SEO strategies are yielding compound growth or if site-wide visibility is in decline.
 
 ---
 

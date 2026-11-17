@@ -240,9 +240,9 @@ if __name__ == '__main__':
     parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
     parser.add_argument('--last-7-days', action='store_true', help='Run for the last 7 available days.')
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
-    parser.add_argument('--months', type=int, default=16, help='Number of months for monthly report (default: 16).')
-    parser.add_argument('--weekly', action='store_true', help='Run report on a weekly basis (weeks start on Monday).')
-    parser.add_argument('--weeks', type=int, default=None, help='Number of weeks for weekly report (default: 4). Automatically enables weekly mode.')
+    parser.add_argument('--months', type=int, default=16, help='Number of months for monthly report, defaulting to 16.')
+    parser.add_argument('--weekly', action='store_true', help='Run report on a weekly basis with weeks starting on Monday.')
+    parser.add_argument('--weeks', type=int, default=None, help='Number of weeks for weekly report, defaulting to 4. Automatically enables weekly mode.')
     args = parser.parse_args()
     
     is_weekly = args.weekly or (args.weeks is not None)
