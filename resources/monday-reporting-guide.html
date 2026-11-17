@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monday Performance Reporting Guide - Standard Operating Procedure</title>
+    <title>Monday Performance Reporting Guide - SOP, Property Matrix &amp; Alert Diagnostics</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
@@ -258,6 +258,46 @@
             border-radius: 0 8px 8px 0;
             margin: 1rem 0;
         }
+
+        .badge-gsc {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+            font-size: 0.78rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .badge-ga4 {
+            background-color: #f3e8ff;
+            color: #7e22ce;
+            border: 1px solid #e9d5ff;
+            font-size: 0.78rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .table-custom th {
+            background-color: #f8fafc;
+            color: #334155;
+            font-weight: 600;
+        }
+
+        .callout-routine {
+            border-left: 4px solid var(--accent-blue);
+            background-color: #f0f9ff;
+            padding: 1rem 1.25rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1.25rem 0;
+        }
+
+        .callout-diagnostic {
+            border-left: 4px solid var(--accent-amber);
+            background-color: #fffbeb;
+            padding: 1rem 1.25rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1.25rem 0;
+        }
     </style>
 </head>
 <body>
@@ -269,7 +309,7 @@
                 <div>
                     <span class="badge bg-primary text-uppercase px-2.5 py-1.5 mb-2 fw-semibold">Standard Operating Procedure</span>
                     <h1 class="text-white mb-1">Monday Performance Reporting Guide</h1>
-                    <p class="text-slate-300 mb-0 fs-5 text-light">Operational walkthrough for Accountancy Daily editorial metrics & weekly portfolio canary monitoring.</p>
+                    <p class="text-slate-300 mb-0 fs-5 text-light">Operational walkthrough for Accountancy Daily editorial metrics, portfolio canary monitoring, and alert diagnostics.</p>
                 </div>
                 <div class="text-end">
                     <span class="badge bg-dark border border-secondary text-light px-3 py-2 fs-6">
@@ -289,12 +329,16 @@
         <div class="card bg-white border-1 mb-3 shadow-sm">
             <div class="card-body py-2.5 d-flex flex-wrap align-items-center justify-content-between gap-2">
                 <span class="fw-bold text-secondary small text-uppercase"><i class="bi bi-compass me-1"></i> Quick Jump:</span>
-                <div class="btn-group btn-group-sm">
-                    <a href="#date-calculator" class="btn btn-outline-info">Date & Subject Hub</a>
-                    <a href="#overview" class="btn btn-outline-secondary">Overview & Setup</a>
-                    <a href="#report-1-editorial" class="btn btn-outline-primary">1. Accountancy Daily Editorial</a>
-                    <a href="#report-2-canary" class="btn btn-outline-primary">2. Canary Monitoring Suite</a>
+                <div class="btn-group btn-group-sm flex-wrap">
+                    <a href="#date-calculator" class="btn btn-outline-info">Date Hub</a>
+                    <a href="#overview" class="btn btn-outline-secondary">Setup</a>
+                    <a href="#property-matrix" class="btn btn-outline-dark">Property Matrix</a>
+                    <a href="#report-1-editorial" class="btn btn-outline-primary">1. Editorial Report</a>
+                    <a href="#report-2-canary" class="btn btn-outline-primary">2. Canary Suite</a>
                     <a href="#interpreting-canary" class="btn btn-outline-secondary">Commentary Guide</a>
+                    <a href="#tier-2-diagnostics" class="btn btn-outline-warning">Alert Diagnostics</a>
+                    <a href="#interactive-generator" class="btn btn-outline-success">Command Builder</a>
+                    <a href="#master-cheat-sheet" class="btn btn-outline-secondary">Catalogue</a>
                     <a href="#quick-cheat-sheet" class="btn btn-outline-dark">Quick Cheat Sheet</a>
                 </div>
             </div>
@@ -433,6 +477,94 @@
                 <strong>Terminal Recommendation:</strong> You can execute these commands in <strong>Git Bash</strong>, <strong>PowerShell</strong>, or <strong>Windows Terminal</strong>. Ensure you activate the project's Python virtual environment (<code>.venv</code>) before executing any script.
             </div>
         </section>
+
+        <!-- Section: Property Matrix -->
+        <section id="property-matrix" class="main-card">
+            <h2><span class="badge-step"><i class="bi bi-grid-3x3-gap-fill"></i></span> Group Properties Reference Matrix</h2>
+            <p>Our reporting covers 11 primary group properties across Google Search Console and Google Analytics 4. Use this reference table to find property identifiers for scripts that require an explicit domain or GA4 Property ID:</p>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th>Brand / Property Name</th>
+                            <th>GSC Site Identifier (<code>siteUrl</code>)</th>
+                            <th>GA4 Property ID</th>
+                            <th>Primary Focus / Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Accountancy Daily</strong></td>
+                            <td><code>sc-domain:accountancydaily.co</code></td>
+                            <td><code>354746488</code></td>
+                            <td>Editorial news, Discover viral traffic, tax compliance.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Croner</strong></td>
+                            <td><code>sc-domain:croner.co.uk</code></td>
+                            <td><code>256798047</code></td>
+                            <td>Lead acquisition, HR and health &amp; safety advisory services.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Croner Taxwise</strong></td>
+                            <td><code>sc-domain:cronertaxwise.com</code></td>
+                            <td><code>521516305</code></td>
+                            <td>Fee protection insurance and tax consultancy for accountants.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Croner-i Corporate</strong></td>
+                            <td><code>https://www.croneri.co.uk/</code></td>
+                            <td><code>309716917</code></td>
+                            <td>Marketing portal for Croner-i technical information services.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Croner-i App</strong></td>
+                            <td><code>https://app.croneri.co.uk/</code></td>
+                            <td><code>308634050</code></td>
+                            <td>Subscriber web platform &amp; digital tool access.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Croner-i Learning</strong></td>
+                            <td><code>https://learning.croneri.co.uk</code></td>
+                            <td><code>453860440</code></td>
+                            <td>CPD webinars, course bookings, professional training.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Croner-i Library</strong></td>
+                            <td><code>https://library.croneri.co.uk/</code></td>
+                            <td><code>386965290</code></td>
+                            <td>Technical tax, accounting, and health &amp; safety commentary database.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Croner-i Pages (Marketo)</strong></td>
+                            <td><code>https://pages.croneri.co.uk/</code></td>
+                            <td><code>454945608</code></td>
+                            <td>Marketing landing pages, downloads, lead generation campaigns.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Employer Advice</strong></td>
+                            <td><code>sc-domain:employeradvice.org</code></td>
+                            <td><code>250644053</code></td>
+                            <td>Inbound HR and employment law triage for UK employers.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>HR-inform UK</strong></td>
+                            <td><code>sc-domain:hr-inform.co.uk</code></td>
+                            <td><code>397646972</code></td>
+                            <td>Subscription-based employment law documentation and compliance guides.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>My VIP Tax Team</strong></td>
+                            <td><code>sc-domain:myviptaxteam.com</code></td>
+                            <td><code>349622346</code></td>
+                            <td>Specialist tax consultation services for accountants.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
 
         <!-- Section 1: Accountancy Daily Editorial Report -->
         <section id="report-1-editorial" class="main-card">
@@ -684,6 +816,10 @@ deactivate</pre>
                     <pre id="cmd-gsc-canary">cd "C:\Users\liam.delahunty\OneDrive - Peninsula Group Online\Documents\2. Areas\Code\gsc-page-exporter"
 source .venv/Scripts/activate
 python reports/monitoring/canary_report.py --config config/properties.json
+python reports/key_performance_metrics.py https://app.croneri.co.uk --weeks 12
+python reports/key_performance_metrics.py https://library.croneri.co.uk --weeks 12
+python reports/key_performance_metrics.py https://www.croneri.co.uk --weeks 12
+python reports/key_performance_metrics.py https://www.hr-inform.co.uk --weeks 12
 deactivate</pre>
                 </div>
                 <p class="small text-muted mb-0">
@@ -744,7 +880,8 @@ deactivate</pre>
                             <span class="recipient-pill cc">"Yann Stepienik" &lt;Yann.Stepienik@croner.co.uk&gt;</span>
                             <span class="recipient-pill cc">"Orizu Nwokeji" &lt;Orizu.Nwokeji@croner.co.uk&gt;</span>
                             <span class="recipient-pill cc">"Muhammad Faheem" &lt;Muhammad.Faheem@croner.co.uk&gt;</span>
-                            <button class="btn btn-xs btn-outline-secondary ms-2 py-0 px-1" onclick="copyText('Yann.Stepienik@croner.co.uk; Orizu.Nwokeji@croner.co.uk; Muhammad.Faheem@croner.co.uk')">Copy All CC</button>
+                            <span class="recipient-pill cc">""Thomas West" &lt;Thomas.West@croner.co.uk&gt;</span>
+                            <button class="btn btn-xs btn-outline-secondary ms-2 py-0 px-1" onclick="copyText('Yann.Stepienik@croner.co.uk; Orizu.Nwokeji@croner.co.uk; Muhammad.Faheem@croner.co.uk; Thomas.West@croner.co.uk')">Copy All CC</button>
                         </div>
                     </div>
                     <div class="email-row">
@@ -838,6 +975,303 @@ Liam</div>
             </div>
         </section>
 
+        <!-- Section: Tier 2 Alert Diagnostics -->
+        <section id="tier-2-diagnostics" class="main-card">
+            <h2><span class="badge-step"><i class="bi bi-exclamation-triangle-fill"></i></span> Tier 2: Alert Diagnostics (When Properties Turn Red or Amber)</h2>
+            <p class="lead">
+                When the Canary reports flag an anomaly (Amber: drop between -10% and -25%; Red: critical drop &gt; -25%), do not guess the cause. Execute these specific diagnostic scripts from our repositories to pinpoint the root issue.
+            </p>
+
+            <div class="callout-diagnostic">
+                <strong><i class="bi bi-info-circle-fill text-warning me-2"></i>Diagnostic Decision Framework:</strong>
+                <ul class="mb-0 mt-1 ps-3 small">
+                    <li><strong>If Red in GSC &amp; GA4 Organic:</strong> True SEO ranking or indexing decline. Run GSC Performance Analysis and Query-Page Attribution.</li>
+                    <li><strong>If Red in GA4 Direct/All Mediums:</strong> Probable tagging, cookie consent container, or site deployment outage. Run GA4 Landing Pages &amp; Hostname reports.</li>
+                    <li><strong>If Red in GSC Discover only:</strong> Normal news cycle decay after a viral spike; verify with Search Type Performance.</li>
+                </ul>
+            </div>
+
+            <div class="row g-4 mt-1">
+                <!-- Diagnostic 2.1 -->
+                <div class="col-lg-6">
+                    <div class="p-3 border rounded bg-white h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="text-primary mb-0">2.1 GSC Performance Analysis (WoW Shift)</h6>
+                                <span class="badge badge-gsc">GSC</span>
+                            </div>
+                            <p class="small text-muted mb-2"><strong>Purpose:</strong> Isolates whether a drop was driven by lost impressions (search demand drop or de-indexing) or lower click-through rate / falling positions.</p>
+                            <div class="terminal-box mb-2">
+                                <div class="terminal-header">
+                                    <span>gsc-page-exporter</span>
+                                    <button class="btn btn-xs btn-outline-light py-0 px-1" onclick="copyBlock('cmd-diag-perf')"><i class="bi bi-clipboard"></i> Copy</button>
+                                </div>
+                                <pre id="cmd-diag-perf">python reports/performance_analysis.py [SITE_URL] --last-7-days</pre>
+                            </div>
+                        </div>
+                        <small class="text-muted"><i class="bi bi-arrow-return-right"></i> Generates detailed delta metrics comparing the last 7 days vs previous 7 days.</small>
+                    </div>
+                </div>
+
+                <!-- Diagnostic 2.2 -->
+                <div class="col-lg-6">
+                    <div class="p-3 border rounded bg-white h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="text-primary mb-0">2.2 GSC Queries &amp; Pages Analysis (Keyword Loss)</h6>
+                                <span class="badge badge-gsc">GSC</span>
+                            </div>
+                            <p class="small text-muted mb-2"><strong>Purpose:</strong> Unpacks query-level rankings for specific landing pages to see which exact search terms lost clicks.</p>
+                            <div class="terminal-box mb-2">
+                                <div class="terminal-header">
+                                    <span>gsc-page-exporter</span>
+                                    <button class="btn btn-xs btn-outline-light py-0 px-1" onclick="copyBlock('cmd-diag-qp')"><i class="bi bi-clipboard"></i> Copy</button>
+                                </div>
+                                <pre id="cmd-diag-qp">python reports/queries_pages_analysis.py [SITE_URL] --last-7-days</pre>
+                            </div>
+                        </div>
+                        <small class="text-muted"><i class="bi bi-arrow-return-right"></i> Maps search query intent directly to affected landing pages.</small>
+                    </div>
+                </div>
+
+                <!-- Diagnostic 2.3 -->
+                <div class="col-lg-6">
+                    <div class="p-3 border rounded bg-white h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="text-primary mb-0">2.3 GSC Search Type Breakdown (Web vs Discover vs News)</h6>
+                                <span class="badge badge-gsc">GSC</span>
+                            </div>
+                            <p class="small text-muted mb-2"><strong>Purpose:</strong> Verifies if traffic drops stem from Discover feed churn or standard Google Web Search fluctuations.</p>
+                            <div class="terminal-box mb-2">
+                                <div class="terminal-header">
+                                    <span>gsc-page-exporter</span>
+                                    <button class="btn btn-xs btn-outline-light py-0 px-1" onclick="copyBlock('cmd-diag-st')"><i class="bi bi-clipboard"></i> Copy</button>
+                                </div>
+                                <pre id="cmd-diag-st">python reports/page_level_report.py [SITE_URL] --search-type web --last-7-days
+python reports/page_level_report.py [SITE_URL] --search-type discover --last-7-days</pre>
+                            </div>
+                        </div>
+                        <small class="text-muted"><i class="bi bi-arrow-return-right"></i> Runs isolated URL performance censuses for each channel.</small>
+                    </div>
+                </div>
+
+                <!-- Diagnostic 2.4 -->
+                <div class="col-lg-6">
+                    <div class="p-3 border rounded bg-white h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="text-primary mb-0">2.4 GA4 Traffic Acquisition (Channel Shift)</h6>
+                                <span class="badge badge-ga4">GA4</span>
+                            </div>
+                            <p class="small text-muted mb-2"><strong>Purpose:</strong> Audits all acquisition channels (Organic Search, Direct, Referral, Paid Search, Email) to see where sessions dropped.</p>
+                            <div class="terminal-box mb-2">
+                                <div class="terminal-header">
+                                    <span>ga4-api-explorer</span>
+                                    <button class="btn btn-xs btn-outline-light py-0 px-1" onclick="copyBlock('cmd-diag-ga4-ch')"><i class="bi bi-clipboard"></i> Copy</button>
+                                </div>
+                                <pre id="cmd-diag-ga4-ch">python run_report.py -p [PROPERTY_ID] -r traffic_acquisition_report -sd <span class="dyn-playbook-start">YYYY-MM-DD</span> -ed <span class="dyn-playbook-end">YYYY-MM-DD</span> -o html</pre>
+                            </div>
+                        </div>
+                        <small class="text-muted"><i class="bi bi-arrow-return-right"></i> Exports interactive HTML channel audit dashboard into <code>output/</code>.</small>
+                    </div>
+                </div>
+
+                <!-- Diagnostic 2.5 -->
+                <div class="col-lg-6">
+                    <div class="p-3 border rounded bg-white h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="text-primary mb-0">2.5 GA4 Landing Pages Report (Top Droppers)</h6>
+                                <span class="badge badge-ga4">GA4</span>
+                            </div>
+                            <p class="small text-muted mb-2"><strong>Purpose:</strong> Identifies the specific site sections or pages that lost active users or experienced elevated bounce/exit rates.</p>
+                            <div class="terminal-box mb-2">
+                                <div class="terminal-header">
+                                    <span>ga4-api-explorer</span>
+                                    <button class="btn btn-xs btn-outline-light py-0 px-1" onclick="copyBlock('cmd-diag-ga4-lp')"><i class="bi bi-clipboard"></i> Copy</button>
+                                </div>
+                                <pre id="cmd-diag-ga4-lp">python run_report.py -p [PROPERTY_ID] -r landing_pages_report -sd <span class="dyn-playbook-start">YYYY-MM-DD</span> -ed <span class="dyn-playbook-end">YYYY-MM-DD</span> -o html</pre>
+                            </div>
+                        </div>
+                        <small class="text-muted"><i class="bi bi-arrow-return-right"></i> Pinpoints exact user entry URLs during the reporting period.</small>
+                    </div>
+                </div>
+
+                <!-- Diagnostic 2.6 -->
+                <div class="col-lg-6">
+                    <div class="p-3 border rounded bg-white h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="text-primary mb-0">2.6 GA4 Cross-Property AI Referral Report</h6>
+                                <span class="badge badge-ga4">GA4</span>
+                            </div>
+                            <p class="small text-muted mb-2"><strong>Purpose:</strong> Audits all 11 properties for incoming traffic from AI chatbots and search engines (ChatGPT, Perplexity, Claude, Gemini, Copilot).</p>
+                            <div class="terminal-box mb-2">
+                                <div class="terminal-header">
+                                    <span>ga4-api-explorer</span>
+                                    <button class="btn btn-xs btn-outline-light py-0 px-1" onclick="copyBlock('cmd-diag-ai')"><i class="bi bi-clipboard"></i> Copy</button>
+                                </div>
+                                <pre id="cmd-diag-ai">python reports/all_properties_ai_traffic_report.py</pre>
+                            </div>
+                        </div>
+                        <small class="text-muted"><i class="bi bi-arrow-return-right"></i> Scans regex patterns across all properties and generates cross-property matrix.</small>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Interactive Property Command Builder -->
+        <section id="interactive-generator" class="main-card border-success border-2">
+            <h2><span class="badge-step bg-success"><i class="bi bi-code-slash"></i></span> Interactive Property Command Builder</h2>
+            <p>Select any property from the dropdown below to automatically generate the tailored commands for both GSC and GA4 with the live calculated dates already inserted:</p>
+
+            <div class="row g-3 align-items-center mb-3">
+                <div class="col-md-6">
+                    <label for="propertySelector" class="form-label fw-bold text-secondary mb-1">Select Property:</label>
+                    <select id="propertySelector" class="form-select" onchange="updateGeneratedCommands()">
+                        <option value="accountancy" selected>Accountancy Daily (sc-domain:accountancydaily.co | 354746488)</option>
+                        <option value="croner">Croner (sc-domain:croner.co.uk | 256798047)</option>
+                        <option value="taxwise">Croner Taxwise (sc-domain:cronertaxwise.com | 521516305)</option>
+                        <option value="corporate">Croner-i Corporate (https://www.croneri.co.uk/ | 309716917)</option>
+                        <option value="app">Croner-i App (https://app.croneri.co.uk/ | 308634050)</option>
+                        <option value="learning">Croner-i Learning (https://learning.croneri.co.uk | 453860440)</option>
+                        <option value="library">Croner-i Library (https://library.croneri.co.uk/ | 386965290)</option>
+                        <option value="pages">Croner-i Pages / Marketo (https://pages.croneri.co.uk/ | 454945608)</option>
+                        <option value="employer">Employer Advice (sc-domain:employeradvice.org | 250644053)</option>
+                        <option value="hrinform">HR-inform UK (sc-domain:hr-inform.co.uk | 397646972)</option>
+                        <option value="myviptax">My VIP Tax Team (sc-domain:myviptaxteam.com | 349622346)</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <span class="badge bg-light text-secondary border p-2 d-inline-block mt-3 mt-md-0">
+                        <i class="bi bi-info-circle me-1 text-primary"></i> Commands dynamically populate with current trailing dates.
+                    </span>
+                </div>
+            </div>
+
+            <!-- Generated GSC Command -->
+            <div class="p-3 border rounded bg-light mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-primary small"><i class="bi bi-google me-1"></i> Generated GSC Performance Command:</span>
+                    <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="copyBlock('gen-gsc-command')"><i class="bi bi-clipboard"></i> Copy</button>
+                </div>
+                <pre class="bg-dark text-info p-2.5 rounded small font-monospace" id="gen-gsc-command">python reports/performance_analysis.py sc-domain:accountancydaily.co --last-7-days</pre>
+            </div>
+
+            <!-- Generated GA4 Command -->
+            <div class="p-3 border rounded bg-light">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-success small"><i class="bi bi-bar-chart-fill me-1"></i> Generated GA4 Traffic Acquisition Command:</span>
+                    <button class="btn btn-sm btn-outline-success py-0 px-2" onclick="copyBlock('gen-ga4-command')"><i class="bi bi-clipboard"></i> Copy</button>
+                </div>
+                <pre class="bg-dark text-info p-2.5 rounded small font-monospace" id="gen-ga4-command">python run_report.py -p 354746488 -r traffic_acquisition_report -sd YYYY-MM-DD -ed YYYY-MM-DD -o html</pre>
+            </div>
+        </section>
+
+        <!-- Section: Master Reporting Reference & Catalogue -->
+        <section id="master-cheat-sheet" class="main-card">
+            <h2><span class="badge-step"><i class="bi bi-table"></i></span> Master Reporting Reference &amp; Execution Guide</h2>
+            <p>A consolidated catalogue of all available weekly reporting modules across the two repositories:</p>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th>Script Name</th>
+                            <th>Repo</th>
+                            <th>When to Run</th>
+                            <th>Output Format</th>
+                            <th>Core Value / Strategic Insight</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Mandatory Suite -->
+                        <tr class="table-primary">
+                            <td><code>weekly_editorial_summary_report.py</code></td>
+                            <td><span class="badge badge-gsc">GSC</span></td>
+                            <td>Every Monday (10:00 AM)</td>
+                            <td>CSV, Distribution HTML, Terminal</td>
+                            <td>Top news stories, click volume, Discover reach for editorial leads.</td>
+                        </tr>
+                        <tr class="table-primary">
+                            <td><code>monitoring/canary_report.py</code></td>
+                            <td><span class="badge badge-gsc">GSC</span></td>
+                            <td>Every Monday (10:15 AM)</td>
+                            <td>Interactive HTML</td>
+                            <td>Portfolio-wide search health radar (WoW &amp; MoM clicks/impressions/CTR).</td>
+                        </tr>
+                                                <tr class="table-primary">
+                            <td><code>reports/key_performance_metrics.py</code></td>
+                            <td><span class="badge badge-gsc">GSC</span></td>
+                            <td>Every Monday (10:18 AM)</td>
+                            <td>Interactive HTML, CSV</td>
+                            <td>12-week trend analysis and key metrics for core properties (Croner, Croner-i, HR-inform).</td>
+                        </tr>
+                        <tr class="table-primary">
+                            <td><code>monitoring/weekly_canary_html.py</code></td>
+                            <td><span class="badge badge-ga4">GA4</span></td>
+                            <td>Every Monday (10:20 AM)</td>
+                            <td>Interactive HTML (Medium)</td>
+                            <td>Portfolio-wide active users by channel medium vs last week, month, YoY.</td>
+                        </tr>
+                        <tr class="table-primary">
+                            <td><code>monitoring/weekly_canary_html.py --source</code></td>
+                            <td><span class="badge badge-ga4">GA4</span></td>
+                            <td>Every Monday (10:22 AM)</td>
+                            <td>Interactive HTML (Source/Medium)</td>
+                            <td>Granular referral, search engine, and marketing campaign breakdown.</td>
+                        </tr>
+
+                        <!-- Diagnostics -->
+                        <tr>
+                            <td><code>performance_analysis.py</code></td>
+                            <td><span class="badge badge-gsc">GSC</span></td>
+                            <td>When GSC Canary flags Amber/Red</td>
+                            <td>Console / CSV</td>
+                            <td>Diagnoses whether click drops stem from ranking loss or search impression loss.</td>
+                        </tr>
+                        <tr>
+                            <td><code>queries_pages_analysis.py</code></td>
+                            <td><span class="badge badge-gsc">GSC</span></td>
+                            <td>When GSC rankings drop</td>
+                            <td>Console / CSV</td>
+                            <td>Surfaces specific keyword-to-page attribution changes.</td>
+                        </tr>
+                        <tr>
+                            <td><code>page_level_report.py</code></td>
+                            <td><span class="badge badge-gsc">GSC</span></td>
+                            <td>Discover vs Web triage</td>
+                            <td>Console / CSV</td>
+                            <td>Granular URL-level census across Web, Discover, or News search types.</td>
+                        </tr>
+                        <tr>
+                            <td><code>traffic_acquisition_report</code></td>
+                            <td><span class="badge badge-ga4">GA4</span></td>
+                            <td>When GA4 users drop</td>
+                            <td>HTML / CSV</td>
+                            <td>Channels breakdown: Organic, Direct, Referral, Paid Search, Email.</td>
+                        </tr>
+                        <tr>
+                            <td><code>landing_pages_report</code></td>
+                            <td><span class="badge badge-ga4">GA4</span></td>
+                            <td>Traffic drop triage</td>
+                            <td>HTML / CSV</td>
+                            <td>Lists specific entry pages suffering drop in sessions and users.</td>
+                        </tr>
+                        <tr>
+                            <td><code>all_properties_ai_traffic_report.py</code></td>
+                            <td><span class="badge badge-ga4">GA4</span></td>
+                            <td>Monthly / Periodic Review</td>
+                            <td>Terminal / Matrix</td>
+                            <td>Tracks AI tool referral traffic (ChatGPT, Perplexity, Claude, Copilot) across all 11 properties.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+
         <!-- Section: Quick Cheat Sheet -->
         <section id="quick-cheat-sheet" class="main-card">
             <h2><span class="badge-step"><i class="bi bi-lightning-charge-fill"></i></span> Unified Quick-Run Cheat Sheet</h2>
@@ -860,6 +1294,10 @@ python reports/weekly_editorial_summary_report.py sc-domain:accountancydaily.co
 
 # === 2. GSC CANARY REPORT ===
 python reports/monitoring/canary_report.py --config config/properties.json
+python reports/key_performance_metrics.py https://app.croneri.co.uk --weeks 12
+python reports/key_performance_metrics.py https://library.croneri.co.uk --weeks 12
+python reports/key_performance_metrics.py https://www.croneri.co.uk --weeks 12
+python reports/key_performance_metrics.py https://www.hr-inform.co.uk --weeks 12
 deactivate
 
 # === 3. GA4 CANARY REPORTS ===
@@ -899,7 +1337,7 @@ echo "All Monday reports generated successfully!"</pre>
                     </h2>
                     <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                         <div class="accordion-body small">
-                            Google Search Console takes 48 to 72 hours to finalize and aggregate search queries, clicks, and impressions. The scripts use smart date detection to automatically anchor to the latest <em>complete</em> available date, ensuring we never compare incomplete partial days.
+                            Google Search Console takes 48 to 72 hours to finalise and aggregate search queries, clicks, and impressions. The scripts use smart date detection to automatically anchor to the latest <em>complete</em> available date, ensuring we never compare incomplete partial days.
                         </div>
                     </div>
                 </div>
@@ -930,7 +1368,38 @@ echo "All Monday reports generated successfully!"</pre>
     <!-- Bootstrap JS & Interactive Helper Script -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        const PROPERTY_DATA = {
+            accountancy: { gsc: "sc-domain:accountancydaily.co", ga4: "354746488", name: "Accountancy Daily" },
+            croner: { gsc: "sc-domain:croner.co.uk", ga4: "256798047", name: "Croner" },
+            taxwise: { gsc: "sc-domain:cronertaxwise.com", ga4: "521516305", name: "Croner Taxwise" },
+            corporate: { gsc: "https://www.croneri.co.uk/", ga4: "309716917", name: "Croner-i Corporate" },
+            app: { gsc: "https://app.croneri.co.uk/", ga4: "308634050", name: "Croner-i App" },
+            learning: { gsc: "https://learning.croneri.co.uk", ga4: "453860440", name: "Croner-i Learning" },
+            library: { gsc: "https://library.croneri.co.uk/", ga4: "386965290", name: "Croner-i Library" },
+            pages: { gsc: "https://pages.croneri.co.uk/", ga4: "454945608", name: "Croner-i Pages (Marketo)" },
+            employer: { gsc: "sc-domain:employeradvice.org", ga4: "250644053", name: "Employer Advice" },
+            hrinform: { gsc: "sc-domain:hr-inform.co.uk", ga4: "397646972", name: "HR-inform UK" },
+            myviptax: { gsc: "sc-domain:myviptaxteam.com", ga4: "349622346", name: "My VIP Tax Team" }
+        };
+
         let currentCalculations = {};
+
+        function updateGeneratedCommands() {
+            const selector = document.getElementById('propertySelector');
+            if (!selector) return;
+            const propKey = selector.value;
+            const prop = PROPERTY_DATA[propKey] || PROPERTY_DATA.accountancy;
+
+            const gscPre = document.getElementById('gen-gsc-command');
+            if (gscPre) {
+                gscPre.innerText = `python reports/performance_analysis.py ${prop.gsc} --last-7-days`;
+            }
+
+            const ga4Pre = document.getElementById('gen-ga4-command');
+            if (ga4Pre && currentCalculations.startDateStr && currentCalculations.endDateStr) {
+                ga4Pre.innerText = `python run_report.py -p ${prop.ga4} -r traffic_acquisition_report -sd ${currentCalculations.startDateStr} -ed ${currentCalculations.endDateStr} -o html`;
+            }
+        }
 
         function showToast(message) {
             const toast = document.getElementById('copyToast');
@@ -1039,6 +1508,15 @@ echo "All Monday reports generated successfully!"</pre>
             document.querySelectorAll('.dyn-canary-date').forEach(el => {
                 el.innerText = todayStr;
             });
+
+            document.querySelectorAll('.dyn-playbook-start').forEach(el => {
+                el.innerText = startDateStr;
+            });
+            document.querySelectorAll('.dyn-playbook-end').forEach(el => {
+                el.innerText = endDateStr;
+            });
+
+            updateGeneratedCommands();
         }
 
         function copyEditorialSubject() {
