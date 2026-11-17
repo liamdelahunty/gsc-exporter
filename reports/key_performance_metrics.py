@@ -122,12 +122,11 @@ def run_report(service, site_url, months=16, anchor_end_date=None, weekly=False,
             
         # 3. Process to Weekly
         df['date'] = pd.to_datetime(df['date'])
-        # Assign each date to its week starting on Monday
+        # Assign each date to its week starting on Monday (Week Commencing from-date only)
         df['week_start'] = df['date'].apply(lambda d: d - timedelta(days=d.weekday()))
-        df['week_end'] = df['week_start'] + timedelta(days=6)
-        df['week'] = df.apply(lambda r: f"{r['week_start'].strftime('%Y-%m-%d')} to {r['week_end'].strftime('%Y-%m-%d')}", axis=1)
+        df['Week Commencing'] = df['week_start'].dt.strftime('%Y-%m-%d')
         
-        weekly_df = df.groupby(['week', 'week_start']).agg({
+        weekly_df = df.groupby(['Week Commencing', 'week_start']).agg({
             'clicks': 'sum',
             'impressions': 'sum',
             'position': 'mean'
@@ -142,7 +141,7 @@ def run_report(service, site_url, months=16, anchor_end_date=None, weekly=False,
         os.makedirs(output_dir, exist_ok=True)
         slug = get_filename_slug(site_url)
         
-        file_prefix = f"key-metrics-weekly-{slug}-{end_date}"
+        file_prefix = f"key-metrics-weekly-{slug}-{start_date}-{end_date}"
         csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
         html_path = os.path.join(output_dir, f"{file_prefix}.html")
         
@@ -152,7 +151,7 @@ def run_report(service, site_url, months=16, anchor_end_date=None, weekly=False,
         
         full_period_str = f"Weekly breakdown ({weeks} weeks) from {start_date} to {end_date}"
         html_content = create_single_site_html_report(
-            weekly_df, site_url, full_period_str, label_col='week', sort_col='week_start'
+            weekly_df, site_url, full_period_str, label_col='Week Commencing', sort_col='week_start'
         )
         
         with open(html_path, 'w', encoding='utf-8') as f:

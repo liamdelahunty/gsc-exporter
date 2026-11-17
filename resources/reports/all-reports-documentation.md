@@ -541,8 +541,8 @@ python reports/key_performance_metrics.py <site_url> --weekly --weeks 4
 
 This report generates the following files in the output directory:
 
-* `output/<domain>/key-metrics-weekly-{slug}-{end_date}.csv` (CSV dataset)
-* `output/<domain>/key-metrics-weekly-{slug}-{end_date}.html` (HTML report)
+* `output/<domain>/key-metrics-weekly-{slug}-{start_date}-{end_date}.csv` (CSV dataset)
+* `output/<domain>/key-metrics-weekly-{slug}-{start_date}-{end_date}.html` (HTML report)
 * `output/<domain>/key-metrics-{slug}-{most_recent}.csv` (CSV dataset)
 * `output/<domain>/key-metrics-{slug}-{most_recent}.html` (HTML report)
 
