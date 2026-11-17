@@ -1,5 +1,5 @@
 """
-Performs analysis of Google Search Console data, gathering key performance metrics.
+Performs analysis of Google Search Console data, gathering key performance metrics on a monthly or weekly basis.
 Refactored for modular GSC Exporter.
 """
 import os
@@ -10,13 +10,14 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from core.naming import get_output_dir, get_filename_slug
 from core.cache import fetch_with_cache
-from core.date_utils import parse_standard_date_args
+from core.date_utils import parse_standard_date_args, get_latest_available_date
 
-def create_single_site_html_report(df, report_title, full_period_str):
+def create_single_site_html_report(df, report_title, full_period_str, label_col='month', sort_col='month_date'):
     """Generates a simplified HTML report for a single site, including a chart."""
     df_table = df.copy()
-    if 'month_date' in df_table.columns:
-        df_table = df_table.drop(columns=['month_date'])
+    cols_to_drop = [c for c in ['month_date', 'week_start', 'week_end', 'sort_col'] if c in df_table.columns]
+    if cols_to_drop:
+        df_table = df_table.drop(columns=cols_to_drop)
     
     df_table['clicks'] = df_table['clicks'].apply(lambda x: f"{x:,.0f}")
     df_table['impressions'] = df_table['impressions'].apply(lambda x: f"{x:,.0f}")
@@ -24,7 +25,10 @@ def create_single_site_html_report(df, report_title, full_period_str):
     df_table['position'] = df_table['position'].apply(lambda x: f"{x:.2f}")
     
     report_body = df_table.to_html(classes="table table-striped table-hover", index=False, border=0)
-    chart_data = df.sort_values(by='month').to_json(orient='records')
+    if sort_col and sort_col in df.columns:
+        chart_data = df.sort_values(by=sort_col).to_json(orient='records', date_format='iso')
+    else:
+        chart_data = df.sort_values(by=label_col).to_json(orient='records', date_format='iso')
 
     return f"""
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -42,7 +46,7 @@ def create_single_site_html_report(df, report_title, full_period_str):
 <footer><p><a href="https://github.com/liamdelahunty/gsc-exporter" target="_blank">gsc-exporter</a></p></footer>
 <script>
     const data = {chart_data};
-    const labels = data.map(row => row.month);
+    const labels = data.map(row => row['{label_col}']);
 
     new Chart(document.getElementById('performanceChart'), {{
         type: 'line',
@@ -82,13 +86,93 @@ def create_single_site_html_report(df, report_title, full_period_str):
 </script>
 </body></html>"""
 
-def run_report(service, site_url, months=16, anchor_end_date=None):
+def run_report(service, site_url, months=16, anchor_end_date=None, weekly=False, weeks=4):
     """Executes the Key Performance Metrics report."""
+    if weekly:
+        print(f"Running Weekly Key Performance Metrics for {site_url} ({weeks} weeks)...")
+        
+        # 1. Date Range: Complete weeks ending on the most recent completed Sunday
+        if anchor_end_date:
+            if isinstance(anchor_end_date, str):
+                anchor_dt = datetime.strptime(anchor_end_date, '%Y-%m-%d').date()
+            elif isinstance(anchor_end_date, datetime):
+                anchor_dt = anchor_end_date.date()
+            else:
+                anchor_dt = anchor_end_date
+        else:
+            anchor_dt = get_latest_available_date(service, site_url)
+            if isinstance(anchor_dt, datetime):
+                anchor_dt = anchor_dt.date()
+                
+        # Calculate most recent completed Sunday on or before anchor_dt
+        # Python weekday(): Monday=0, ..., Sunday=6
+        days_since_sunday = (anchor_dt.weekday() + 1) % 7
+        end_sunday = anchor_dt - timedelta(days=days_since_sunday)
+        start_monday = end_sunday - timedelta(days=(weeks * 7) - 1)
+        
+        start_date = start_monday.strftime('%Y-%m-%d')
+        end_date = end_sunday.strftime('%Y-%m-%d')
+        
+        # 2. Fetch Data (Aggregated by date for site-wide metrics)
+        df = fetch_with_cache(service, site_url, start_date, end_date, ['date'])
+        
+        if df.empty:
+            print("No data found.")
+            return None
+            
+        # 3. Process to Weekly
+        df['date'] = pd.to_datetime(df['date'])
+        # Assign each date to its week starting on Monday
+        df['week_start'] = df['date'].apply(lambda d: d - timedelta(days=d.weekday()))
+        df['week_end'] = df['week_start'] + timedelta(days=6)
+        df['week'] = df.apply(lambda r: f"{r['week_start'].strftime('%Y-%m-%d')} to {r['week_end'].strftime('%Y-%m-%d')}", axis=1)
+        
+        weekly_df = df.groupby(['week', 'week_start']).agg({
+            'clicks': 'sum',
+            'impressions': 'sum',
+            'position': 'mean'
+        }).reset_index()
+        
+        weekly_df['ctr'] = weekly_df['clicks'] / weekly_df['impressions']
+        # Sort descending by week_start (newest week first in table)
+        weekly_df = weekly_df.sort_values('week_start', ascending=False)
+        
+        # 4. Output Paths
+        output_dir = get_output_dir(site_url)
+        os.makedirs(output_dir, exist_ok=True)
+        slug = get_filename_slug(site_url)
+        
+        file_prefix = f"key-metrics-weekly-{slug}-{end_date}"
+        csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
+        html_path = os.path.join(output_dir, f"{file_prefix}.html")
+        
+        # 5. Save and Generate
+        csv_df = weekly_df.drop(columns=['week_start'], errors='ignore')
+        csv_df.to_csv(csv_path, index=False, encoding='utf-8')
+        
+        full_period_str = f"Weekly breakdown ({weeks} weeks) from {start_date} to {end_date}"
+        html_content = create_single_site_html_report(
+            weekly_df, site_url, full_period_str, label_col='week', sort_col='week_start'
+        )
+        
+        with open(html_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+            
+        print(f"CSV saved to: {csv_path}")
+        print(f"HTML saved to: {html_path}")
+        return html_path
+
+    # Standard Monthly Report
     print(f"Running Key Performance Metrics for {site_url} ({months} months)...")
     
     # 1. Date Range
     if anchor_end_date:
-        end_date_dt = datetime.strptime(anchor_end_date, '%Y-%m-%d').date()
+        if isinstance(anchor_end_date, str):
+            end_date_dt = datetime.strptime(anchor_end_date, '%Y-%m-%d').date()
+        elif isinstance(anchor_end_date, datetime):
+            end_date_dt = anchor_end_date.date()
+        else:
+            end_date_dt = anchor_end_date
     else:
         today = date.today()
         end_date_dt = today.replace(day=1) - timedelta(days=1)
@@ -136,7 +220,9 @@ def run_report(service, site_url, months=16, anchor_end_date=None):
     monthly_df.to_csv(csv_path, index=False, encoding='utf-8')
     
     full_period_str = f"Monthly breakdown from {monthly_df['month'].min()} to {monthly_df['month'].max()}"
-    html_content = create_single_site_html_report(monthly_df, site_url, full_period_str)
+    html_content = create_single_site_html_report(
+        monthly_df, site_url, full_period_str, label_col='month', sort_col='month_date'
+    )
     
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
@@ -154,14 +240,22 @@ if __name__ == '__main__':
     parser.add_argument('--end-date', help='End date (YYYY-MM-DD).')
     parser.add_argument('--last-7-days', action='store_true', help='Run for the last 7 available days.')
     parser.add_argument('--last-month', action='store_true', help='Run for the last calendar month.')
-    parser.add_argument('--months', type=int, default=16)
+    parser.add_argument('--months', type=int, default=16, help='Number of months for monthly report (default: 16).')
+    parser.add_argument('--weekly', action='store_true', help='Run report on a weekly basis (weeks start on Monday).')
+    parser.add_argument('--weeks', type=int, default=None, help='Number of weeks for weekly report (default: 4). Automatically enables weekly mode.')
     args = parser.parse_args()
     
-    # Standardise date args
-    
+    is_weekly = args.weekly or (args.weeks is not None)
+    weeks = args.weeks if args.weeks is not None else 4
     
     service = get_gsc_service()
     if service:
-        start_date, end_date = parse_standard_date_args(args, service, args.site_url)
-        # We use end_date as the anchor for the 16-month lookback
-        run_report(service, args.site_url, args.months, anchor_end_date=end_date)
+        if is_weekly:
+            anchor = args.end_date
+            if not anchor and (args.last_month or args.last_7_days):
+                _, anchor = parse_standard_date_args(args, service, args.site_url)
+            run_report(service, args.site_url, anchor_end_date=anchor, weekly=True, weeks=weeks)
+        else:
+            start_date, end_date = parse_standard_date_args(args, service, args.site_url)
+            # We use end_date as the anchor for the 16-month lookback
+            run_report(service, args.site_url, months=args.months, anchor_end_date=end_date)

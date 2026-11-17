@@ -464,6 +464,95 @@ def test_monthly_summary_report_single_site(mock_service, mocker):
         html = f.read()
     assert 'GSC Monthly Summary for https://www.example.co.uk/' in html
 
+def test_key_performance_metrics_monthly(mock_service, mocker):
+    daily_mock_data = {
+        'date': ['2026-09-15', '2026-09-16', '2026-10-10', '2026-10-11'],
+        'clicks': [10, 20, 30, 40],
+        'impressions': [100, 200, 300, 400],
+        'position': [2.5, 3.5, 4.5, 5.5],
+        'ctr': [0.1, 0.1, 0.1, 0.1]
+    }
+    mocker.patch('reports.key_performance_metrics.fetch_with_cache', return_value=pd.DataFrame(daily_mock_data))
+    from reports.key_performance_metrics import run_report
+
+    site = 'https://www.example.co.uk/'
+    html_path = run_report(mock_service, site, months=2, anchor_end_date='2026-10-31')
+
+    assert html_path is not None
+    assert os.path.exists(html_path)
+    output_dir = get_output_dir(site)
+    slug = get_filename_slug(site)
+    expected_csv = os.path.join(output_dir, f"key-metrics-{slug}-2026-10.csv")
+    expected_html = os.path.join(output_dir, f"key-metrics-{slug}-2026-10.html")
+    assert os.path.exists(expected_csv)
+    assert os.path.exists(expected_html)
+
+    df_out = pd.read_csv(expected_csv)
+    assert 'month' in df_out.columns
+    assert 'clicks' in df_out.columns
+    assert len(df_out) == 2
+
+    with open(html_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    assert 'Google Organic Performance Report' in content
+    assert 'Monthly breakdown' in content
+
+def test_key_performance_metrics_weekly(mock_service, mocker):
+    # Create 28 days of data from 2026-10-19 (Monday) to 2026-11-15 (Sunday)
+    dates = pd.date_range(start='2026-10-19', end='2026-11-15', freq='D').strftime('%Y-%m-%d').tolist()
+    daily_mock_data = {
+        'date': dates,
+        'clicks': [10] * len(dates),
+        'impressions': [100] * len(dates),
+        'position': [3.0] * len(dates),
+        'ctr': [0.1] * len(dates)
+    }
+    mock_fetch = mocker.patch('reports.key_performance_metrics.fetch_with_cache', return_value=pd.DataFrame(daily_mock_data))
+    from reports.key_performance_metrics import run_report
+
+    site = 'https://www.example.co.uk/'
+    # Anchor date is Tuesday 2026-11-17; most recent completed Sunday is 2026-11-15
+    html_path = run_report(mock_service, site, anchor_end_date='2026-11-17', weekly=True, weeks=4)
+
+    assert html_path is not None
+    assert os.path.exists(html_path)
+
+    # Verify fetch called with correct Monday to Sunday dates
+    mock_fetch.assert_called_once_with(mock_service, site, '2026-10-19', '2026-11-15', ['date'])
+
+    output_dir = get_output_dir(site)
+    slug = get_filename_slug(site)
+    expected_csv = os.path.join(output_dir, f"key-metrics-weekly-{slug}-2026-11-15.csv")
+    expected_html = os.path.join(output_dir, f"key-metrics-weekly-{slug}-2026-11-15.html")
+    assert os.path.exists(expected_csv)
+    assert os.path.exists(expected_html)
+
+    df_out = pd.read_csv(expected_csv)
+    assert 'week' in df_out.columns
+    assert 'clicks' in df_out.columns
+    assert 'impressions' in df_out.columns
+    assert 'position' in df_out.columns
+    assert 'ctr' in df_out.columns
+    assert len(df_out) == 4
+
+    # Option B check: "YYYY-MM-DD to YYYY-MM-DD"
+    expected_weeks = [
+        '2026-11-09 to 2026-11-15',
+        '2026-11-02 to 2026-11-08',
+        '2026-10-26 to 2026-11-01',
+        '2026-10-19 to 2026-10-25'
+    ]
+    assert list(df_out['week']) == expected_weeks
+
+    # Check totals per week (7 days * 10 clicks = 70)
+    assert all(df_out['clicks'] == 70)
+
+    with open(html_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    assert 'Google Organic Performance Report' in content
+    assert 'Weekly breakdown (4 weeks) from 2026-10-19 to 2026-11-15' in content
+    assert '2026-11-09 to 2026-11-15' in content
+
 
 
 

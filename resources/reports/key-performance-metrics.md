@@ -7,9 +7,14 @@ Refactored for modular GSC Exporter.
 
 ## Command Line Usage
 
-### Standard Example
+### Standard Example (Monthly)
 ```bash
 python reports/key_performance_metrics.py <site_url> --last-month
+```
+
+### Weekly Reporting Example
+```bash
+python reports/key_performance_metrics.py <site_url> --weekly --weeks 4
 ```
 
 ### Argument Reference
@@ -21,8 +26,9 @@ python reports/key_performance_metrics.py <site_url> --last-month
 
 ### Optional Arguments
 
-* **`--months`**: No description available. (default: `16`)
-
+* **`--months`**: Number of months for monthly report (default: `16`).
+* **`--weekly`**: Produce reports aggregated on a weekly basis, starting on Monday and ending on Sunday.
+* **`--weeks`**: Number of weeks to report on (default: `4`). Automatically enables weekly mode.
 
 ---
 
@@ -30,8 +36,12 @@ python reports/key_performance_metrics.py <site_url> --last-month
 
 This report generates the following files in the output directory:
 
-* `output/<domain>/{file_prefix}.csv` (CSV dataset)
-* `output/<domain>/{file_prefix}.html` (HTML report)
+* Monthly mode:
+  * `output/<domain>/key-metrics-{slug}-{month}.csv`
+  * `output/<domain>/key-metrics-{slug}-{month}.html`
+* Weekly mode:
+  * `output/<domain>/key-metrics-weekly-{slug}-{end-date}.csv`
+  * `output/<domain>/key-metrics-weekly-{slug}-{end-date}.html`
 
 ---
 
