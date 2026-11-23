@@ -117,17 +117,17 @@ This tool discovers active URLs based on GSC historical query data and outputs a
 
     "key_performance_metrics": """## How to Interpret the Key Performance Metrics Report
 
-A macro-level dashboard tracking site health and search type distribution over a 16-month period.
+A macro-level dashboard tracking site health and organic visibility over monthly (16-month) or weekly intervals.
 
-### 1. Seasonal Trends
-* Spot year-over-year (YoY) changes, holiday dips, or quarterly industry trends.
+### 1. Seasonal Trends and Weekly Cadence
+* Spot year-over-year (YoY) changes, holiday dips, or quarterly industry trends in monthly mode.
+* Track short-term week-on-week fluctuations and recent campaign momentum in weekly mode.
 
-### 2. Search Type Distribution
-* Segment traffic across **Web, Image, Video, and News** search.
-* Identify if image search or video search is a major traffic contributor, which warrants additional media optimization.
+### 2. Search Performance Metrics
+* Track absolute clicks and impressions alongside click-through rates (CTR) and average search positions.
 
 ### 3. Historical Trajectory
-* Assess whether SEO strategies are yielding long-term compound growth or if site-wide visibility is in decline.""",
+* Assess whether SEO strategies are yielding compound growth or if site-wide visibility is in decline.""",
 
     "query_position_analysis": """## How to Interpret the Query Position Analysis Report
 
@@ -217,9 +217,19 @@ def parse_outputs_from_file(filepath, base_name):
 
     outputs = []
     
+    # Try to find file_prefix definitions when {file_prefix} is used
+    prefix_matches = []
+    if '{file_prefix}' in code:
+        prefix_matches = re.findall(r'file_prefix\s*=\s*[f]?[\'"]([^\'"]+)[\'"]', code)
+        for p in prefix_matches:
+            outputs.append(f"`output/<domain>/{p}.csv` (CSV dataset)")
+            outputs.append(f"`output/<domain>/{p}.html` (HTML report)")
+
     # Try to find CSV files
     csv_matches = re.findall(r'[\'"]([^\'"]+\.csv)[\'"]', code)
     for m in csv_matches:
+        if '{file_prefix}' in m and prefix_matches:
+            continue
         if '{' in m or 'slug' in m or 'start' in m:
             outputs.append(f"`output/<domain>/{m}` (CSV dataset)")
         else:
@@ -228,6 +238,8 @@ def parse_outputs_from_file(filepath, base_name):
     # Try to find HTML files
     html_matches = re.findall(r'[\'"]([^\'"]+\.html)[\'"]', code)
     for m in html_matches:
+        if '{file_prefix}' in m and prefix_matches:
+            continue
         if m.startswith('templates/'):
             continue # Skip templates
         if '{' in m or 'slug' in m or 'start' in m:
@@ -292,6 +304,8 @@ def main():
         example_cmd = f"python reports/{filename}{site_arg} --last-month"
         if base_name == "page_performance_single_page":
             example_cmd = f"python reports/{filename} sc-domain:example.com https://example.com/page-url --last-month"
+        elif base_name == "key_performance_metrics":
+            example_cmd = f"python reports/{filename}{site_arg} --last-month\n```\n\n### Weekly Reporting Example\n```bash\npython reports/{filename}{site_arg} --weekly --weeks 4"
 
         content = f"""# {report_title}
 

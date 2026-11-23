@@ -33,7 +33,7 @@ All reports in the `reports/` directory support a standardised set of arguments:
 | `performance_analysis.py` | Detailed comparison highlighting rising stars, content decay, and high-value opportunities. |
 | `page_level_report.py` | Page-centric view with unique query counts and core performance metrics. |
 | `gsc_pages_queries.py` | Interactive "drill-down" report exploring the relationship between pages and queries. |
-| `key_performance_metrics.py` | High-level 16-month overview of account or site health. |
+| `key_performance_metrics.py` | High-level overview of site health on a monthly (16-month) or weekly (default 4 weeks) basis. |
 | `query_position_analysis.py` | Tracks ranking distribution over 16 months with trend charts. |
 | `snapshot_report.py` | Detailed single-period overview including device and country breakdowns. |
 | `keyword_cannibalisation_report.py` | Identifies queries where multiple pages are competing in search results. |
